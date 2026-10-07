@@ -1,0 +1,12 @@
+# macOS / editor noise
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+# Build outputs (paths will be finalised in docs/BUILD_SYSTEM.md once the build system is chosen)
+/output/
+/build/
+*.img
+*.img.xz

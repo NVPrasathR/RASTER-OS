@@ -1,0 +1,524 @@
+# PACSCORDER Hardware
+
+| | |
+|---|---|
+| Document status | DRAFT — no PACSCORDER hardware exists. Every PACSCORDER-specific value is `UNKNOWN — VERIFICATION REQUIRED`. |
+| Last updated | 2026-10-07 |
+| Applies to | PACSCORDER hardware, all revisions (none defined yet). Candidate platforms: Raspberry Pi 4 Model B, Compute Module 4 (CM4), Raspberry Pi 5, Compute Module 5 (CM5). The product needs both a 2-lane and a 4-lane CSI-2 configuration (REQ-CAP-007, owner 2026-10-07; §4.11). |
+| Verification | Source research of 2026-10-06 only ([REFERENCES.md](REFERENCES.md)). Nothing has been verified on PACSCORDER hardware: no hardware exists as of 2026-10-06. |
+| Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 8 (hardware documentation), Rule 22 (unknown information), Rule 23 (source priority), Rule 25 (new-engineer questions) |
+
+This document describes the **actual** PACSCORDER hardware (Rule 8). As of 2026-10-06 no PACSCORDER hardware exists, the target platform is undecided, and nothing has been tested (owner, 2026-10-06). On 2026-10-07 the owner required both a 2-lane and a 4-lane CSI-2 configuration (REQ-CAP-007) and named ATEM switchers and directly connected cameras as the HDMI sources (REQ-CAP-008). The platform for each lane configuration is still undecided (ADR-004, OPEN). Every subsection below therefore has two parts:
+
+- **PACSCORDER value** — what PACSCORDER's own hardware is. It is `UNKNOWN — VERIFICATION REQUIRED` unless a decision or a measurement exists. The marker and the open question (`OQ-NNN`, see [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)) that resolve it are named.
+- **Reference facts from sources** — what the cited sources say about the TC358743 and the Raspberry Pi side. These are design constraints. They are **not** a description of PACSCORDER.
+
+> **Rule for editors.** Do not copy a reference fact into a "PACSCORDER value" cell until it has been confirmed for the actual board, by schematic, BOM or measurement. Under Rule 23 a measurement on PACSCORDER hardware overrides every source fact. Record each confirmation with its evidence and the hardware revision (§8).
+
+Fact IDs such as `[A-36]` point to [REFERENCES.md](REFERENCES.md). Facts from the `community` tier are worded as reports. Facts from the `reasoning` tier, and Claude's own calculations, are labelled as reasoning. `CORRECTED` entries are used in their corrected wording only.
+
+Related documents: [DEVICE_TREE.md](DEVICE_TREE.md) describes how this hardware is declared to Linux. [CSI_PIPELINE.md](CSI_PIPELINE.md) covers the CSI-2 link, [TC358743_DRIVER.md](TC358743_DRIVER.md) the driver, and [TESTING.md](TESTING.md) the test procedures.
+
+---
+
+## 1. Current state
+
+| Item | State (2026-10-07) |
+|---|---|
+| PACSCORDER hardware | NOT STARTED. No board, PCB, bridge board or enclosure exists. |
+| Target platform | Undecided among Pi 4 Model B, CM4, Pi 5 and CM5 (owner, 2026-10-06: "keep all four"). The product needs both a 2-lane and a 4-lane CSI-2 configuration (REQ-CAP-007, owner 2026-10-07), so ADR-004 is now a choice per configuration. 2-lane candidates: Pi 4 Model B, CM4 CAM0, or a 2-lane bridge board on any port. 4-lane candidates: CM4 CAM1, Pi 5, CM5 (§4.11). ADR-004 is OPEN; OQ-011. |
+| TC358743 bridge | Undecided: third-party board or custom PCB. OQ-018. Whether one board design can serve both lane configurations is UNKNOWN (OQ-021). |
+| Hardware revisions | None defined (§8). |
+| Hardware-dependent tests | TEST-HW-001, TEST-DRV-001, TEST-DRV-002, TEST-PLT-001, TEST-CAP-001 to TEST-CAP-004 and TEST-AUD-001 are all `BLOCKED — HARDWARE REQUIRED`. |
+
+## 2. Rule 8 summary
+
+| Rule 8 item | PACSCORDER value | Resolution marker | Open questions | Section |
+|---|---|---|---|---|
+| Raspberry Pi / CM | UNKNOWN — VERIFICATION REQUIRED (one choice per lane configuration, REQ-CAP-007) | OWNER DECISION REQUIRED | OQ-011, OQ-018 | [§4.1](#41-raspberry-pi--cm) |
+| TC358743 | UNKNOWN — VERIFICATION REQUIRED (part suffix, silicon revision, board) | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OQ-018, OQ-029, OQ-034, OQ-085 | [§4.2](#42-tc358743) |
+| HDMI connector | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED; VENDOR CONFIRMATION REQUIRED | OQ-018, OQ-024 | [§4.3](#43-hdmi-connector) |
+| CSI connector | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED | OQ-021 | [§4.4](#44-csi-connector) |
+| I2C | UNKNOWN — VERIFICATION REQUIRED | DATASHEET REQUIRED; HARDWARE TEST REQUIRED | OQ-026, OQ-031, OQ-043 | [§4.5](#45-i2c) |
+| GPIO | UNKNOWN — VERIFICATION REQUIRED (no allocation exists) | VENDOR CONFIRMATION REQUIRED; OWNER DECISION REQUIRED | OQ-020, OQ-022, OQ-025 | [§4.6](#46-gpio) |
+| RESET | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED; DATASHEET REQUIRED | OQ-020, OQ-031 | [§4.7](#47-reset) |
+| INT | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED | OQ-020, OQ-026 | [§4.8](#48-int) |
+| POWER | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED; DATASHEET REQUIRED; HARDWARE TEST REQUIRED | OQ-023, OQ-024, OQ-031 | [§4.9](#49-power) |
+| CLOCK | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OQ-019 | [§4.10](#410-clock) |
+| CSI LANES | UNKNOWN — VERIFICATION REQUIRED (required: a 2-lane and a 4-lane configuration, REQ-CAP-007) | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OQ-021, OQ-002 (OQ-001 ANSWERED 2026-10-07) | [§4.11](#411-csi-lanes) |
+| ETHERNET | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED; DATASHEET REQUIRED | OQ-018, OQ-098 | [§4.12](#412-ethernet) |
+| USB | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED; DATASHEET REQUIRED | OQ-018, OQ-098 | [§4.13](#413-usb) |
+| STORAGE | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED; DATASHEET REQUIRED (boot-storage options per board) | OQ-006, OQ-018, OQ-098 | [§4.14](#414-storage) |
+
+## 3. Intended signal path
+
+The diagram shows the architecture mandated by Rule 5 at board level. **It is not a schematic.** Every PACSCORDER-specific element is unknown.
+
+```text
+HDMI source: ATEM switcher output or camera (REQ-CAP-008; models OQ-102)
+   │  TMDS, DDC, HPD, +5V (and CEC)
+   ▼
+[HDMI connector] ......................... PACSCORDER: UNKNOWN (OQ-018, OQ-024)
+   │
+   ▼
+[TC358743XBG]  HDMI-RX → CSI-2-TX bridge [A-01]
+   ├── REFCLK  ◄── oscillator on the bridge board, frequency UNKNOWN (OQ-019) [A-21], [A-45]
+   ├── RESETN  ◄── source UNKNOWN: Pi GPIO, CAM_GPIO or reset circuit (OQ-020) [A-27]
+   ├── INT     ──► Pi GPIO or not connected: UNKNOWN (OQ-020) [A-29]
+   ├── I2C     ◄─► Pi camera I2C bus: UNKNOWN (OQ-026) [A-39]
+   └── I2S     ──► Pi GPIOs, only if audio is required: UNKNOWN (OQ-004, OQ-025) [A-11], [A-12]
+   │
+   │  CSI-2: 1 clock lane + N data lanes [A-05], [B-05]; N = 2 or 4 per
+   │  configuration (REQ-CAP-007); lanes routed by the board UNKNOWN (OQ-021)
+   ▼
+[CSI connector + cable/adapter] .......... PACSCORDER: UNKNOWN (OQ-021)
+   │
+   ▼
+[Raspberry Pi / CM CSI-2 receiver] ....... platform UNKNOWN per configuration (ADR-004, OQ-011)
+```
+
+---
+
+## 4. Rule 8 items
+
+### 4.1 Raspberry Pi / CM
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Platform (Pi 4 Model B, CM4, Pi 5 or CM5) | UNKNOWN — VERIFICATION REQUIRED. One platform and connector is needed for each lane configuration, 2-lane and 4-lane (REQ-CAP-007); candidates per configuration in §4.11. | OWNER DECISION REQUIRED — ADR-004 (OPEN, now a choice per configuration), OQ-011 |
+| RAM size | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED. It affects CMA sizing (OQ-061). |
+| Board revision of the units used | UNKNOWN — VERIFICATION REQUIRED | HARDWARE TEST REQUIRED: record from each unit on receipt (§8). |
+| Carrier board (CM4 or CM5 only): official IO board or custom | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018; for CM5, OQ-052 |
+| Compute Module variant (with eMMC or without) | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-006, OQ-018 |
+
+**Reference facts from sources**
+
+- **CSI-2 receiver.** Pi 4 Model B and CM4 (BCM2711) use the Unicam receiver [C-07], [C-09]. Pi 5 and CM5 use the RP1 CSI-2 receiver, driven by the RP1 CFE driver [C-29]. On Pi 5/CM5 the TC358743 overlay always uses Media Controller mode [C-11].
+- **Lanes.** Pi 4 Model B has one 2-lane camera connector [C-01]. CM4 has CAM0 with 2 lanes and CAM1 with 4 lanes [C-02]. Pi 5 has two 4-lane ports [C-04]. CM5 has two 4-lane MIPI interfaces [C-05]. Details per platform are in §5.
+- **Video encode hardware.** The BCM2711 (Pi 4B, CM4) is specified for H.264 1080p30 encode [D-10]. Pi 5 and CM5 have no hardware video encoder [D-31], [G-22]. See [VIDEO_ENCODER.md](VIDEO_ENCODER.md).
+- **Software image.** One Raspberry Pi OS Lite image (2026-10-06) contains kernels and device trees for all four candidates (reasoning-tier entry, CORRECTED) [G-71]. The BCM2712-optimised kernel (`kernel_2712.img`, built from `bcm2712_defconfig`) uses 16K pages [E-51], [G-20]; `kernel8.img` (4K pages) also runs on BCM2712 devices [G-20]. The product runs its own project-built OS image (REQ-BLD-002, owner 2026-10-07); the build tool is ADR-003 (ACCEPTED 2026-10-07: `rpi-image-gen`). See [BUILD_SYSTEM.md](BUILD_SYSTEM.md).
+- **RAM and CMA.** The device-tree CMA pool is limited to the lower 768 MB of RAM on Pi 4/CM4 and to the lower 1 GB by `bcm2712.dtsi` (Pi 5/CM5) (CORRECTED) [E-47]. The `cma-192` and larger CMA parameters need 1 GB of RAM [C-40].
+- **Consequence (reasoning; inputs [C-01], [C-37], [C-48]).** Pi 4 Model B cannot carry 1080p60 from the TC358743; its limit is 1080p50 UYVY or 1080p30 RGB888. Under REQ-CAP-007 (owner, 2026-10-07; OQ-001 ANSWERED) 1080p60 is required on the 4-lane configuration, so Pi 4 Model B is excluded from the 4-lane configuration but remains a candidate for the 2-lane configuration (RISK-001; ADR-004 OPEN). The same applies to CM4 CAM0 [C-02].
+
+### 4.2 TC358743
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Part number and ordering suffix | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-018. Which suffixes carry HDCP keys: OQ-028. Alternative parts TC358743AXBG and TC9590XBG: OQ-034. |
+| Mounted on | UNKNOWN — VERIFICATION REQUIRED (third-party bridge board or custom PCB) | OWNER DECISION REQUIRED — OQ-018 |
+| Silicon revision (CHIPID bits [7:0]) | UNKNOWN — VERIFICATION REQUIRED | HARDWARE TEST REQUIRED — OQ-029 (read during TEST-DRV-001) |
+| Number of TC358743 devices (HDMI inputs) per unit | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018 |
+| Design documentation held | Public datasheet Rev. 2.20 (2026-05-11) only [A-01]. NDA Functional Specification and register spreadsheet not held. | VENDOR CONFIRMATION REQUIRED — OQ-027 |
+| Supply and lifecycle | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-085, RISK-004 |
+
+**Reference facts from sources**
+
+- **Function.** The TC358743XBG is an HDMI-RX to MIPI CSI-2-TX bridge. The current public datasheet is the combined TC358743XBG/TC9590XBG document, Rev. 2.20 of 2026-05-11, 20 pages [A-01]. The receiver is HDMI-RX 1.4, without Audio Return Channel or HDMI Ethernet Channel [A-02].
+- **Input limits.** The maximum TMDS clock is 165 MHz; video input is supported up to 1080p60 [A-07]. The Linux driver's DV-timings capability covers 640–1920 × 350–1200 pixels and 13–165 MHz pixel clock, and advertises progressive timings without the interlaced capability [A-08].
+- **Output.** CSI-2 with up to 4 data lanes and up to 1 Gbps per lane [A-05]; 1, 2, 3 or 4 lanes are configurable [A-06].
+- **Audio.** Output is I2S or TDM on shared pins, in controller (master) clock mode only [A-11]. The silicon can also send audio over CSI-2 [A-05]. The Linux driver always configures 2-channel I2S output [A-13]. Reasoning: with the stock driver, audio therefore needs the I2S wiring in §4.6, separate from the CSI-2 connection.
+- **HDCP.** The datasheet lists "Support HDCP (optional)" without a version [A-03]. The Linux driver disables HDCP authentication on Device Tree platforms [A-04]. See RISK-008 and OQ-028.
+- **Package.** TC358743XBG: P-TFBGA64, 64 balls, 6.0 × 6.0 mm, 0.65 mm pitch, 1.2 mm maximum height. TC9590XBG uses a different 7.0 × 7.0 mm, 0.80 mm pitch package [A-40].
+- **Temperature and ESD.** TC358743XBG operating range is −30 to +70 °C ambient; TC9590XBG is −40 to +85 °C; storage is −40 to +125 °C. The datasheet notes that the product is weak against ESD [A-41].
+- **Chip identification.** CHIPID is the 16-bit register 0x0000: bits [15:8] are the chip ID and bits [7:0] the revision [A-18]. The driver requires the chip-ID byte to read 0x00 and does not check the revision [A-19].
+- **Documentation gap.** Only the 20-page summary datasheet is public. It has no register map, no I2C address and no AC timing. The Linux driver was written against non-public Toshiba documents [A-42] (RISK-005, OQ-027).
+- **Other blocks.** An infrared input exists but the driver holds it in reset [A-49]. A CEC pin exists; Linux CEC support is a separate kernel option [A-34] (OQ-016).
+- **Lifecycle (research notes, not register facts).** The research recorded a Raspberry Pi engineer's belief that the part is end-of-life, and that Toshiba's product page showed no EOL or NRND flag when fetched (topic C open question). It also recorded that the product page listed the TC358743XBG as mass production on 2026-10-06 (topic A gap). VENDOR CONFIRMATION REQUIRED — OQ-085.
+
+### 4.3 HDMI connector
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Connector type and position | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018 |
+| Number of HDMI inputs | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018 |
+| HPD output circuit and +5V sensing | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED (schematic); DATASHEET REQUIRED — OQ-024 |
+| ESD protection on the HDMI lines | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-018 |
+| CEC line connected | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-016 |
+
+**Sources the connector must accept (requirement, not a hardware value).** HDMI sources are the HDMI outputs of Blackmagic ATEM switchers and cameras connected directly (REQ-CAP-008, DRAFT; owner, 2026-10-07; OQ-009 ANSWERED). Which models is OPEN (OQ-102). The ATEM Mini Pro has one HDMI program output with 1080p23.98 to 1080p60 output standards and no 720p, 1080i or Ultra HD [F-23]. Camera HDMI output modes and HDCP behaviour are UNKNOWN — VERIFICATION REQUIRED per model (OQ-102); the driver disables HDCP [A-04] (RISK-008).
+
+**Reference facts from sources**
+
+- **Signal levels.** DDC_SCL, DDC_SDA and HPDI are 5 V tolerant and sit in the VDDIO1 (3.3 V) domain. HPDO (hot-plug detect output) is in the same VDDIO1 domain but is not in that 5 V tolerant list [A-39]. How the bridge board drives HPD toward the source and senses source +5V is unknown (OQ-024).
+- **CEC.** The CEC pin (ball G1) is in the VDDIO1 3.3 V domain. Linux CEC support needs `CONFIG_VIDEO_TC358743_CEC` [A-34], which the Raspberry Pi defconfigs do not enable [B-20].
+- **Hot-plug behaviour.** The driver asserts HPD only after userspace has written an EDID and source +5V is present. With an EDID and +5V present, HPD rises after HZ/7 jiffies, 140 ms at the Raspberry Pi default HZ=250 (CORRECTED) [A-33], [B-21]. When +5V disappears the driver drops HPD and clears the stored timings [B-23]. See RISK-010 and REQ-CAP-003.
+- **EDID memory.** 1 KB of embedded EDID SRAM; EDID 1.3 base block plus one CEA-861-D extension [A-31].
+- **HDMI PHY support components.** REXT must connect to AVDD33 through a 2 kΩ ±1 % resistor. VPGM, the eFuse programming supply, must be tied to ground [A-37].
+- **ESD (reasoning).** The datasheet says the part is weak against ESD [A-41], so ESD protection at the HDMI connector is a design item for any custom PCB (OQ-018).
+
+### 4.4 CSI connector
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Bridge-side connector (15-pin 1.0 mm or 22-pin 0.5 mm) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 |
+| Cable or adapter, contact sides, length | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 |
+| Pi-side connector used (Pi 4B camera port, CM CAM0/CAM1, Pi 5 CAM/DISP0/1, CM5 MIPI0/1) | UNKNOWN — VERIFICATION REQUIRED, one per lane configuration (REQ-CAP-007); connector-to-configuration map in §4.11 | OWNER DECISION REQUIRED — ADR-004, OQ-011, OQ-021 |
+
+**Reference facts from sources**
+
+- **Pi 4 Model B:** one standard 15-pin, 1.0 mm pitch, 16 mm wide CSI connector [C-01].
+- **CM4 IO Board:** both CSI-2 interfaces go to separate 22-pin, 0.5 mm pitch connectors. CSI0 (2 lanes) needs both J6 jumpers fitted to route I2C to its connector [C-03].
+- **Pi 5:** two mini 22-pin, 0.5 mm pitch, 11.5 mm wide combined CSI/DSI ports [C-04].
+- **CM5:** MIPI0 is on the CM4 CAM1 pins 115–141; MIPI1 is on the CM4 DSI1 pins 175–196. The CM4 CAM0 pins 128–142 carry USB 3.0 on CM5 [C-05].
+- **CM5 IO Board:** two dual-purpose 22-pin CAM/DISP connectors. CAM/DISP 0 has a camera power-down signal. CAM/DISP 1 needs two J6 jumpers to route I2C, and a camera on it cannot be powered down [C-06].
+- **Cable hazard (community).** A Raspberry Pi engineer (6by9) reported that the Auvidea B101 uses a 15-pin FFC with contacts on the same side, while Pi 5 has 22-pin connectors. He reported that a wrongly sided 22-to-15 adapter swaps pin 1 (GND) with pin 15 (3V3) and can damage either board [C-45] (RISK-021).
+- **Connector selection in software.** On boards with two connectors the overlay defaults to connector 1; appending `,cam0` selects connector 0 [C-39]. See [DEVICE_TREE.md](DEVICE_TREE.md).
+
+### 4.5 I2C
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Pi I2C controller and Linux bus | UNKNOWN — VERIFICATION REQUIRED (depends on platform and connector) | OQ-011, OQ-021; runtime bus number OQ-043 (TEST-PLT-001) |
+| TC358743 7-bit address | UNKNOWN — VERIFICATION REQUIRED. The kernel binding example and the Raspberry Pi overlay use 0x0f [A-15]; not confirmed for PACSCORDER. | DATASHEET REQUIRED; HARDWARE TEST REQUIRED — OQ-026 (TEST-HW-001) |
+| Pull-up resistors (value, voltage, location) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-024 |
+| Bus clock | UNKNOWN — VERIFICATION REQUIRED | DATASHEET REQUIRED — OQ-031 |
+| Other devices on the same bus | UNKNOWN — VERIFICATION REQUIRED | HARDWARE TEST REQUIRED — OQ-026 |
+
+**Reference facts from sources**
+
+- **Address.** The kernel binding example and the Raspberry Pi `tc358743.dtsi` place the TC358743 at 7-bit address 0x0f. The public datasheet states no address and no address-select strap [A-15]. The driver prints addresses in 8-bit form, so 0x0f appears as 0x1e in kernel messages [A-16].
+- **Possible strap.** The sister part TC358749XBG documents addresses 0x0F and 0x1F, selected by the INT pin at reset. No equivalent statement exists for TC358743XBG [A-50] (OQ-026). The research notes advise against driving or pulling INT strongly during reset until this is resolved (research gap, topic A; not a register fact).
+- **Speed.** The datasheet gives 100 kHz and 400 kHz. An older product brief also lists 2 MHz. The two documents conflict [A-14] (OQ-031).
+- **Protocol.** 16-bit register addresses sent MSB first, little-endian register values, at most 130 bytes per driver write [A-17]. The I2C adapter must support SMBus byte-data transfers [A-20].
+- **Voltage domain.** The host I2C pins are in VDDIO2, which is 1.8 V or 3.3 V [A-39], [A-36].
+- **Pi-side buses.** Per-platform buses and pins are in §5 [C-24]–[C-27], [B-44]. A Raspberry Pi engineer reported that Pi 5 camera I2C bus numbers changed between kernels (CORRECTED) [C-28].
+- **Bus sharing.** With CM5 on the CM4 IO Board, the `i2c_csi_dsi1` bus also serves DISP1, the on-board RTC and the fan controller [C-27]. Buildroot's CM4IO/CM5IO sample configurations also place an RTC on the camera bus (research gap, topic E; not a register fact). See [DEVICE_TREE.md](DEVICE_TREE.md).
+- **Reasoning (input [A-15]).** Two TC358743 devices at the same fixed address cannot share one bus. A multi-input design needs separate buses, or a second address confirmed by datasheet and test (OQ-018, OQ-026).
+
+### 4.6 GPIO
+
+**PACSCORDER value:** no GPIO allocation exists. UNKNOWN — VERIFICATION REQUIRED (OQ-020, OQ-022, OQ-025).
+
+| Signal | Direction and type (TC358743 side) | PACSCORDER Pi GPIO | Reference |
+|---|---|---|---|
+| RESETN | Input, active low, Schmitt [A-27] | UNKNOWN — VERIFICATION REQUIRED (OQ-020) | §4.7 |
+| INT | Output, active high, level [A-29] | UNKNOWN — VERIFICATION REQUIRED (OQ-020) | §4.8 |
+| Camera-connector CAM_GPIO (power enable) | Pi output [C-21], [C-22] | UNKNOWN whether the board uses it (OQ-022) | below |
+| A_SCK (I2S bit clock) | Output, VDDIO2 [A-12] | UNKNOWN (OQ-025). The `tc358743-audio` overlay expects GPIO 18 [A-47]. | below |
+| A_WFS (I2S word clock) | Output, VDDIO2 [A-12] | UNKNOWN (OQ-025). The overlay expects GPIO 19 [A-47]. | below |
+| A_SD (I2S data) | Output, VDDIO2 [A-12] | UNKNOWN (OQ-025). The overlay expects GPIO 20 [A-47]. | below |
+| A_OSCK (256fs oversampling clock) | Output, VDDIO2 [A-11], [A-12] | UNKNOWN. Not part of the overlay's documented wiring [A-47]. | — |
+
+**Reference facts from sources**
+
+- **Camera power-enable lines in the stock device trees.**
+  - Pi 4B: `cam1_reg` is a fixed regulator on expander GPIO 5 ("CAM_GPIO", firmware-controlled); `cam0_reg` is a dummy. CM4: both aliases share expander GPIO 5 [C-21].
+  - Pi 5: `cam0_reg` is RP1 GPIO 34 (MIPI 0 connector) and `cam1_reg` is RP1 GPIO 46 (MIPI 1 connector). CM5: RP1 GPIO 34 (CAM_GPIO0), shared by both [C-22].
+- **CAM_GPIO with the TC358743.** Neither the overlay nor the driver uses these regulators [C-23]. Reasoning from the regulator code: the line is expected to stay low while the TC358743 is in use [C-51]. A board that needs CAM_GPIO high to power up or leave reset would stay off with the stock overlay (OQ-022; [DEVICE_TREE.md](DEVICE_TREE.md)).
+- **Audio wiring.** The `tc358743-audio` overlay routes LRCK/WFS to GPIO 19, BCK/SCK to GPIO 18 and DATA/SD to GPIO 20 [A-47], [G-14]. The Pi is the I2S clock consumer [B-46]; the TC358743 drives the clocks [A-11]. Audio wiring is needed only if audio is required (OQ-004). Whether this overlay works on Pi 5/CM5 is unverified (OQ-054).
+- **Voltage domain.** REFCLK, RESETN, INT, the host I2C pins and the audio pins are all in VDDIO2 [A-21], [A-27], [A-29], [A-39], [A-12]. VDDIO2 accepts 1.65–3.6 V [A-36]. The Raspberry Pi GPIO voltage is not in the source register: DATASHEET REQUIRED. The research notes say that the I2S pin voltage equals VDDIO2, which must be 3.3 V to interface with Pi GPIO 18/19/20 (research gap, topic A; not a register fact) (OQ-024).
+
+### 4.7 RESET
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| RESETN driven by | UNKNOWN — VERIFICATION REQUIRED (Pi GPIO, camera-connector CAM_GPIO, or power-on reset circuit) | VENDOR CONFIRMATION REQUIRED — OQ-020, OQ-022 |
+| Pi GPIO number (if any) | UNKNOWN — VERIFICATION REQUIRED | OQ-020 |
+| Pull resistor and default state | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-020 |
+| Required pulse width and reset-to-I2C-ready time | UNKNOWN — not in the public datasheet | DATASHEET REQUIRED — OQ-031 |
+
+**Reference facts from sources**
+
+- RESETN (ball G5) is the system reset input: active low, Schmitt input, VDDIO2 domain [A-27].
+- The DT binding makes `reset-gpios` optional; its example uses `GPIO_ACTIVE_LOW` [A-27], [B-05].
+- When `reset-gpios` is present, the driver waits 5–10 ms, asserts reset for 1–2 ms, deasserts it, and waits 20 ms before reading CHIPID. These times are the driver's choice, not a Toshiba specification [A-28], [B-13].
+- The stock Raspberry Pi overlay has no `reset-gpios` [B-41], [C-23]. Driver removal does not assert reset [B-40].
+
+### 4.8 INT
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| INT connected to a Pi GPIO | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-020 |
+| Pi GPIO number (if any) | UNKNOWN — VERIFICATION REQUIRED | OQ-020 |
+| Pull resistor on INT | UNKNOWN — VERIFICATION REQUIRED. It matters if INT is also an address strap. | DATASHEET REQUIRED — OQ-026 |
+
+**Reference facts from sources**
+
+- INT (ball B3) is the interrupt output: active high, level-triggered, VDDIO2 domain, low at initialisation [A-29].
+- The driver requests the IRQ with `IRQF_TRIGGER_HIGH | IRQF_ONESHOT` [A-29], [B-19].
+- Without an IRQ the driver polls the interrupt status over I2C every 1000 ms, or every 10 ms when a CEC adapter is registered [A-30], [B-19]. The stock overlay has no `interrupts` property, so it runs in polling mode [A-30], [C-20]. See RISK-013 and REQ-CAP-004.
+- On the sister part TC358749XBG, INT also selects the I2C address at reset [A-50] (OQ-026).
+
+### 4.9 POWER
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Product power input (voltage, connector, source such as DC jack, USB-C or PoE) | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-023 |
+| Total power budget | UNKNOWN — VERIFICATION REQUIRED | DATASHEET REQUIRED; HARDWARE TEST REQUIRED (measure) — OQ-023 |
+| Generation of the TC358743 rails (regulators) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-018, OQ-024 |
+| Rail power-up sequencing | UNKNOWN — not in the public datasheet | DATASHEET REQUIRED — OQ-031 |
+| Bridge board powered from the camera-connector 3V3 or a separate supply | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021, OQ-022 |
+| Operating ambient temperature target | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-010 |
+
+> **12 V is not a PACSCORDER specification.** The owner's Rule 9 test example lists "12V power" in its Setup section. That is an example in the rules. The actual PACSCORDER power input is `UNKNOWN — VERIFICATION REQUIRED` (OQ-023).
+
+**Reference facts from sources**
+
+TC358743 supply rails and recommended operating ranges [A-36], with supply-noise limits [A-37]:
+
+| Rail | Function | Nominal | Range | Noise limit (peak-to-peak) |
+|---|---|---|---|---|
+| VDDC1 / VDDC2 | Core | 1.2 V | 1.1–1.3 V | 0.1 V (general limit) |
+| VDD_MIPI | MIPI | 1.2 V | 1.1–1.3 V | 0.1 V (general limit) |
+| AVDD12 | HDMI PHY | 1.2 V | 1.15–1.25 V | 0.04 V |
+| AVDD33 | HDMI PHY | 3.3 V | 3.135–3.465 V | 0.08 V |
+| VDDIO1 | HDMI digital IO | 3.3 V | 3.0–3.6 V | 0.1 V (general limit) |
+| VDDIO2 | Digital IO (Pi-facing pins) | 1.8 V or 3.3 V | 1.65–3.6 V | 0.1 V (general limit) |
+| AVDD25 | APLL | 2.5 V | 2.25–2.75 V | 0.1 V (general limit) |
+
+- **Consumption.** Typical total power is 480.5 mW at 720p60 and 543.2 mW at 1080p60. Sleep mode draws 108.9 µW. VDDC1 is always on; VDDC2 can be shut off in deep sleep [A-38].
+- **No supply control from Linux.** The DT binding defines no supply properties [B-04], [B-05], and the driver requests no regulator [C-23]. Reasoning: the rails must already be up, and RESETN released, before the driver probes. The stock driver cannot sequence them.
+- **Camera connector supply (community).** A Raspberry Pi engineer reported that on the 15-pin camera connector pin 1 is GND and pin 15 is 3V3 [C-45].
+- **Raspberry Pi power.** No Raspberry Pi board power figure was collected in the 2026-10-06 research. DATASHEET REQUIRED (OQ-023).
+- **Thermal.** The TC358743XBG is rated −30 to +70 °C ambient [A-41] (OQ-010, REQ-PERF-001).
+
+### 4.10 CLOCK
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| REFCLK oscillator frequency | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED (schematic, BOM); HARDWARE TEST REQUIRED (measure) — OQ-019 |
+| Oscillator part, accuracy, jitter | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-019; Toshiba limits: DATASHEET REQUIRED — OQ-031 |
+| Oscillator output level (VDDIO2) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-024 |
+
+**Reference facts from sources**
+
+- **Allowed frequencies.** REFCLK (ball H5) is the reference clock input. The datasheet lists 27/26 MHz or 42 MHz, in the VDDIO2 domain [A-21]. The driver accepts only 26, 27 or 42 MHz [B-07].
+- **Wrong value is not rejected cleanly (CORRECTED).** For any other rate the driver logs `unsupported refclk rate` but probe continues. If the chip then answers the CHIPID read, `tc358743_set_ref_clk()` hits `BUG_ON()`, a kernel BUG [A-22], [B-11] (RISK-007).
+- **27 MHz preferred (reasoning).** Only 27 MHz gives the exact 594 and 972 Mbps lane rates of the driver's timing tables. 26 MHz gives 572/962 Mbps and 42 MHz gives 588/966 Mbps [A-23], [B-10].
+- **The Pi does not generate REFCLK.** The Raspberry Pi overlay declares 27 MHz on a `fixed-clock` node; the bridge board must supply its own oscillator [A-45]. Reasoning from the base device trees gives the same result [B-47].
+- **Missing specifications.** The public datasheet has no AC timing [A-42], so REFCLK tolerance, jitter and duty cycle are not available (OQ-031).
+- **Device Tree consequence (reasoning; inputs [A-45], [B-07], [A-23]).** The overlay only declares the frequency and the driver derives its PLL settings from the declared value, so the DT `clock-frequency` must equal the measured oscillator frequency. See [DEVICE_TREE.md](DEVICE_TREE.md).
+
+### 4.11 CSI LANES
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Data lanes routed from the TC358743 to the Pi | UNKNOWN — VERIFICATION REQUIRED. Required: one 2-lane and one 4-lane configuration (REQ-CAP-007). Whether one board design serves both, for example a 4-lane board run with 2 lanes, is UNKNOWN. | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED — OQ-021 |
+| Lanes available on the chosen Pi connector | Depends on the platform and connector chosen for each configuration (ADR-004, OQ-011); map below and §5 | OWNER DECISION REQUIRED — OQ-011 |
+| Lane order and polarity on PCB, connector and cable | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 |
+| Link rate | Not a hardware value; set in the Device Tree ([DEVICE_TREE.md](DEVICE_TREE.md)). ADR-008 (PROPOSED) proposes keeping the overlay default of 486 MHz (972 Mbit/s per lane). | OWNER DECISION REQUIRED — OQ-099 |
+
+**Reference facts from sources**
+
+- **Transmitter.** 1 to 4 data lanes, up to 1 Gbps per lane [A-05], [A-06].
+- **Receivers.** Unicam lanes run at up to 1 Gbit/s each (maximum link frequency 500 MHz) [C-07]. RP1 runs at up to 1.5 Gbps per lane, with 8 Gbps in total across its two 4-lane D-PHYs [C-30].
+- **Official capability.** With 2 lanes the maximum is 1080p30 RGB888 or 1080p50 YUV422. With 4 lanes on a Compute Module, 1080p60 can be received in either format [C-37].
+- **Lanes the driver requests (reasoning).** At the default 972 Mbps per lane: 1080p60 UYVY needs 3 lanes and RGB888 needs 4; 1080p50 UYVY needs 2 and RGB888 needs 3; 1080p30 needs 2 in either format [C-47]. On 2 lanes, 1080p60 UYVY would need 102.4 % of the link [C-48]. All 1080p30/50/60 combinations fit on 4 lanes by bandwidth, but the driver activates only 2–4 lanes, so not every mode uses all four [C-49].
+- **A 4-lane port is necessary but not shown sufficient for 1080p60 UYVY (reasoning; inputs [C-47], [C-49]).** At 972 Mbit/s per lane the driver activates 3 of the 4 lanes for this mode. Capture on 3 of 4 configured lanes is unproven (OQ-038). ADR-008 (PROPOSED) proposes evaluating 297 MHz (594 Mbit/s, 4 active lanes) for this mode on a CM4 CAM1 4-lane link only, in TEST-CAP-002 (OQ-099).
+- **No clamping.** The driver computes the lane count at runtime and does not clamp it to the DT `data-lanes` value (CORRECTED) [A-25]. Both receivers fail stream start when more lanes are requested than the DT configures [B-32], [C-16].
+- **Mis-configuration.** Declaring 4 lanes on a 2-lane connector does not fail the probe: Unicam logs a message and adopts the endpoint count [C-17]. See the warning in [DEVICE_TREE.md](DEVICE_TREE.md).
+- **Corruption near lane limits (community).** An open issue reports corrupted images at 1080p50 RGB888 on a 4-lane CM4 when the driver chose 3 lanes; a Raspberry Pi engineer attributed it to the fixed FIFO trigger level and to the lane formula using active height instead of total line time [C-43] (RISK-006).
+
+#### Lane configurations required by REQ-CAP-007
+
+The owner requires both a 2-lane and a 4-lane CSI-2 configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; owner statement of 2026-10-07, OQ-001 ANSWERED). Which platform and connector serve each configuration is **not decided** (ADR-004, OPEN). The table maps each candidate connector to the configuration it can serve. It is not a selection.
+
+| Candidate connector | Data lanes at the connector | Lane configuration it can serve | Notes |
+|---|---|---|---|
+| Pi 4 Model B camera connector | 2 [C-01] | 2-lane only | Never declare 4 lanes: not rejected at probe [C-17] |
+| CM4 CAM0 | 2 [C-02] | 2-lane only | CM4 IO Board: J6 jumpers needed for I2C [C-03] |
+| CM4 CAM1 | 4 [C-02] | 4-lane; 2-lane with a 2-lane bridge board (reasoning; OQ-021) | — |
+| Pi 5 CAM/DISP0 and CAM/DISP1 | 4 per port [C-04] | 4-lane; 2-lane with a 2-lane bridge board (reasoning; OQ-021) | 4 lanes on CAM/DISP0 (`cam0`): NEEDS VERIFICATION (OQ-049) |
+| CM5 MIPI0 and MIPI1 | 4 per interface [C-05] | 4-lane; 2-lane with a 2-lane bridge board (reasoning; OQ-021) | Carrier-dependent (OQ-052); no CM4-style CAM0 [C-05] |
+
+**Supported-mode limits per configuration** at the default 972 Mbit/s per lane. These are bandwidth results (reasoning-tier entries and official documentation), not test results:
+
+| Configuration | Fits by bandwidth | Does not fit | Sources |
+|---|---|---|---|
+| 2-lane | 1080p30 UYVY (51.2 %), 1080p30 RGB888 (76.8 %), 1080p50 UYVY (85.3 %); 720p60 needs 1 lane in UYVY and 2 in RGB888 | 1080p50 RGB888 (128 %), 1080p60 UYVY (102.4 %), 1080p60 RGB888 (153.6 %) | [C-37], [C-48], [B-33] |
+| 4-lane | All six 1080p30/50/60 × UYVY/RGB888 combinations; the highest load is 1080p60 RGB888 at 76.8 % of 3.888 Gbit/s | None of those six | [C-37], [C-49] |
+
+- Official Raspberry Pi documentation gives the same limits: 2 lanes carry at most 1080p30 RGB888 or 1080p50 YUV422, and 4 lanes on a Compute Module carry 1080p60 in either format [C-37]. "All frame rates" on a 2-lane configuration therefore means all rates up to that limit (REQ-CAP-007).
+- The 4-lane results are necessary, not shown sufficient: 1080p60 UYVY activates 3 of the 4 lanes (OQ-038), and 1080p50 RGB888 on 3 of 4 lanes has the open corruption report above [C-43] (RISK-006).
+- At 594 Mbit/s (`link-frequency=297000000`) only 1080p30 UYVY fits on 2 lanes [C-48]. On 4 lanes 1080p60 UYVY, 1080p50 UYVY and both 1080p30 formats fit, and 1080p50/1080p60 RGB888 are rejected [C-49]. The link rate is ADR-008 (PROPOSED; OQ-099).
+- **EDID per configuration (reasoning; OQ-002).** The EDID is written by userspace [C-37], not by the hardware. The built-in `hdmi` EDID type of `v4l2-ctl` advertises up to 1080p60 [B-24], more than a 2-lane link carries [C-48]. Because the two configurations carry different mode sets, the EDID loaded at start may need to differ per lane configuration. Its content is OQ-002; see [V4L2.md](V4L2.md).
+
+### 4.12 ETHERNET
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Ethernet interface (on-board Pi Ethernet, carrier-board PHY, none) | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018; Raspberry Pi Ethernet facts: DATASHEET REQUIRED — OQ-098 |
+| Speed, PoE | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018, OQ-023; DATASHEET REQUIRED — OQ-098 |
+| Network requirements that size it | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-007, OQ-008, OQ-075. ATEM network integration is not in current scope (OQ-009 ANSWERED 2026-10-07: HDMI capture only, REQ-ATEM-001). |
+
+**Reference facts from sources**
+
+- The 2026-10-06 research collected **no** fact about Raspberry Pi or Compute Module Ethernet hardware (PHY, speed, PoE). DATASHEET REQUIRED (Raspberry Pi product documentation) before this section can describe candidates — OQ-098.
+- Facts that make network hardware relevant:
+  - FFmpeg RTMP URLs use default TCP port 1935 [F-32].
+  - *Not in current scope; kept as reference.* The owner's answer of 2026-10-07 limits the ATEM integration to HDMI capture of the ATEM output (REQ-ATEM-001, REQ-CAP-008; OQ-009 ANSWERED). Network tally/control and RTMP exchange were offered and not selected, so the next two facts size nothing unless the owner adds them:
+    - ATEM control software uses a custom UDP protocol on port 9910, reported by the OpenSwitcher project as reverse-engineered [F-11]. The official ATEM SDK manual does not document the wire protocol [F-10].
+    - The ATEM Mini Pro streams over RTMP or SRT, either through its 10/100/1000 BaseT Ethernet port or through a shared internet connection over USB-C [F-26]. Reasoning: for PACSCORDER to receive that stream it must run a listening RTMP server [F-46].
+
+### 4.13 USB
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| USB host ports exposed by the product | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018; Raspberry Pi USB facts: DATASHEET REQUIRED — OQ-098 |
+| USB device-mode path for factory provisioning (Compute Module carriers) | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-018, OQ-071 |
+
+**Reference facts from sources**
+
+- The 2026-10-06 research collected no fact about Raspberry Pi USB host ports. DATASHEET REQUIRED — OQ-098.
+- On CM5, the pins that carry CAM0 on CM4 (128–142) carry USB 3.0 [C-05]. Reasoning from [C-05]: a CM4-style carrier therefore has no CAM0 camera port with CM5.
+- **Provisioning.** `rpiboot` (usbboot) makes a device appear as USB mass storage for provisioning. It supports Pi 4B, CM4, Pi 5 and CM5, among others. On Pi 4B it must first be enabled by permanently programming an OTP GPIO [G-45]. The Compute Module documentation flashes eMMC by fitting nRPI_BOOT (J2) and running `rpiboot` [G-47]. Reasoning: a Compute Module carrier needs a USB device-mode path and a boot-select means for factory flashing (OQ-018, OQ-071).
+- The ATEM Mini USB-C port acts as a webcam output. Blackmagic documents Mac and Windows use and makes no statement about Linux or UVC [F-27]. *Not in current scope; kept as reference:* OQ-009 was answered on 2026-10-07 with HDMI capture only (REQ-ATEM-001, REQ-CAP-008), so this matters only if the owner adds a USB path (OQ-082).
+- USB storage is one of the recording-medium options in OQ-006.
+
+### 4.14 STORAGE
+
+**PACSCORDER value**
+
+| Attribute | Value | Resolution |
+|---|---|---|
+| Boot medium (SD card, eMMC, USB, NVMe) | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-006, OQ-018; boot-storage options per board: DATASHEET REQUIRED — OQ-098 |
+| Recording medium and capacity | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-006 |
+| Partition layout and update scheme | UNKNOWN — VERIFICATION REQUIRED | OWNER DECISION REQUIRED — OQ-068, OQ-069 |
+| Behaviour on power loss during recording | UNKNOWN — not researched | OWNER DECISION REQUIRED — OQ-006 |
+
+**Reference facts from sources**
+
+- Storage and provisioning differ between the candidate boards: SD card or eMMC flashed with `rpiboot` (reasoning-tier entry, CORRECTED) [G-71]. Compute Module eMMC flashing uses `rpiboot` [G-47]. The boot-storage options of each candidate board (SD, eMMC, NVMe) were not otherwise researched: DATASHEET REQUIRED — OQ-098.
+- The Raspberry Pi OS Lite (64-bit) 2026-10-06 download is 550,466,056 bytes compressed and 3,078,619,136 bytes expanded [G-33].
+- Raspberry Pi Connect A/B updates need a storage device of at least 16 GB (CORRECTED) [G-43].
+- The `rpi-image-gen` `image-rota` layout provides A/B slots and a shared persistent data partition [G-40].
+- `raspi-config` offers a read-only root through `overlayroot=tmpfs` [G-48].
+- See [RECORDING.md](RECORDING.md) and [BUILD_SYSTEM.md](BUILD_SYSTEM.md).
+
+---
+
+## 5. Per-platform reference table
+
+Reference facts for each candidate platform. **None of these is a PACSCORDER value** until the platform for each lane configuration is chosen (ADR-004, OQ-011; REQ-CAP-007) and the hardware is checked.
+
+| | Pi 4 Model B | CM4 | Pi 5 | CM5 |
+|---|---|---|---|---|
+| Camera connector(s) | One 15-pin, 1.0 mm pitch, 16 mm wide [C-01] | Carrier-dependent. CM4 IO Board: two 22-pin, 0.5 mm pitch [C-03] | Two mini 22-pin, 0.5 mm pitch, combined CSI/DSI [C-04] | Carrier-dependent. MIPI0 on CM4 CAM1 pins, MIPI1 on CM4 DSI1 pins [C-05]. CM5 IO Board: two 22-pin CAM/DISP [C-06] |
+| CSI-2 data lanes | 2 [C-01]; DT limits csi1 to 2 [B-48] | CAM0: 2, CAM1: 4 [C-02], [B-48] | 4 per port, 1.5 Gbps per lane [C-04] | 4 per interface [C-05] |
+| Lane configuration it can serve (REQ-CAP-007; §4.11) | 2-lane only [C-01] | CAM0: 2-lane only; CAM1: 4-lane [C-02] | 4-lane; 2-lane with a 2-lane bridge board (reasoning; OQ-021) | as Pi 5; carrier-dependent (OQ-052) |
+| CSI-2 receiver | Unicam, csi1 [C-08], [C-09] | Unicam: csi0 (2-lane), csi1 (4-lane) [C-08] | RP1 CFE: `rp1_csi0`, `rp1_csi1` [C-29] | RP1 CFE [C-29], [B-44] |
+| Camera I2C bus | `i2c_csi_dsi` = `/dev/i2c-10`, a pinctrl-mux channel of i2c0 on GPIO 44/45 [C-24] | CAM1: `i2c-10`; CAM0: `i2c-0`. CM4 IO Board: GPIO 44/45 and GPIO 0/1 [C-25], [C-24]. CAM0 on the IO Board needs the J6 jumpers [C-03] | CAM/DISP0: RP1 i2c6, GPIO 38/39, `/dev/i2c-10`. CAM/DISP1: RP1 i2c4, GPIO 40/41, `/dev/i2c-11` [C-26]; i2c4 runs at 100 kHz [B-44]. Earlier kernels used other numbers (reported) [C-28] | CM5 IO Board: CAM/DISP1 RP1 i2c0 on GPIO 0/1 (symlink `i2c-11`), CAM/DISP0 RP1 i2c6 on GPIO 38/39. CM4 IO Board: `i2c_csi_dsi1` (CAM1, DISP1, RTC, fan) is i2c6, `i2c_csi_dsi0` is i2c0 [C-27] |
+| Camera power-enable GPIO (stock DT) | `cam1_reg` on expander GPIO 5; `cam0_reg` dummy [C-21] | Expander GPIO 5, shared by both ports [C-21] | MIPI0: RP1 GPIO 34; MIPI1: RP1 GPIO 46 [C-22] | RP1 GPIO 34 (CAM_GPIO0), shared [C-22]. CM5 IO Board: only CAM/DISP 0 can power down a camera [C-06] |
+| Stock TC358743 overlay | `tc358743` [G-12] | `tc358743` [G-12] | `tc358743` redirected to `tc358743-pi5` [C-11] | as Pi 5 [C-11], [E-43] |
+| 1080p60 capture by bandwidth (a 4-lane port is necessary but not shown sufficient for 1080p60 UYVY: 3 of 4 lanes at 972 Mbit/s, OQ-038; ADR-008) | No; limit 1080p50 UYVY or 1080p30 RGB888, the 2-lane configuration ceiling [C-37], [C-48] | By bandwidth on CAM1 [C-37], [C-49] | By bandwidth (reasoning) [C-49]. On CAM/DISP0 (`cam0`), whether `4lane` gives 4 lanes on `csi0` is NEEDS VERIFICATION (OQ-049). No official TC358743 documentation [C-38] | By bandwidth (reasoning) [C-49]; carrier-dependent (OQ-052). No official TC358743 documentation [C-38] |
+| Hardware H.264 encode | 1080p30 specified [D-10] | 1080p30 specified [D-10] | None [D-31], [G-22] | None [D-31] |
+| Platform-specific hazards | 2 lanes only; never declare 4 lanes [C-17] | CAM0 is 2-lane [C-02] | Stale README text for `tc358743-pi5` [C-13] | CM4 CAM0 pins are USB 3.0 on CM5 [C-05]; CAM/DISP 1 on the CM5 IO Board needs J6 jumpers [C-06] |
+
+## 6. Candidate boards named in sources (not selected)
+
+No board has been selected. The entries below appear in the sources. They are listed so that a new engineer knows what the research looked at. **Being listed here is not a recommendation.**
+
+| Board | What the source says | Tier | Status |
+|---|---|---|---|
+| Auvidea B101 (TC358743 bridge) | A Raspberry Pi engineer reported that it uses a 15-pin FFC with contacts on the same side, and warned about wrongly sided adapters on Pi 5 [C-45] | community | Named in sources, not selected |
+| Auvidea B102 (TC358743 bridge) | Raspberry Pi engineers reported a B102 probing on Pi 5 in December 2023 [C-41] | community | Named in sources, not selected |
+| Raspberry Pi CM4 IO Board (carrier) | Connectors, lanes and I2C mapping [C-03], [C-25] | official-rpi | Named in sources, not selected |
+| Raspberry Pi CM5 IO Board (carrier) | Connectors, J6 jumpers, power-down signal [C-06]; I2C mapping [C-27] | official-rpi / kernel-source | Named in sources, not selected |
+| Geekworm C77x / C779 / C790, Waveshare, X1301 | Named only in the research questions and gaps. There is **no** register entry, so nothing about them is stated here. | — | Named in research notes only, not selected |
+
+For every board above, oscillator frequency, routed lanes, connector pinout, INT/RESETN wiring and CAM_GPIO use are UNKNOWN — VERIFICATION REQUIRED (OQ-018 to OQ-022). Whether one bridge-board design can serve both the 2-lane and the 4-lane configuration (REQ-CAP-007) is also UNKNOWN (OQ-021).
+
+## 7. Source-derived hazards to check before first power-up
+
+This is a list of facts to check against the chosen hardware. It is **not** a procedure and nothing in it has been done. Procedures belong in [TESTING.md](TESTING.md) and are NOT YET RUN ON PACSCORDER HARDWARE.
+
+| # | Hazard | Evidence | Linked |
+|---|---|---|---|
+| 1 | A wrongly sided FFC or adapter can swap GND and 3V3 and damage either board (reported) | [C-45] | RISK-021, OQ-021 |
+| 2 | A REFCLK value in the DT that is not 26, 27 or 42 MHz leads to a kernel BUG | [A-22], [B-11] | RISK-007, OQ-019 |
+| 3 | Declaring 4 lanes on a 2-lane connector is not rejected at probe | [C-17] | OQ-021 |
+| 4 | CM4 IO Board CAM0 and CM5 IO Board CAM/DISP 1 need J6 jumpers for I2C | [C-03], [C-06] | OQ-021, OQ-052 |
+| 5 | CM5 on a CM4-style carrier: the CAM0 pins carry USB 3.0 | [C-05] | OQ-052 |
+| 6 | A bridge board that depends on CAM_GPIO stays unpowered or in reset with the stock overlay (reasoning) | [C-51], [C-23] | OQ-022 |
+| 7 | VDDIO2 sets the logic level of every Pi-facing TC358743 pin | [A-36], [A-39] | OQ-024 |
+| 8 | The TC358743 is weak against ESD and its HPDO pin is not listed as 5 V tolerant | [A-41], [A-39] | OQ-024 |
+| 9 | Ambient temperature at the TC358743 must stay within −30 to +70 °C | [A-41] | OQ-010 |
+| 10 | Another device at 0x0f on the camera I2C bus would collide with the TC358743 (reasoning) | [A-15], [C-27] | OQ-026 |
+
+## 8. Hardware revision history
+
+Rule 8 requires a revision history and forbids assuming that revisions are identical. **No PACSCORDER hardware revision has been defined.**
+
+| Revision | Status | Date | Platform | Bridge board / PCB | Differences from previous revision | Evidence |
+|---|---|---|---|---|---|---|
+| HW REV A | Not yet defined | — | UNKNOWN — VERIFICATION REQUIRED | UNKNOWN — VERIFICATION REQUIRED | — (first revision) | — |
+| HW REV B | Not yet defined | — | — | — | — | — |
+| HW REV C | Not yet defined | — | — | — | — | — |
+
+**When a revision is defined**, add a subsection for it with every field below. A field may be `UNKNOWN — VERIFICATION REQUIRED`, but it may not be left out or copied from another revision without checking.
+
+- Raspberry Pi / CM model, RAM size and board revision, read from each unit.
+- Compute Module carrier: name, revision and schematic reference.
+- Bridge board or PCB: name, revision, schematic and BOM reference.
+- TC358743 marking, ordering suffix and CHIPID revision byte (OQ-029).
+- REFCLK oscillator: part and measured frequency (OQ-019).
+- CSI-2: connectors, cable, routed data lanes, lane order (OQ-021), and which lane configuration of REQ-CAP-007 (2-lane or 4-lane) the revision implements.
+- I2C: bus, measured address, pull-ups, other devices on the bus (OQ-026).
+- RESETN and INT wiring, with GPIO numbers (OQ-020). CAM_GPIO use (OQ-022).
+- Power input, rail generation, measured consumption (OQ-023, OQ-024).
+- HDMI connector, HPD/+5V interface, ESD protection (OQ-024).
+- Ethernet, USB and storage as fitted (OQ-018, OQ-006, OQ-098).
+- Device Tree configuration used, by entry in the change log of [DEVICE_TREE.md](DEVICE_TREE.md).
+- Tests run on this revision, with results in [TESTING.md](TESTING.md). Every test record names the hardware revision (Rule 9).
+
+---
+
+## Verification status
+
+### Verified from sources (fact IDs)
+
+Every reference fact in this document cites an entry of [REFERENCES.md](REFERENCES.md) whose verdict is `CONFIRMED` or `CORRECTED`. This document cites these entries:
+
+| Topic | Fact IDs |
+|---|---|
+| A — TC358743 hardware | A-01, A-02, A-03, A-04, A-05, A-06, A-07, A-08, A-11, A-12, A-13, A-14, A-15, A-16, A-17, A-18, A-19, A-20, A-21, A-22, A-23, A-25, A-27, A-28, A-29, A-30, A-31, A-33, A-34, A-36, A-37, A-38, A-39, A-40, A-41, A-42, A-45, A-47, A-49, A-50 |
+| B — tc358743 Linux driver | B-04, B-05, B-07, B-10, B-11, B-13, B-19, B-20, B-21, B-23, B-24, B-32, B-33, B-40, B-41, B-44, B-46, B-47, B-48 |
+| C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-11, C-13, C-16, C-17, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-29, C-30, C-37, C-38, C-39, C-40, C-41, C-43, C-45, C-47, C-48, C-49, C-51 |
+| D — Encoders | D-10, D-31 |
+| E — Buildroot and kernel configuration | E-43, E-47, E-51 |
+| F — ATEM and streaming | F-10, F-11, F-23, F-26, F-27, F-32, F-46 |
+| G — Raspberry Pi OS and image tooling | G-12, G-14, G-20, G-22, G-33, G-40, G-43, G-45, G-47, G-48, G-71 |
+
+- `CORRECTED` entries, used in their corrected wording only: A-22, A-25, B-11, B-21, B-44, C-28, C-39, E-47, G-43, G-71.
+- `community` entries, worded as reports: C-28, C-41, C-43, C-45, F-11.
+- `reasoning` entries, labelled as reasoning: A-23, B-10, B-11, B-33, B-47, C-47, C-48, C-49, C-51, F-46, G-71.
+- Statements marked *research gap* or *research notes* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). They are not register facts and are recorded only to state what is unknown.
+- "Verified from sources" means only that the cited source says so. It says nothing about PACSCORDER hardware.
+
+### Verified on PACSCORDER hardware
+
+Nothing (no hardware exists as of 2026-10-07). Every PACSCORDER value in this document is `UNKNOWN — VERIFICATION REQUIRED`. The owner decisions of 2026-10-07 (REQ-CAP-007, REQ-CAP-008) are requirements, not hardware evidence. The hardware tests that would confirm values in this document (TEST-HW-001, TEST-DRV-001, TEST-DRV-002, TEST-PLT-001, TEST-CAP-001 to TEST-CAP-004, TEST-AUD-001, TEST-PERF-001) are `BLOCKED — HARDWARE REQUIRED`, as is every other hardware-dependent test in [TESTING.md](TESTING.md).
+
+## Change history
+
+| Date | Change | By |
+|---|---|---|
+| 2026-10-06 | Created from source research of 2026-10-06 | Claude (session 2026-10-06) |
+| 2026-10-06 | Review against REFERENCES.md: narrowed wording to what the cited facts state (A-08 timings capability, A-15 address sources, BCM2712 kernel page size per E-51/G-20, F-26 streaming path, C-43 attribution); added missing citations and reasoning labels (REFCLK specification gap, DT clock consequence, CM5 CAM0, CAM_GPIO, A_OSCK, clock lane); corrected research-note attributions (lifecycle, VDDIO2); completed the hardware-test status statement. No hardware facts added. | Claude (session 2026-10-06) |
+| 2026-10-06 | Cross-document consistency fixes: OQ-098 (Raspberry Pi Ethernet, USB and storage facts) linked in the §2 summary and in §4.12 ETHERNET, §4.13 USB, §4.14 STORAGE and the §8 revision checklist; 4-lane port marked necessary but not shown sufficient for 1080p60 UYVY (3 of 4 lanes at 972 Mbit/s, OQ-038; ADR-008) in §4.11 and §5, and Pi 5 CAM/DISP0 4-lane conditioned on OQ-049; link rate linked to ADR-008 (PROPOSED) and OQ-099; TC358743 audio note now records that the silicon can also send audio over CSI-2 [A-05] while the driver configures I2S [A-13], with the wiring consequence labelled reasoning. Added citation A-13. No hardware facts added; no status changed. | Claude (session 2026-10-06) |
+| 2026-10-07 | Owner decisions of 2026-10-07 propagated: both 2-lane and 4-lane configurations required (REQ-CAP-007; OQ-001 ANSWERED) in the header, intro, §1, §2, §3, §4.1, §4.4, §4.11 and §5; new §4.11 subsection maps each candidate connector to the lane configuration it can serve and gives the per-configuration supported-mode limits [C-37], [C-48], [C-49], [B-33] and the per-configuration EDID note (OQ-002, reasoning [B-24]); "Pi 4 Model B excluded if 1080p60 is mandatory" replaced by "excluded from the 4-lane configuration, still a 2-lane candidate" (§4.1); HDMI sources = ATEM outputs and cameras (REQ-CAP-008, OQ-102 [F-23]) in §3 and §4.3; ATEM network/USB facts in §4.12 and §4.13 labelled "not in current scope" (OQ-009 ANSWERED; REQ-ATEM-001); one-board-for-both question (OQ-021) in §1, §4.11 and §6; §8 checklist records the lane configuration; §4.1 software-image note references REQ-BLD-002 (own OS image; ADR-003 still PROPOSED). Added citations B-24, B-33, F-23. No platform chosen; no ADR status changed; no hardware facts added. | Claude (session 2026-10-07) |
+| 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); §4.1 "Software image" bullet now says the build tool is ADR-003 (ACCEPTED 2026-10-07: `rpi-image-gen`). Not changed: evidence and citations, the status of every other ADR, Change-history rows. | Claude (session 2026-10-07) |
