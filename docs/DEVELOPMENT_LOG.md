@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active — one entry per significant development session (Rule 3) |
-| Last updated | 2026-10-06 |
+| Last updated | 2026-10-08 |
 
 Entries are appended, newest last, and are never rewritten (Rule 21).
 
@@ -182,8 +182,205 @@ WARNINGS (2):
 - **Warning 2:** a false positive. The checker's pattern matched "TDM is fixed at 8 channels" in a datasheet fact. `REFERENCES.md` is generated and is not edited (Rule 21).
 - **Not checked mechanically:** the technical correctness of each sentence against its cited fact. That was done by the 8 per-cluster reviewers and the final verifier agent, not by this script.
 
+---
+
+## 2026-10-07 — Owner decisions, ADR-003 accepted, commit squash
+
+### Objective
+
+Record the owner's decisions on the most decisive open questions, propagate them through the documentation, and act on the owner's commit instruction.
+
+### Starting State
+
+Phase 0 documentation baseline (2026-10-06 entry); nothing committed; no hardware.
+
+### Changes
+
+1. **First set of owner answers** (owner's words quoted):
+
+   | Question | Owner's answer | Recorded as |
+   |---|---|---|
+   | OQ-001: Is 1080p60 mandatory? | "i need 2 lane and 4 lane with all frame rate" | OQ-001 ANSWERED; new REQ-CAP-007 (DRAFT). Interpretation: 1080p60 on 4-lane; 2-lane bounded by the link [C-37], [C-48]. |
+   | OQ-009: ATEM scope | "it can be atem and direct video from camera" | OQ-009 ANSWERED; new REQ-CAP-008 (DRAFT). HDMI capture only; network integration out of scope. |
+   | OS / build | "which is best i need by own one" | New REQ-BLD-002 (own OS image); ADR-003 recommendation unchanged. |
+   | Commit | "Not yet" | No commit. |
+
+2. **ADR-003 accepted.** The owner wrote "accept ADR-003". Status became ACCEPTED, OQ-012 ANSWERED, and the change was propagated to 18 documents (83 wording changes).
+3. **Second set of owner answers:**
+
+   | Question | Owner's answer | Recorded as |
+   |---|---|---|
+   | Platform | "CM4 + CM5 side by side" | ADR-004 owner input; still OPEN until measured |
+   | Audio | "Yes, audio required" | REQ-CAP-006 PROPOSED → DRAFT; OQ-004 ANSWERED |
+   | Codec | "H.264 + H.265 (HEVC)" | REQ-ENC-001; new OQ-103 and RISK-022 |
+   | Sources | "Any HDMI camera (generic)" | OQ-102 ANSWERED |
+
+4. **Propagation.** Two workflows propagated the first set of decisions (103 changes, plus 20 verifier fixes) and the ADR-003 acceptance (83 changes) into the technical documents.
+5. **Git.** At 18:23 the owner made two local commits, "update doc" and "update". Both messages break Rule 15. I checked the GitHub remote: it had no branches, so nothing had been pushed. At the owner's request ("Squash into one commit") I squashed them into `7107a39`. The tree hash was identical before and after (`7dcff252…`). The old history is kept on the local branch `backup/pre-squash-2026-10-07`.
+
+### Files Modified
+
+`docs/REQUIREMENTS.md`, `docs/DECISIONS.md`, `docs/OPEN_QUESTIONS.md`, `docs/RISKS.md`, `docs/README.md`, `docs/PROJECT_STATUS.md`, `docs/CHANGELOG.md`, and, through the workflows, every technical document in `docs/`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation and git history only.
+
+### Commands Used
+
+```bash
+git ls-remote --heads origin     # empty: nothing pushed
+git branch backup/pre-squash-2026-10-07 12d9dae
+git reset --soft 5012470 && git commit --amend   # squash; tree 7dcff252… unchanged
+python3 doccheck.py docs/        # documentation check
+```
+
+### Test Results
+
+- Documentation consistency check after each propagation: 0 problems.
+- No hardware or software test was possible.
+
+### Problems Found
+
+1. **Miscount in my own summaries.** On 2026-10-06 I reported 17 requirements as "11 DRAFT, 6 PROPOSED". The correct split was 12 DRAFT and 5 PROPOSED. Found by a verifier agent on 2026-10-07. Corrected in `PROJECT_STATUS.md` and noted in `CHANGELOG.md`; the 2026-10-06 entry above is left as written (Rule 21).
+2. **Overstated claim to the owner.** On 2026-10-06 I told the owner the stock image "already ships" the TC358743 overlays. The verified register does not establish that, so the documents say NEEDS VERIFICATION.
+3. **Overstated reasoning in my ADR-003 note.** I wrote that REQ-CAP-007 "spans the Pi 4 and Pi 5 families". It may not: both configurations could sit on one family, for example CM4 CAM0 plus CAM1. Corrected by a verifier.
+4. **Rule 15 violation in the owner's commit messages.** Resolved by the squash described above.
+
+### Root Cause
+
+- Problems 1 to 3: I summarised without re-counting, or stated more than the source supported.
+- Problem 4: the commits were made manually, outside the documented process.
+
+### Solution
+
+- Problems 1 to 3: corrections recorded openly. Counts are now taken from the files by script.
+- Problem 4: squash with a Rule 15 message, history backed up.
+
+### Current Status
+
+- PARTIAL. Owner decisions recorded and propagated; documentation check passes.
+- Product work remains BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+Research what the 2026-10-07 decisions imply, namely H.265 and the HDMI audio path, which the 2026-10-06 research did not cover. See the 2026-10-08 entry.
+
+---
+
+## 2026-10-08 — H.265 and HDMI audio research (topics H and I) and propagation
+
+### Objective
+
+Establish, from verified sources, how H.265 encoding and transport, and the HDMI audio path, can work on CM4 and CM5. Then fold those facts and the 2026-10-07 decisions into the documentation.
+
+### Starting State
+
+Commit `7107a39`, plus uncommitted 2026-10-07 edits. Source register: 377 facts (topics A–G).
+
+### Changes
+
+1. **Research workflow, two topics** (researcher plus independent adversarial verifier each):
+   - Topic H, H.265/HEVC: 43 facts, 40 CONFIRMED and 3 CORRECTED.
+   - Topic I, HDMI audio: 47 facts, 46 CONFIRMED and 1 CORRECTED.
+   - They were appended to `REFERENCES.md` (now 467 facts) without changing existing entries. Raw data is in `docs/research/2026-10-08-hevc-audio-research.json`.
+2. **Propagation workflow** (registers, then 5 file-owned document agents, then a verifier):
+   - OQ-104 to OQ-114 and RISK-023 to RISK-025 added; RISK-014, RISK-015, RISK-019 and RISK-022 extended.
+   - Evidence added to REQ-CAP-006, REQ-ENC-001, REQ-REC-001, REQ-STR-001, REQ-STR-002, ADR-004 and ADR-007, with no status changed.
+   - About 114 changes across the technical documents, including a full TEST-AUD-001 procedure.
+   - The verifier checked 1460 citations and fixed 14 overstatements.
+3. TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (ID unchanged).
+4. My documentation-check script (session scratchpad) now covers topics H and I, and fact IDs inside multi-ID brackets such as `[H-10, H-13]`.
+5. `PROJECT_STATUS.md` and `CHANGELOG.md` brought up to date.
+
+### Files Modified
+
+`docs/REFERENCES.md` (appended), `docs/research/2026-10-08-hevc-audio-research.json` (new), and these documents:
+
+`OPEN_QUESTIONS.md`, `RISKS.md`, `REQUIREMENTS.md`, `DECISIONS.md`, `README.md`, `VIDEO_ENCODER.md`, `PERFORMANCE.md`, `DMA.md`, `STREAMING.md`, `RECORDING.md`, `ATEM.md`, `HARDWARE.md`, `DEVICE_TREE.md`, `TC358743_DRIVER.md`, `V4L2.md`, `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `BUILD_SYSTEM.md`, `RELEASE.md`, `TESTING.md`, `TRACEABILITY.md`, `TROUBLESHOOTING.md`, `PROJECT_STATUS.md`, `CHANGELOG.md` and `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation only.
+
+### Commands Used
+
+```bash
+caffeinate -im -t 10800      # keep the Mac awake during long research runs
+python3 doccheck.py docs/
+```
+
+### Test Results
+
+See "Final documentation check (2026-10-08)" below. No hardware or software test was possible.
+
+### Problems Found
+
+1. **Two failed research attempts.** The first (2026-10-07) lost the internet connection: "Can't reach the API server (ENOTFOUND)". The second (2026-10-08) ended when the host went to sleep. Neither produced results, and nothing was written to the repository.
+2. **H.265 feasibility.** No candidate has a hardware HEVC encoder [D-24], [D-31]. A Raspberry Pi engineer reported software HEVC encode as too intensive (community) [H-19]. The published benchmarks are community results, not 1080p60 measurements [H-20], [H-21], [H-22]. Real-time 1080p H.265 is therefore doubtful (RISK-022), and owner decision OQ-103 is now the most urgent.
+3. **HEVC over RTMP.** It is possible with FFmpeg 7.1.5 but not with the distribution's GStreamer 1.26.2 [H-26], [H-27] (RISK-025).
+4. **Audio.** The kernel does not track HDMI audio sample-rate changes (reasoning from source) [I-18] (RISK-023). CM5 operation is unconfirmed [I-05], [I-06], [I-07] (RISK-014).
+
+### Root Cause
+
+- Problem 1: host network loss and sleep during multi-hour agent runs.
+- Problems 2 to 4: properties of the platforms and software stacks, from sources.
+
+### Solution
+
+- Problem 1: rerun with `caffeinate` keeping the host awake; the third attempt completed.
+- Problems 2 to 4: recorded as risks and open questions, with resolving tests (TEST-ENC-001, TEST-AUD-001, TEST-STR-001, TEST-STR-002). No design decision was taken without the owner.
+
+### Current Status
+
+- PARTIAL. Documentation is up to date with all owner decisions and 467 verified facts; the check passes.
+- All product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. The owner decides OQ-103: which outputs need H.265, and whether software-only H.265 is acceptable.
+2. The owner obtains the CM4 + CM5 bring-up hardware (`PROJECT_STATUS.md`).
+3. Commit the uncommitted 2026-10-07/08 work, once the owner approves. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: record owner decisions, accept ADR-003, add H.265 and audio research
+Commit description: Record the owner decisions of 2026-10-07 (2-lane and 4-lane, all frame
+  rates; ATEM and camera HDMI sources; own OS image; CM4 + CM5 evaluation; audio required;
+  H.264 + H.265; any HDMI camera) and the acceptance of ADR-003. Add source-register topics
+  H (H.265, 43 facts) and I (HDMI audio, 47 facts) and propagate them: OQ-102..OQ-114,
+  RISK-022..RISK-025, REQ-CAP-007, REQ-CAP-008, REQ-BLD-002, TEST-AUD-001 procedure.
+  No hardware or code exists; nothing is tested.
+Files changed: docs/** (29 Markdown files) + docs/research/2026-10-08-hevc-audio-research.json
+Reason: Rules 1, 11, 13, 17, 22, 23 — owner decisions and their evidence documented
+Tests: documentation consistency check — see DEVELOPMENT_LOG.md 2026-10-08
+```
+
+### Final documentation check (2026-10-08)
+
+Run on 2026-10-08 after every file in this entry was written (`python3 doccheck.py docs`, exit code 0):
+
+```text
+defined: facts=467 REQ=20 ADR=8 RISK=25 OQ=114 TEST(canon)=17 TEST(in TESTING.md)=17
+files=29 distinct facts cited=467/467
+PROBLEMS (0):
+WARNINGS (2):   (both the known "TDM is fixed" false positive; see the 2026-10-06 entry)
+```
+
+- **Result: TESTED — PASS** for documentation consistency only. This is not a test of any product function.
+- The check now verifies IDs inside multi-ID brackets as well. All 467 register facts are cited at least once.
+
 ## Change history
 
 | Date | Change | By |
 |---|---|---|
 | 2026-10-06 | Created with the Phase 0 bootstrap entry. | Claude (session 2026-10-06) |
+| 2026-10-07 | Entry added: owner decisions, ADR-003 accepted, commit squash (written 2026-10-08). | Claude (session 2026-10-07/08) |
+| 2026-10-08 | Entry added: topics H and I research and propagation. | Claude (session 2026-10-08) |

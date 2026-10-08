@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-07 |
+| Last updated | 2026-10-08 |
 | Project phase | PHASE 0 — Bootstrap (see [PROJECT_STATUS.md](PROJECT_STATUS.md)) |
 
 PACSCORDER is an embedded Linux product that captures HDMI video through a Toshiba **TC358743** HDMI-to-MIPI-CSI-2 bridge into a **Raspberry Pi**. It then encodes the video for recording, **RTMP** streaming and **WebRTC** streaming, and integrates with **Blackmagic ATEM** switchers. The mandated video path is:
@@ -145,7 +145,7 @@ Every document ends with a change-history table. Changes are added, never rewrit
 | `RISK-NNN` | Risk | [RISKS.md](RISKS.md) |
 | `OQ-NNN` | Open question / owner decision | [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) |
 | `TEST-<AREA>-NNN` | Test procedure | [TESTING.md](TESTING.md) |
-| `A-NN` … `G-NN` | Source fact | [REFERENCES.md](REFERENCES.md) |
+| `A-NN` … `I-NN` | Source fact (topics A–G of 2026-10-06; topics H and I added 2026-10-08) | [REFERENCES.md](REFERENCES.md) |
 
 ### 9. Canonical test IDs
 
@@ -163,7 +163,7 @@ Other documents must use exactly these IDs:
 | TEST-CAP-004 | Unsupported-mode rejection and supported-mode matrix | REQ-CAP-005, REQ-CAP-007, REQ-CAP-008 |
 | TEST-AUD-001 | HDMI audio capture over I2S | REQ-CAP-006 |
 | TEST-DMA-001 | DMABUF capture → encoder buffer sharing | REQ-DMA-001, REQ-ARCH-001 |
-| TEST-ENC-001 | Sustained real-time H.264 encode | REQ-ENC-001 |
+| TEST-ENC-001 | Sustained real-time H.264 / H.265 encode | REQ-ENC-001 |
 | TEST-REC-001 | Recording integrity and duration | REQ-REC-001 |
 | TEST-STR-001 | RTMP publish and playback | REQ-STR-001 |
 | TEST-STR-002 | WebRTC browser playback | REQ-STR-002 |
@@ -180,3 +180,5 @@ Other documents must use exactly these IDs:
 | 2026-10-06 | Cross-document consistency fixes: Start-here table (Rule 25) links added — V4L2.md and HARDWARE.md for TC358743 control; DMA.md and PERFORMANCE.md for encoding; PERFORMANCE.md for testing; TESTING.md and TRACEABILITY.md for current status; OPEN_QUESTIONS.md for what does not work; TESTING.md test order for next steps. | Claude (session 2026-10-06) |
 | 2026-10-07 | Canonical test table: "Verifies" extended for the new requirements REQ-CAP-007, REQ-CAP-008 and REQ-BLD-002 (owner decisions of 2026-10-07). No test ID added or removed. | Claude (session 2026-10-07) |
 | 2026-10-07 | TEST-ATEM-001 retitled "ATEM HDMI output capture (scope per OQ-009)" after OQ-009 was answered; ID unchanged. | Claude (session 2026-10-07) |
+| 2026-10-08 | ID schemes (convention 8): source-fact range extended from `A-NN` … `G-NN` to `A-NN` … `I-NN`, because REFERENCES.md gained topics H (H.265/HEVC, H-01 to H-43) and I (HDMI audio, I-01 to I-47) on 2026-10-08. No convention, test ID or title changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |

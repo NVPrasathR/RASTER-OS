@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | DRAFT — no requirement has been accepted with acceptance criteria yet (OQ-017) |
-| Last updated | 2026-10-07 |
+| Last updated | 2026-10-08 |
 | Applies to | The PACSCORDER product on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 |
-| Verification | Requirements only. Supporting facts are from source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
+| Verification | Requirements only. Supporting facts are from source research of 2026-10-06 and 2026-10-08 (topics H and I) ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
 | Owner | Project owner |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rules 11, 12, 22 |
 
@@ -176,8 +176,17 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
   - RTMP/FLV carries AAC audio [F-31].
   - ATEM program audio is available only embedded in HDMI/USB [F-24] (CORRECTED).
   - The TC358743 silicon can send audio over CSI-2 [A-05] or on I2S/TDM output pins [A-11]. The Linux driver always configures 2-channel I2S [A-13], and the `tc358743-audio` overlay expects that I2S on GPIO 18/19/20 [A-47]. Reasoning: with the stock driver, audio therefore needs I2S wiring that is separate from the CSI-2 camera cable (OQ-025). Whether audio over CSI-2 works with the Raspberry Pi receivers is OQ-033.
-- **Acceptance:** DRAFT. Channels, sample rates and the audio/video synchronisation tolerance are not yet specified (OQ-004 answered for "required"; parameters remain open there and in OQ-025, OQ-054, OQ-063).
+- **Acceptance:** DRAFT. Channels, sample rates and the audio/video synchronisation tolerance are not yet specified (OQ-004 answered for "required"; parameters remain open there and in OQ-025, OQ-054, OQ-063). *(2026-10-08: also tracked in OQ-110 — channels and formats; OQ-111 — sample-rate policy; OQ-112 — A/V synchronisation and tolerance; OQ-114 — GPIO 18–21 allocation.)*
 - **Implementation:** NOT STARTED.
+- **Evidence added 2026-10-08 (research topic I; from sources, not hardware; wording, acceptance and status unchanged):**
+  - Overlay: `tc358743-audio` enables `i2s_clk_consumer`, adds a `linux,spdif-dir` stub codec as bit-clock and frame master, and creates the ALSA card `tc358743` with 2 × 32-bit slots [I-01], [I-02], [I-03], [I-15]. The README's "tc358743-fast" is a stale overlay name [I-04]. The datasheet makes the TC358743 the I2S clock master only [I-25].
+  - CM4: the CPU side is `bcm2835-i2s` on GPIO 18–21, which captures exactly 2 channels at 8–384 kHz [I-10], [I-13].
+  - CM5: `overlay_map` does not block the overlay, and its labels resolve to RP1 I2S1 on GPIO 18–21, the clock-consumer instance that a codec-master link needs [I-05], [I-06], [I-07], [I-08], [I-09]; RP1 I2S1's channel count and formats come from hardware registers [I-14]. No source shows audio being captured through this path on CM5 (OQ-054).
+  - Channels: the driver hard-codes 2-channel I2S at probe [I-24]. Reasoning: with the stock driver the requirement can be met for stereo only; compressed or multichannel input is OQ-110.
+  - Sample rate: reasoning from source — the kernel does not carry the HDMI sample rate into ALSA, and a mismatch makes audio run fast or slow without an error [I-18]. The driver exposes the rate as a read-only control with a change event [I-19], [I-20], [I-21]; without a wired interrupt a change takes up to about 1 s to appear [I-22] (OQ-111, RISK-023).
+  - Synchronisation: the TC358743's audio PLL follows the source's audio clock [I-26], video buffers are stamped with `CLOCK_MONOTONIC` [I-33], and GStreamer and FFmpeg align the two differently by default [I-35], [I-36], [I-37], [I-38] (OQ-112, RISK-024).
+  - Pins: the audio pins are VDDIO2 outputs, rated 1.8–3.3 V [I-27]; the CM4 and CM5 IO Boards have a selectable 1.8 V or 3.3 V GPIO voltage, which VDDIO2 should match, or the lines need level shifting [I-29]. The overlay claims GPIO 18–21 [I-30], which conflicts with overlays that default to GPIO 18 [I-31] (OQ-114).
+  - Encoders: FFmpeg native `aac` and `libopus`, GStreamer `voaacenc`, `avenc_aac` and `opusenc` are available in Raspberry Pi OS; `fdk-aac` is non-free and GPL-incompatible [I-39], [I-41], [I-43], [I-44], [I-45], [I-46] (OQ-063).
 
 ## REQ-CAP-007 — 2-lane and 4-lane CSI-2 configurations, all frame rates each link carries
 
@@ -231,6 +240,9 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
   - Pi 4/CM4 have a hardware H.264 encoder, officially specified for 1080p30 [D-10].
   - Pi 5/CM5 have no hardware video encoder. Official figure: "H264 1080p30 encode (from ISP) ~30–40% CPU" [G-22].
   - No candidate platform has a hardware HEVC encoder [D-24], [D-31], so H.265 is software-encoded on every candidate (reasoning; RISK-022). Legacy RTMP/FLV carries only H.264 video; HEVC needs Enhanced RTMP [F-31]. WebRTC mandates only VP8 and H.264 [F-36].
+  - *(Added 2026-10-08, research topic H; wording, acceptance and status unchanged.)* Software H.265 encoders in Raspberry Pi OS: Debian's x265 4.1-2, not overridden by Raspberry Pi [H-01], [H-02]; `libx265` in the Raspberry Pi FFmpeg 7.1.5 [H-08], [H-09]; GStreamer `x265enc` [H-11], [H-12] (CORRECTED). Both accept planar input only, not the TC358743's packed UYVY [H-10] (CORRECTED), [H-13]; reasoning: the conversion at 1080p60 reads about 249 MB/s and writes about 187 MB/s on the CPU [H-43].
+  - *(Added 2026-10-08.)* H.265 cost: research found no official figure in a site search of raspberrypi.com [H-19]. A Raspberry Pi engineer stated on the official forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. Community benchmarks report `libx265` at 10.00 FPS on Pi 5 and 4.33 FPS on a Pi 400 in a test that is not a 1080p60 live measurement (community sources) [H-20], [H-21], [H-22]; reasoning: about 6.6 times slower than `libx264` in that harness [H-23]. x265's Neon DotProd kernels can apply only on CM5 [H-04], [H-05]. Measurement: OQ-104, OQ-105.
+  - *(Added 2026-10-08.)* Low latency: `tune=zerolatency` disables B-frames and lookahead and uses one frame thread [H-16]; GStreamer 1.26.2 `x265enc` reports a hard-coded 5-frame latency unless `tune=zerolatency` [H-15]. Which outputs use H.265 is still OQ-103.
   - See [VIDEO_ENCODER.md](VIDEO_ENCODER.md).
 
 ## REQ-REC-001 — Recording
@@ -244,6 +256,9 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
   - minimum recording duration;
   - behaviour on power loss.
 - **Implementation:** NOT STARTED.
+- **Notes (added 2026-10-08; from sources, not hardware; wording, acceptance and status unchanged):**
+  - HEVC recording (H.265 is required, REQ-ENC-001): GStreamer 1.26.2 `qtmux`/`mp4mux` and `matroskamux` accept H.265, with `h265parse` needed after `x265enc`; `matroskamux` warns that the `hev1` form is not officially supported [H-37]. FFmpeg 7.1.5's MP4 muxer tags HEVC as `hev1`, `hvc1` or `dvh1`, and its Matroska muxer handles HEVC [H-38].
+  - Audio in recordings (REQ-CAP-006): AAC encoders available in Raspberry Pi OS are FFmpeg's native `aac` (128 kb/s stereo by default; CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. The recorded audio rate must follow the source (RISK-023, OQ-111), and A/V synchronisation is unmeasured (RISK-024, OQ-112).
 
 ## REQ-STR-001 — RTMP streaming
 
@@ -253,6 +268,8 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 - **Acceptance:** DRAFT. Server targets and bitrate are **UNDEFINED** (OQ-007).
 - **Implementation:** NOT STARTED.
 - **Notes:** Legacy RTMP/FLV carries H.264 video and AAC audio [F-31]. GStreamer `rtmp2sink` is a client (publisher) [F-33].
+  - *(Added 2026-10-08, research topic H; wording, acceptance and status unchanged.)* HEVC over RTMP: the Enhanced RTMP specification defines the HEVC FourCC `hvc1` [H-24]; FFmpeg 6.1 was the first release to mux HEVC into FLV [H-25], and FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV for RTMP publishing; its FLV muxer has no Opus [H-26]. GStreamer 1.26.2's `flvmux` cannot carry H.265 [H-27] (OQ-107, RISK-025). YouTube Live lists H.264, H.265 and AV1 over RTMP/RTMPS with AAC or MP3 audio [H-29]; whether it and other destinations accept FFmpeg's signalling is OQ-106. Components for HEVC over SRT in MPEG-TS exist in the distribution stacks [H-30] (OQ-076).
+  - *(Added 2026-10-08, research topic I.)* AAC encoders: FFmpeg native `aac` (CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. `fdk-aac` would need `--enable-nonfree` in the GPL FFmpeg build, making it unredistributable [I-42], [I-43] (OQ-063, OQ-113).
 
 ## REQ-STR-002 — WebRTC streaming
 
@@ -267,6 +284,8 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 - **Notes:**
   - Browser interoperability requires H.264 Constrained Baseline per RFC 7742 [F-36]. RFC 7874 requires WebRTC endpoints to implement Opus and G.711 audio; AAC is not a required WebRTC codec, so AAC audio has to be transcoded (typically to Opus) for browser playback [F-41].
   - Reasoning from H.264 Table A-1 as encoded in FFmpeg: a 1080p H.264 stream needs Level 4.0 or above (1080p60 needs Level 4.2), which a strict `42e01f` (Level 3.1) negotiation does not cover [F-40] (OQ-073).
+  - *(Added 2026-10-08, research topic H; wording, acceptance and status unchanged.)* H.265 in WebRTC: RFC 7742 does not require it [H-32]. Chrome 136+ enables it only where the platform decodes it in hardware, with no software fallback [H-33]; Safari 18.0 supports the standard HEVC RTP payload [H-34]; no evidence of Firefox support was found [H-35]; Edge 147 is reported not to enable it by default (community source) [H-36]. GStreamer 1.26.2's `rtph265pay` lacks profile, tier and level in its caps (added in 1.26.4) [H-31]. Reasoning: an H.264 WebRTC track has to remain for browser reach (OQ-108, RISK-019).
+  - *(Added 2026-10-08, research topic I.)* Opus encoders: FFmpeg `libopus` [I-41] and GStreamer `opusenc` [I-45]; both accept only 48, 24, 16, 12 or 8 kHz, so a 44.1 kHz HDMI source needs resampling first [I-41], [I-47] (OQ-111).
 
 ## REQ-ATEM-001 — Blackmagic ATEM integration
 
@@ -316,6 +335,12 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 
 Every fact cited above is in [REFERENCES.md](REFERENCES.md) with verdict `CONFIRMED` or `CORRECTED`; `CORRECTED` entries (A-26, B-21, F-24) are used in their corrected wording. Community-tier entries (A-43, C-41, C-42, C-43, F-11) are worded as reports. Reasoning-tier entries (A-26, B-27, B-33, C-47, C-48, C-49, F-40, F-46) are labelled as reasoning. "Verified from sources" means only that the cited source says so; it says nothing about PACSCORDER hardware.
 
+Added 2026-10-08 (research topics H and I, cited in REQ-CAP-006, REQ-ENC-001, REQ-REC-001, REQ-STR-001 and REQ-STR-002):
+
+- Topic H facts cited: H-01, H-02, H-04, H-05, H-08, H-09, H-10, H-11, H-12, H-13, H-15, H-16, H-19, H-20, H-21, H-22, H-23, H-24, H-25, H-26, H-27, H-29, H-30, H-31, H-32, H-33, H-34, H-35, H-36, H-37, H-38, H-43.
+- Topic I facts cited: I-01, I-02, I-03, I-04, I-05, I-06, I-07, I-08, I-09, I-10, I-13, I-14, I-15, I-18, I-19, I-20, I-21, I-22, I-24, I-25, I-26, I-27, I-29, I-30, I-31, I-33, I-35, I-36, I-37, I-38, I-39, I-40, I-41, I-42, I-43, I-44, I-45, I-46, I-47.
+- `CORRECTED` entries H-10, H-12 and I-40 are used in their corrected wording. Community-tier entries H-19, H-20, H-21, H-22 and H-36 are worded as reports. Reasoning-tier entries H-23, H-43 and I-18 are labelled as reasoning. All cited H and I entries have verdict `CONFIRMED` or `CORRECTED`.
+
 ### Verified on PACSCORDER hardware
 
 Nothing (no hardware exists as of 2026-10-06). No requirement has a test result; every test listed above is `BLOCKED — HARDWARE REQUIRED` except TEST-BLD-001, which is `NOT STARTED`.
@@ -332,3 +357,4 @@ Nothing (no hardware exists as of 2026-10-06). No requirement has a test result;
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated (verification pass): REQ-PLT-001 note no longer says Pi 4 Model B simply "conflicts with REQ-CAP-001" — it cannot serve the 4-lane configuration and remains a 2-lane candidate (REQ-CAP-007); REQ-CAP-007 citations corrected — the 3-of-4-lane statement now cites [C-47] (not only [C-49]), the "2-lane bridge board on any port" reasoning cites [C-48], and the `4lane` probe note is scoped to the Unicam 2-lane ports with [B-42] for what `4lane` sets; REQ-CAP-008 [B-27] labelled as reasoning; Verification status reasoning-tier list adds B-33 and C-49. No requirement status, acceptance or ID changed. | Claude (session 2026-10-07) |
 | 2026-10-07 | REQ-BLD-001 and REQ-BLD-002 notes updated: ADR-003 ACCEPTED by the owner (OQ-012 ANSWERED). No requirement wording or acceptance status changed. | Claude (session 2026-10-07) |
 | 2026-10-07 | Owner decisions recorded: REQ-CAP-006 audio required (PROPOSED → DRAFT; original wording kept in the entry); REQ-ENC-001 codecs H.264 and H.265 (OQ-103, RISK-022); REQ-CAP-008 sources generic (OQ-102 answered). Counts now 16 DRAFT / 4 PROPOSED. | Claude (session 2026-10-07) |
+| 2026-10-08 | Evidence from research topics H (H.265/HEVC) and I (HDMI audio) added as dated notes: REQ-CAP-006 (overlay mechanics, CM4 and CM5 I2S paths, stereo only, sample-rate handling, A/V clock domains, VDDIO2 and GPIO 18–21, audio encoders; acceptance line annotated with OQ-110, OQ-111, OQ-112, OQ-114), REQ-ENC-001 (x265/libx265/x265enc availability, planar-only input, community cost evidence, DotProd only on CM5, low-latency settings), REQ-REC-001 (HEVC in MP4/Matroska, AAC encoders), REQ-STR-001 (HEVC over Enhanced RTMP with FFmpeg, not with GStreamer 1.26.2 `flvmux`; YouTube H.265; SRT components; AAC encoders) and REQ-STR-002 (H.265 browser support, Opus encoders and rates). Header Verification row and Verification status fact lists updated. No requirement wording, acceptance, status or ID changed. | Claude (session 2026-10-08) |

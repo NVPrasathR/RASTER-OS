@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | DRAFT — no PACSCORDER Device Tree source or overlay exists. The baseline is the stock Raspberry Pi TC358743 overlay, unmodified, NOT YET LOADED ON PACSCORDER HARDWARE. |
-| Last updated | 2026-10-07 |
-| Applies to | Device Tree description of the TC358743 and its `config.txt` overlay configuration on Raspberry Pi 4 Model B, CM4, Pi 5 and CM5, for both the 2-lane and the 4-lane configuration the product needs (REQ-CAP-007). Overlay and driver sources: `raspberrypi/linux` branch `rpi-6.18.y` as of 2026-10-06. |
-| Verification | Source research of 2026-10-06 only ([REFERENCES.md](REFERENCES.md)). No overlay has been loaded on PACSCORDER hardware: no hardware exists as of 2026-10-06. |
+| Last updated | 2026-10-08 |
+| Applies to | Device Tree description of the TC358743 and its `config.txt` overlay configuration on Raspberry Pi 4 Model B, CM4, Pi 5 and CM5, for both the 2-lane and the 4-lane configuration the product needs (REQ-CAP-007), including the `tc358743-audio` overlay (HDMI audio required, REQ-CAP-006). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN); Pi 4 Model B and Pi 5 content is kept. Overlay and driver sources: `raspberrypi/linux` branch `rpi-6.18.y` as of 2026-10-06; audio overlay and audio Device Tree sources as read for research topic I on 2026-10-08. |
+| Verification | Source research of 2026-10-06, plus research topic I (HDMI audio path) of 2026-10-08 ([REFERENCES.md](REFERENCES.md)). No overlay has been loaded on PACSCORDER hardware: no hardware exists as of 2026-10-08. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 6 (Device Tree documentation), Rule 8, Rule 22, Rule 23 |
 
 This document records how the TC358743 is, or will be, described to the Linux kernel on each candidate platform (Rule 6). It covers:
@@ -20,7 +20,9 @@ This document records how the TC358743 is, or will be, described to the Linux ke
 
 **Owner decisions of 2026-10-07.** The product needs both a 2-lane and a 4-lane CSI-2 configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; OQ-001 ANSWERED). PACSCORDER will therefore need at least two Device Tree lane settings: `data-lanes = <1 2>` for the 2-lane configuration and `<1 2 3 4>` (the `4lane` parameter) for the 4-lane configuration (§5.8). Which platform and connector carry each configuration is still OPEN (ADR-004); no platform is chosen in this document.
 
-**Source baseline.** The overlay and driver facts below come from `raspberrypi/linux` `rpi-6.18.y`, the default branch on 2026-10-06 [B-01], whose tip reported version 6.18.55 [E-37]. Raspberry Pi OS Lite 2026-10-06 ships kernel 6.18.50 [G-04], [G-06]. That the overlay sources of 6.18.50 match the branch tip is NEEDS VERIFICATION — KERNEL SOURCE INSPECTION REQUIRED (the same question for the driver file `tc358743.c` is OQ-097).
+**Owner decisions of 2026-10-07, second set (propagated 2026-10-08).** Bring-up evaluates **CM4 and CM5 side by side**, and the product platform is decided from measurements (ADR-004 stays OPEN), so the CM4 (§6.2) and CM5 (§6.4) configurations are the bring-up focus; the Pi 4 Model B and Pi 5 sections are kept. HDMI audio is required (REQ-CAP-006, DRAFT; OQ-004 ANSWERED), so the stock `tc358743-audio` overlay becomes part of the proposed configuration on every platform (§3.5, §6.0, §9). On CM5 that overlay's operation is unconfirmed (OQ-054). The other decisions of that set (H.264 and H.265 encoding; any HDMI camera plus ATEM outputs as sources) do not change the Device Tree.
+
+**Source baseline.** The overlay and driver facts below come from `raspberrypi/linux` `rpi-6.18.y`, the default branch on 2026-10-06 [B-01], whose tip reported version 6.18.55 [E-37]. Raspberry Pi OS Lite 2026-10-06 ships kernel 6.18.50 [G-04], [G-06]. That the overlay sources of 6.18.50 match the branch tip is NEEDS VERIFICATION — KERNEL SOURCE INSPECTION REQUIRED (the same question for the driver file `tc358743.c` is OQ-097). *(2026-10-08: research topic I also read the `tc358743-audio` overlay, `overlay_map.dts` and the audio-related base Device Trees at the `rpi-6.18.y` branch head; the packaged 6.18.50 kernels' `.config` options were checked, source lines were not (research gap, topic I). OQ-097's scope note covers these files.)*
 
 Fact IDs such as `[B-41]` point to [REFERENCES.md](REFERENCES.md). Facts from the `community` tier are worded as reports. Facts from the `reasoning` tier, and Claude's own reasoning, are labelled as such. `CORRECTED` entries are used in their corrected wording only. Everything marked **PROPOSED** is Claude's recommendation (Rule 23 priority 8) and has not been accepted by the owner.
 
@@ -41,9 +43,10 @@ Fact IDs such as `[B-41]` point to [REFERENCES.md](REFERENCES.md). Facts from th
 | Lane mapping | `clock-lanes = <0>`, data lanes in order [B-41], [C-12] | UNKNOWN — VERIFICATION REQUIRED | OQ-021 | [§5.9](#59-lane-mapping) |
 | Compatible string | `"toshiba,tc358743"` [A-20], [B-41] | PROPOSED: same, if the in-tree driver is used (ADR-002 PROPOSED, not decided) | OQ-013 | [§5.10](#510-compatible-strings) |
 | Pi 4 configuration | `tc358743` overlay, 2 lanes | UNKNOWN — platform undecided (ADR-004, per configuration). Candidate for the 2-lane configuration only (REQ-CAP-007) | OQ-011, OQ-014, OQ-100 | [§6.1](#61-raspberry-pi-4-model-b) |
-| CM4 configuration | `tc358743` overlay, CAM1 4 lanes / CAM0 2 lanes | UNKNOWN — platform undecided. CAM1: 4-lane candidate; CAM0: 2-lane candidate (REQ-CAP-007) | OQ-011, OQ-014, OQ-018, OQ-100 | [§6.2](#62-compute-module-4) |
+| CM4 configuration | `tc358743` overlay, CAM1 4 lanes / CAM0 2 lanes | UNKNOWN — platform undecided. CAM1: 4-lane candidate; CAM0: 2-lane candidate (REQ-CAP-007). Evaluated side by side with CM5 in bring-up (owner, 2026-10-07) | OQ-011, OQ-014, OQ-018, OQ-100 | [§6.2](#62-compute-module-4) |
 | Pi 5 configuration | `tc358743` redirected to `tc358743-pi5` [C-11] | UNKNOWN — platform undecided. 4-lane candidate; 2-lane only with a 2-lane bridge board (REQ-CAP-007; OQ-021) | OQ-011, OQ-049, OQ-050, OQ-100 | [§6.3](#63-raspberry-pi-5) |
-| CM5 configuration | As Pi 5; carrier-dependent I2C pairing | UNKNOWN — platform undecided. As Pi 5 (REQ-CAP-007); carrier-dependent | OQ-011, OQ-052, OQ-100 | [§6.4](#64-compute-module-5) |
+| CM5 configuration | As Pi 5; carrier-dependent I2C pairing | UNKNOWN — platform undecided. As Pi 5 (REQ-CAP-007); carrier-dependent. Evaluated side by side with CM4 in bring-up (owner, 2026-10-07) | OQ-011, OQ-052, OQ-100 | [§6.4](#64-compute-module-5) |
+| Audio overlay (I2S) — added 2026-10-08 | `tc358743-audio`: enables `i2s_clk_consumer`, adds a `linux,spdif-dir` stub codec as clock master, creates the ALSA card `tc358743` [I-01], [I-02], [I-03] | PROPOSED: stock `tc358743-audio`, unmodified, on every platform (audio required, REQ-CAP-006). CM5 operation unconfirmed. A custom pin group only if GPIO 21 must be freed | OQ-025, OQ-054, OQ-114 | [§3.5](#35-tc358743-audio) |
 
 ---
 
@@ -136,13 +139,61 @@ Consequences:
 
 - The same `config.txt` line applies a different overlay on Pi 5/CM5 than on Pi 4/CM4.
 - The Pi 5/CM5 path is always Media Controller [C-11]. Parameters must be valid for `tc358743-pi5`, which has no `media-controller` parameter [G-13].
+- *(Added 2026-10-08, research topic I.)* `overlay_map.dts` has no `tc358743-audio` node; its only TC358743 node is the one quoted above [I-05]. Official documentation says an overlay not mentioned in the map is assumed to be compatible with all platforms, where `bcm2712` covers Pi 5 and CM5 [I-06]. So on Pi 5/CM5 `dtoverlay=tc358743-audio` loads under its own name and the firmware does not block it; whether it then operates depends on its labels resolving in the BCM2712 base Device Tree [I-06] (§3.5).
 - The redirect needs `overlay_map.dtb` on the boot partition. Buildroot copies it, together with the `.dtbo` files, from the `raspberrypi/firmware` tarball [E-14]. Buildroot's `raspberrypi5_defconfig` disables overlay installation [E-15], [G-61], and the LTS-era firmware commit has no `tc358743-pi5.dtbo` [E-53]. See OQ-065 and [BUILD_SYSTEM.md](BUILD_SYSTEM.md).
 
 ### 3.5 `tc358743-audio`
 
 - A `simple-audio-card` named `tc358743`. A dummy codec (`"linux,spdif-dir"`) is bit-clock and frame master; the CPU DAI is `i2s_clk_consumer` with two 32-bit TDM slots [B-46]. Its only parameter is `card-name` [G-14].
 - Documented wiring: LRCK/WFS to GPIO 19, BCK/SCK to GPIO 18, DATA/SD to GPIO 20 [A-47], [G-14]. Official documentation says audio needs this overlay in addition to `tc358743` [C-37].
-- Use only if audio is required (OQ-004, REQ-CAP-006). Behaviour on Pi 5/CM5 is unverified (OQ-054).
+- Use only if audio is required (OQ-004, REQ-CAP-006). Behaviour on Pi 5/CM5 is unverified (OQ-054). *(Superseded 2026-10-07: audio is required — REQ-CAP-006, OQ-004 ANSWERED — so the overlay is part of the proposed configuration on every platform (§6.0). Pi 5/CM5 behaviour is still unverified; see the CM5 notes below.)*
+
+**Overlay contents per fragment** *(added 2026-10-08, research topic I; `rpi-6.18.y`)*:
+
+| Part | Content | Facts |
+|---|---|---|
+| Root | `compatible = "brcm,bcm2835"`; the overlay never references the plain `&i2s` label | [I-01] |
+| `fragment@0` | Target `<&i2s_clk_consumer>`; sets only `status = "okay"` | [I-01] |
+| `fragment@1` (target-path `/`) | Adds node `tc358743_codec: tc358743-codec` with `#sound-dai-cells = <0>`, `compatible = "linux,spdif-dir"`, `status = "okay"`. The TC358743 has no ASoC codec driver of its own. | [I-02] |
+| `fragment@2` | Makes `<&sound>` a `simple-audio-card`, format `"i2s"`, name `"tc358743"`. `bitclock-master` and `frame-master` both point at the codec subnode, so the TC358743 drives BCK and LRCK. CPU DAI `<&i2s_clk_consumer>` with `dai-tdm-slot-num = <2>` and `dai-tdm-slot-width = <32>`. | [I-03] |
+| Overrides | Only `card-name` (default `"tc358743"`) | [I-03], [I-04] |
+
+Lines quoted in the source register (excerpts only; NOT the complete file):
+
+```dts
+/* Excerpts quoted in [I-01], [I-02], [I-03] — NOT the complete file */
+compatible = "brcm,bcm2835";
+fragment@0 { target = <&i2s_clk_consumer>; __overlay__ { status = "okay"; }; };
+tc358743_codec: tc358743-codec {
+        #sound-dai-cells = <0>;
+        compatible = "linux,spdif-dir";
+        status = "okay";
+};
+simple-audio-card,format = "i2s";
+simple-audio-card,name = "tc358743";
+simple-audio-card,bitclock-master = <&dailink0_master>;
+simple-audio-card,frame-master = <&dailink0_master>;
+simple-audio-card,cpu { sound-dai = <&i2s_clk_consumer>; dai-tdm-slot-num = <2>; dai-tdm-slot-width = <32>; };
+dailink0_master: simple-audio-card,codec { sound-dai = <&tc358743_codec>; };
+__overrides__ { card-name = <&sound_overlay>,"simple-audio-card,name"; }
+```
+
+- **Load with `tc358743`.** Official documentation says audio needs this overlay in addition to `tc358743` [C-37]. A Raspberry Pi engineer (6by9) stated on the forum that `tc358743-audio` "*requires* dtoverlay=tc358743 to be loaded too", because the TC358743 has to be configured by its driver (community source) [I-16].
+- **Clock roles (reasoning).** The datasheet makes the TC358743 the I2S clock master only [I-25]; the overlay makes the codec link clock master and the Pi the clock consumer. The overlay's 2 × 32-bit slots match the datasheet's 32-bit time slots: 64 bit clocks per frame [I-28].
+- **The stub codec knows nothing about the TC358743.** `linux,spdif-dir` (`spdif_receiver.c`, module `snd-soc-spdif-rx`) has one capture-only DAI, `dir-hifi`, accepting 1–384 channels at 8–768 kHz in S16_LE, S20_3LE, S24_LE, S32_LE or IEC958_SUBFRAME_LE. It has no DAI operations, no ALSA controls and no reference to the TC358743 driver [I-11]. Reasoning: nothing in this Device Tree path tells ALSA the HDMI sample rate [I-18]; the application has to read the driver's control (RISK-023, OQ-111; [TC358743_DRIVER.md](TC358743_DRIVER.md) §22.1).
+- **ALSA names.** The card id is `tc358743` (from `simple-audio-card,name`), so the device can be opened as `hw:CARD=tc358743,DEV=0` whatever card index is assigned. On CM4 the PCM is named `bcm2835-i2s-dir-hifi dir-hifi-0` [I-15]. Reasoning from source: on CM5 the PCM name will differ (expected `1f000a4000.i2s-dir-hifi dir-hifi-0`, not verified on hardware), so software should select the card by id, not by PCM name [I-17].
+
+**How `i2s_clk_consumer` resolves per platform** *(added 2026-10-08)*:
+
+| Platform | Label resolves to | Pins | Notes | Facts |
+|---|---|---|---|---|
+| Pi 4 Model B | Not covered by the topic I register entries | GPIO 18/19/20 per README [A-47], [G-14] | KERNEL SOURCE INSPECTION REQUIRED for the Pi 4 Model B base DT | — |
+| CM4 (BCM2711) | `bcm270x-rpi.dtsi` points `i2s_clk_producer` and `i2s_clk_consumer` at the single `&i2s` node (`i2s@7e203000`, `"brcm,bcm2835-i2s"`, disabled by default in `bcm283x.dtsi`). `fragment@0` therefore flips the same node as `dtparam=i2s=on` (default off). | `bcm2711-rpi-cm4.dts` sets `&i2s` `pinctrl-0 = <&i2s_pins>`; `i2s_pins` = GPIO 18, 19, 20, 21 in `BCM2835_FSEL_ALT0` | Capture: exactly 2 channels, 8–384 kHz [I-13] | [I-10], [I-13], [I-30] |
+| Pi 5 (BCM2712) | `bcm2712-rpi.dtsi` defines the labels (see CM5 row) | As CM5 if the Pi 5 board DT includes `bcm2712-rpi.dtsi`, which is not in the register | KERNEL SOURCE INSPECTION REQUIRED (OQ-054) | [I-07] |
+| CM5 (BCM2712) | `bcm2712-rpi.dtsi`: `i2s: &rp1_i2s0`, `i2s_clk_producer: &rp1_i2s0`, `i2s_clk_consumer: &rp1_i2s1`; `sound: sound { status = "disabled"; }`. `bcm2712-rpi-cm5.dtsi` includes `bcm2712-rpi.dtsi`, so both labels the overlay needs exist on CM5. | `&i2s_clk_consumer` `pinctrl-0 = <&rp1_i2s1_18_21>`: function `i2s1` on GPIO 18, 19, 20, 21, `bias-disable` | `rp1_i2s1` is `i2s@a4000`, `"snps,designware-i2s"`, RP1 DMA I2S1 TX/RX, `status = "disabled"`, interrupt commented out ("Providing an interrupt disables DMA") [I-08]. `dwc-i2s` accepts the codec-master format (BC_FC) only on a clock-consumer instance; RP1 I2S1 is that instance [I-09]. The overlay's 2 × 32-bit TDM setting passes `dwc-i2s`'s checks; capture channel count and formats are read from hardware registers [I-14]. | [I-07], [I-08], [I-09], [I-14] |
+
+- **CM5 status.** Nothing in the sources rules the CM5 path out, but no official statement or test result shows audio captured through it (research gap, topic I). UNKNOWN — VERIFICATION REQUIRED; HARDWARE TEST REQUIRED (OQ-054, TEST-AUD-001). Reasoning in ADR-004: a bring-up gate before CM5 can be chosen.
+- **Pins claimed.** On both CM4 and CM5 the pin group claims GPIO 18–21, including GPIO 21, which the TC358743 path does not use [I-30]. Freeing GPIO 21 would need a PACSCORDER overlay with its own pin group for GPIO 18–20 (research gap, topic I; OQ-114). Overlays that default to GPIO 18 or 18/19 conflict (`pwm`, `pwm-2chan`, `gpio-ir`, `audremap` `pins_18_19` on BCM2711) [I-31]; see [HARDWARE.md](HARDWARE.md) §4.6.1.
 
 ### 3.6 Overlay parameters
 
@@ -158,7 +209,7 @@ Consequences:
 - `297000000` is labelled "574Mbit/s"; the driver rate is 2 × 297 MHz = 594 Mbit/s [A-46], [B-45], [C-13].
 - The `tc358743-pi5` entry still says "Uses Unicam 1" and calls `4lane` Compute-Module-CAM1-only [C-13].
 - The `cam0` description mentions "CSI0, i2c_vc, and cam0_reg" [G-12], but `tc358743.dtsi` references no `cam0_reg` or `cam1_reg` [C-23].
-- `tc358743-audio` refers to a `tc358743-fast` overlay that has no README entry [B-46].
+- `tc358743-audio` refers to a `tc358743-fast` overlay that has no README entry [B-46]. *(2026-10-08: `tc358743-fast` is a stale name. The overlays Makefile builds only `tc358743.dtbo`, `tc358743-audio.dtbo` and `tc358743-pi5.dtbo`, and the directory has only those overlays plus `tc358743.dtsi` [I-04]. Reasoning from [I-04] and [C-37]: read "tc358743-fast" as `tc358743`.)*
 
 ### 3.7 Where the compiled overlays come from
 
@@ -180,6 +231,8 @@ Consequences:
 | REFCLK other than 27 MHz | [A-45]; no parameter for it [G-12], [G-13] | A DT value other than 26, 27 or 42 MHz leads to a kernel BUG [A-22] (RISK-007). Reasoning from [B-07], [B-08]: if the DT says 27 MHz but the oscillator is 26 or 42 MHz, the driver computes its PLL settings from the wrong reference; the effect on the lane rate is HARDWARE TEST REQUIRED. | Set `clock-frequency` to the measured oscillator | OQ-019 |
 | I2C address other than 0x0f | [A-15]; no parameter for it [G-12], [G-13] | Probe fails with `-ENODEV` [A-19] | Change `reg` | OQ-026 |
 | I2C/CSI pairing that matches the connector (CM5 on the CM4 IO Board) | [C-05], [C-27]; research open question, topic C | The research found that neither stock pairing appears to match the CAM1 connector, so the bridge may be probed on an I2C bus or CSI receiver that does not belong to the connector in use (unconfirmed; HARDWARE TEST REQUIRED) | Retarget the I2C and CSI fragments | OQ-052 |
+| *(Added 2026-10-08.)* An audio pin group without GPIO 21 (`tc358743-audio`) | [I-30] | The I2S pin group claims GPIO 18–21, although the TC358743 path uses only 18, 19 and 20 [I-30] | Only if GPIO 21 must be freed: a PACSCORDER audio overlay with its own pin group for GPIO 18–20 (research gap, topic I). BUILD TEST REQUIRED. | OQ-114 |
+| *(Added 2026-10-08.)* Any path that tells ALSA the HDMI audio sample rate | [I-11], [I-18] | The stub codec has no controls and no link to the TC358743 driver [I-11]; reasoning: the kernel does not carry HDMI rate changes into ALSA [I-18] (RISK-023). Without `interrupts` a rate change also takes up to about 1 s to reach the driver's control [I-22]. | Not a Device Tree fix: the application reads the driver's sampling-rate control or its change event ([TC358743_DRIVER.md](TC358743_DRIVER.md) §22.1). Wiring INT (row above) shortens the delay (research gap, topic I: possible but untested). | OQ-111, OQ-020 |
 
 ### 4.2 Decision rule (PROPOSED)
 
@@ -264,6 +317,7 @@ How the labels resolve on each platform:
 - **PACSCORDER value:** UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED — OQ-020.
 - INT is active high and level-triggered [A-29]. The binding example uses `IRQ_TYPE_LEVEL_HIGH` [A-29], [B-05]. The driver requests a threaded IRQ with `IRQF_TRIGGER_HIGH | IRQF_ONESHOT` [B-19].
 - Related, not DT: on Pi 5 a Raspberry Pi engineer reported that source-change events must be subscribed on the TC358743 sub-device node, not the video node [C-42] (OQ-051).
+- *(Added 2026-10-08, research topic I.)* The poll interval also governs HDMI audio. The shared `tc358743.dtsi` has no `interrupts` property, so the driver polls every 1000 ms; `CONFIG_VIDEO_TC358743_CEC` is not set in either defconfig or in the packaged 6.18.50 `rpi-v8` and `rpi-2712` kernels, so the 10 ms CEC interval does not apply. A source sample-rate change can therefore take up to about 1 s, plus I2C time, to reach the driver's audio sampling-rate control [I-22] (OQ-111, OQ-020; RISK-023).
 
 ### 5.5 Power supplies
 
@@ -389,7 +443,7 @@ Kconfig symbol meanings differ in the 6.12.61 kernel pinned by Buildroot 2026.08
   - base-DT pool: 64 MB, limited to the lower 768 MB on Pi 4/CM4 and to the lower 1 GB by `bcm2712.dtsi` (Pi 5/CM5) [E-47] (CORRECTED).
 
   Reasoning (reasoning-tier entry, CORRECTED) [C-53]: one 1920 × 1080 UYVY frame is 1920 × 1080 × 2 bytes = 4,147,200 bytes, so four capture buffers take about 16.6 MB (RGB888: 6,220,800 bytes per frame, about 24.9 MB for four). On Pi 4/CM4 Unicam allocates them from CMA; whether Pi 5/CM5 CFE buffers come from CMA at all is not established [C-53]. The CMA size and the exact `config.txt` line are UNKNOWN — VERIFICATION REQUIRED (OQ-061, OQ-053).
-- **Audio.** Add `dtoverlay=tc358743-audio` [C-37], [G-14] only if audio is required (OQ-004). It is unverified on Pi 5/CM5 (OQ-054).
+- **Audio.** Add `dtoverlay=tc358743-audio` [C-37], [G-14] only if audio is required (OQ-004). It is unverified on Pi 5/CM5 (OQ-054). *(Superseded 2026-10-07: audio is required — REQ-CAP-006, OQ-004 ANSWERED. **PROPOSED (2026-10-08):** add `dtoverlay=tc358743-audio`, together with the `tc358743` / `tc358743-pi5` line, on every platform [C-37], [G-14]. It is written out in the CM4 (§6.2) and CM5 (§6.4) snippets, the bring-up platforms. For Pi 4 Model B and Pi 5 add the same line; on Pi 5 how the labels resolve is KERNEL SOURCE INSPECTION REQUIRED (§3.5). The overlay is not in `overlay_map`, so it is loaded under its own name on every platform [I-05], [I-06]. It is still unverified on Pi 5/CM5 (OQ-054). It claims GPIO 18–21 (OQ-114).)*
 - **Comments.** In the snippets below every comment is on its own line, starting with `#`. Whether `config.txt` accepts a comment after a value on the same line is not in the source register: NEEDS VERIFICATION (OQ-100; listed in that entry's scope note). Do not add trailing comments.
 - Every line below is **PROPOSED — NOT YET RUN ON PACSCORDER HARDWARE**. The board-dependent choices (`4lane`, `cam0`) stay UNKNOWN until OQ-018 and OQ-021 are answered and the platform for each lane configuration (REQ-CAP-007) is chosen (ADR-004, OPEN).
 
@@ -421,6 +475,8 @@ dtoverlay=tc358743
 - Capability: 1080p60 on CAM1 with 4 lanes [C-37], [C-49]. The 4-lane port is necessary but not shown sufficient for 1080p60 UYVY: at the default 972 Mbit/s the driver activates 3 of the 4 lanes (reasoning) [C-47], which is unproven (OQ-038). ADR-008 (PROPOSED) proposes evaluating `link-frequency=297000000` for this case in TEST-CAP-002 (§5.7; OQ-099). CAM0 has the same 2-lane limits as Pi 4B [C-37], [C-48].
 - Under REQ-CAP-007, CAM1 is a candidate for the 4-lane configuration and CAM0 for the 2-lane configuration (§5.8 table). This is a mapping, not a platform choice (ADR-004, OPEN).
 - `4lane` is documented for the Compute Module CAM1 connector [G-12]. **Never use `4lane` with `cam0`** (CAM0 is 2-lane [C-02]; §5.8 warning).
+- **Bring-up platform** (owner, 2026-10-07: CM4 and CM5 side by side; ADR-004 OPEN).
+- **HDMI audio** *(added 2026-10-08; required, REQ-CAP-006)*. `tc358743-audio` enables the single `bcm2835-i2s` node through `i2s_clk_consumer`, which is the same node `dtparam=i2s=on` controls, with pins GPIO 18–21 in ALT0 [I-10]. Reasoning from [I-10]: a separate `dtparam=i2s=on` is therefore not needed for this path. Capture is exactly 2 channels at 8–384 kHz, S16_LE, S24_LE or S32_LE [I-13]; the PCM is `bcm2835-i2s-dir-hifi dir-hifi-0` on card `tc358743` [I-15]. The CAM0 and CAM1 snippets both carry the line, because the I2S path does not depend on the camera connector (reasoning from [I-10]). On the CM4 IO Board the GPIO voltage is selectable, 1.8 V or 3.3 V, and VDDIO2 should match it [I-29] (OQ-024).
 
 ```ini
 # /boot/firmware/config.txt — CM4, bridge on CAM1 (4 lanes)
@@ -433,6 +489,9 @@ dtoverlay=tc358743,4lane
 # For 1080p60 UYVY see §5.7: 3 of 4 lanes at the default link frequency (OQ-038; ADR-008).
 # ADR-006 (PROPOSED) adds Media Controller mode. Combined-parameter syntax NEEDS VERIFICATION (OQ-100):
 #dtoverlay=tc358743,4lane,media-controller
+# Added 2026-10-08. HDMI audio, required (REQ-CAP-006): in addition to tc358743 [C-37], [G-14].
+# CM4: bcm2835-i2s on GPIO 18-21 [I-10]. Claims GPIO 18-21 (OQ-114). Test: TEST-AUD-001.
+dtoverlay=tc358743-audio
 ```
 
 ```ini
@@ -444,6 +503,9 @@ camera_auto_detect=0
 dtoverlay=tc358743,cam0
 # ADR-006 (PROPOSED). Combined-parameter syntax NEEDS VERIFICATION (OQ-100):
 #dtoverlay=tc358743,cam0,media-controller
+# Added 2026-10-08. HDMI audio, required (REQ-CAP-006): in addition to tc358743 [C-37], [G-14].
+# CM4: bcm2835-i2s on GPIO 18-21 [I-10]. Claims GPIO 18-21 (OQ-114). Test: TEST-AUD-001.
+dtoverlay=tc358743-audio
 ```
 
 ### 6.3 Raspberry Pi 5
@@ -456,6 +518,7 @@ dtoverlay=tc358743,cam0
 - **`4lane` on Pi 5.** The README text that calls it CM-CAM1-only is stale [C-13]. Whether capture through it succeeds end to end on the Pi 5 connectors is HARDWARE TEST REQUIRED (OQ-049).
 - **`4lane` with `cam0`.** `4lane` is documented to set `data-lanes` on `csi1_ep` [B-42]. Whether the `cam0` + `4lane` combination also updates the `csi0` endpoint is NEEDS VERIFICATION — KERNEL SOURCE INSPECTION REQUIRED (OQ-049). A 4-lane configuration on CAM/DISP0 is therefore not settled; the CAM/DISP0 snippet below keeps it as a commented alternative.
 - Keep `link-frequency` at its default (§5.7; ADR-008, PROPOSED; OQ-099; RISK-011, OQ-050).
+- **HDMI audio** *(added 2026-10-08; required, REQ-CAP-006)*. `tc358743-audio` is not in `overlay_map` and loads under its own name; `bcm2712` covers Pi 5 [I-05], [I-06]. The labels it needs are defined in `bcm2712-rpi.dtsi` [I-07]; whether the Pi 5 board Device Tree includes that file is not in the register: KERNEL SOURCE INSPECTION REQUIRED (OQ-054). Pi 5 is not a bring-up platform (owner, 2026-10-07: CM4 and CM5), so no audio line is written into the Pi 5 snippets; §6.0 applies if Pi 5 is used.
 - There is no official Pi 5 TC358743 documentation [C-38]. A Raspberry Pi engineer reported a capture sequence for Pi 5 on kernel 6.18.39 [C-33] (community report; 6.18.39 is the reporter's kernel, not the 6.18.50 that Raspberry Pi OS 2026-10-06 ships [G-04]). It is a userspace procedure; see [V4L2.md](V4L2.md) and [TESTING.md](TESTING.md).
 
 ```ini
@@ -485,7 +548,16 @@ dtoverlay=tc358743-pi5,cam0
 
 ### 6.4 Compute Module 5
 
-CM5 is a BCM2712 device, so it uses the same `tc358743-pi5` overlay as Pi 5 [C-11], [E-43]. Its two MIPI interfaces are 4-lane [C-05]. Under REQ-CAP-007 it maps to the configurations as Pi 5 does (§5.8 table). The camera power-enable is RP1 GPIO 34, shared by both interfaces [C-22]. **The correct configuration depends on the carrier board**, which is UNKNOWN — VERIFICATION REQUIRED (OQ-018, OQ-052).
+CM5 is a BCM2712 device, so it uses the same `tc358743-pi5` overlay as Pi 5 [C-11], [E-43]. Its two MIPI interfaces are 4-lane [C-05]. Under REQ-CAP-007 it maps to the configurations as Pi 5 does (§5.8 table). The camera power-enable is RP1 GPIO 34, shared by both interfaces [C-22]. **The correct configuration depends on the carrier board**, which is UNKNOWN — VERIFICATION REQUIRED (OQ-018, OQ-052). CM5 is a bring-up platform, evaluated side by side with CM4 (owner, 2026-10-07; ADR-004 OPEN).
+
+**HDMI audio on CM5** *(added 2026-10-08, research topic I; audio required, REQ-CAP-006)*
+
+- `dtoverlay=tc358743` loads `tc358743-pi5` on CM5, while `tc358743-audio` has no `overlay_map` entry and loads under its own name; the firmware does not block it [I-05], [I-06].
+- Its labels resolve: `bcm2712-rpi-cm5.dtsi` includes `bcm2712-rpi.dtsi`, where `i2s_clk_consumer` is `rp1_i2s1` (pin group `rp1_i2s1_18_21`, GPIO 18–21, function `i2s1`) and the `sound` node exists [I-07], [I-08]. RP1 I2S1 is the clock-consumer instance that a codec-master link needs [I-09]; the overlay's 2 × 32-bit slots pass the `dwc-i2s` TDM check [I-14].
+- The kernel options the path needs are enabled for CM5: `bcm2712_defconfig` sets `CONFIG_SND_SIMPLE_CARD=m` and `CONFIG_SND_DESIGNWARE_I2S=m`, and `CONFIG_SND_SOC_SPDIF`, selected by `CONFIG_SND_RP1_AUDIO_OUT=m`, is `=m` in the packaged `rpi-2712` kernel [I-12] (§7).
+- The ALSA PCM name will differ from CM4 (reasoning from source; expected `1f000a4000.i2s-dir-hifi dir-hifi-0`, not verified); select the card by id `tc358743` [I-15], [I-17].
+- On CM5 the base Device Tree's power-button and fan entries do not use header GPIO 18–21 [I-32]. The CM5 IO Board's GPIO voltage is selectable, 1.8 V or 3.3 V, and VDDIO2 should match it [I-29] (OQ-024).
+- **Unconfirmed.** No official statement or test result shows audio captured through this path (research gap, topic I). The capture channel count and formats of RP1 I2S1 come from hardware registers not visible in source [I-14]. HARDWARE TEST REQUIRED — OQ-054, TEST-AUD-001; reasoning in ADR-004: a bring-up gate for CM5.
 
 **CM5 on the CM5 IO Board**
 
@@ -504,6 +576,10 @@ dtoverlay=tc358743-pi5,4lane
 # CAM/DISP 0 instead. Combined syntax NEEDS VERIFICATION (OQ-100).
 # csi0 endpoint lanes: KERNEL SOURCE INSPECTION REQUIRED (OQ-049).
 #dtoverlay=tc358743-pi5,cam0,4lane
+# Added 2026-10-08. HDMI audio, required (REQ-CAP-006) [G-14]; loads under its own name [I-05], [I-06].
+# CM5: RP1 I2S1 on GPIO 18-21 [I-07], [I-08]. Capture UNCONFIRMED (OQ-054): bring-up gate, TEST-AUD-001.
+# Claims GPIO 18-21 (OQ-114).
+dtoverlay=tc358743-audio
 ```
 
 **CM5 on the CM4 IO Board**
@@ -528,6 +604,8 @@ dtoverlay=tc358743-pi5,4lane
 | `media-controller` | Optional (ADR-006 PROPOSED) | Optional (ADR-006 PROPOSED) | Not a parameter [G-13] | Not a parameter [G-13] |
 | `link-frequency` | Default 486000000 (PROPOSED keep: ADR-008, OQ-099) | as Pi 4B; ADR-008 proposes evaluating 297000000 on CAM1 4-lane only, for 1080p60 UYVY in TEST-CAP-002 | Keep default (ADR-008); CFE uses 999 Mbps [C-31], [C-52] | as Pi 5 |
 | Default I2C bus | `i2c-10` [C-24] | CAM1 `i2c-10`, CAM0 `i2c-0` [C-25] | CAM/DISP1 `i2c-11` [C-26] | Carrier-dependent [C-27] |
+| Audio overlay `tc358743-audio` (added 2026-10-08; audio required, REQ-CAP-006) | PROPOSED line (§6.0) [G-14]; label resolution not covered by topic I: KERNEL SOURCE INSPECTION REQUIRED | PROPOSED line (§6.2); `bcm2835-i2s`, GPIO 18–21 ALT0 [I-10] | PROPOSED line (§6.0); labels in `bcm2712-rpi.dtsi` [I-07], Pi 5 inclusion KERNEL SOURCE INSPECTION REQUIRED (OQ-054) | PROPOSED line (§6.4); RP1 I2S1, GPIO 18–21 [I-07], [I-08]; capture unconfirmed (OQ-054) |
+| Bring-up role (owner, 2026-10-07; ADR-004 OPEN) | Documented candidate | Evaluated side by side with CM5 | Documented candidate | Evaluated side by side with CM4 |
 
 The `4lane` row states what the Pi-side connector allows. On every platform, `4lane` also requires that the PACSCORDER bridge board routes 4 data lanes, which is UNKNOWN — VERIFICATION REQUIRED (OQ-021).
 
@@ -537,6 +615,7 @@ The `4lane` row states what the Pi-side connector allows. On every platform, `4l
 
 - `CONFIG_VIDEO_TC358743=m` in both Raspberry Pi arm64 defconfigs; the 2026-10-06 image ships `tc358743.ko.xz` for both kernels [B-20], [G-16]. Both Unicam drivers and both RP1 CFE drivers are modules [G-17]. The I2C controller and pinctrl-mux drivers are modules [E-39].
 - Details, including Buildroot module autoloading [E-50] and overlay installation [E-14], [E-15], are in [BUILD_SYSTEM.md](BUILD_SYSTEM.md) (OQ-065).
+- *(Added 2026-10-08, research topic I.)* HDMI audio: both arm64 defconfigs (`bcm2711_defconfig` for CM4, `bcm2712_defconfig` for CM5) set `CONFIG_SND_SIMPLE_CARD=m`, `CONFIG_SND_BCM2835_SOC_I2S=m`, `CONFIG_SND_DESIGNWARE_I2S=m` and `CONFIG_SND_DESIGNWARE_PCM=y`. `CONFIG_SND_SOC_SPDIF`, which provides the `linux,spdif-dir` stub codec, is not set directly; it is selected by `CONFIG_SND_RP1_AUDIO_OUT=m`, and the packaged `rpi-v8` and `rpi-2712` 6.18.50 kernels both contain `CONFIG_SND_SOC_SPDIF=m` [I-12], [I-11]. `CONFIG_VIDEO_TC358743_CEC` is not set in either defconfig or packaged kernel [I-22]. Whether a project-built image (REQ-BLD-002; ADR-003 ACCEPTED, `rpi-image-gen`) keeps these options: BUILD TEST REQUIRED.
 
 ## 8. Diagnostic messages tied to Device Tree mistakes
 
@@ -596,6 +675,43 @@ ACTUAL RESULT
 NOT YET LOADED ON PACSCORDER HARDWARE. BLOCKED — HARDWARE REQUIRED.
 ```
 
+### 2026-10-08 — Baseline extended: stock `tc358743-audio` overlay added to the proposed configuration
+
+| | |
+|---|---|
+| Files | None in this repository. Stock overlay `arch/arm/boot/dts/overlays/tc358743-audio-overlay.dts` in `raspberrypi/linux` `rpi-6.18.y` (path as in the source URL of [I-01]). PROPOSED `config.txt` line `dtoverlay=tc358743-audio` (§6.0, §6.2, §6.4). |
+| Platforms | CM4 and CM5 (bring-up platforms, written out in §6.2 and §6.4); Pi 4 Model B and Pi 5 by §6.0 |
+| Dependencies | REQ-CAP-006 (DRAFT; OQ-004 ANSWERED 2026-10-07), OQ-025, OQ-024, OQ-054, OQ-114 |
+| Test | TEST-AUD-001 — `BLOCKED — HARDWARE REQUIRED` |
+
+```text
+OLD
+Proposed configuration: tc358743 (Pi 4 Model B, CM4) or tc358743-pi5
+(Pi 5, CM5) only. tc358743-audio "only if audio is required" (OQ-004).
+↓
+CHANGE
+No Device Tree source change. The stock tc358743-audio overlay, unmodified,
+is added to the proposed config.txt of every platform, after the
+tc358743 / tc358743-pi5 line.
+↓
+REASON
+The owner made HDMI audio required on 2026-10-07 (REQ-CAP-006, OQ-004
+ANSWERED). Official documentation says audio needs tc358743-audio in
+addition to tc358743 [C-37]. No PACSCORDER hardware value is known that
+would justify a modified overlay; a custom pin group is needed only if
+GPIO 21 must be freed (OQ-114).
+↓
+EXPECTED RESULT
+From sources only, not from hardware. An ALSA card with id "tc358743"
+appears [I-03], [I-15]. On CM4 the CPU side is bcm2835-i2s on GPIO 18-21,
+2-channel capture [I-10], [I-13]. On CM5 the labels resolve to RP1 I2S1 on
+GPIO 18-21 [I-07], [I-08], but no source shows audio captured that way (OQ-054).
+TEST-AUD-001 records the result.
+↓
+ACTUAL RESULT
+NOT YET LOADED ON PACSCORDER HARDWARE. BLOCKED — HARDWARE REQUIRED.
+```
+
 ---
 
 ## Verification status
@@ -611,16 +727,17 @@ Every source statement in this document cites an entry of [REFERENCES.md](REFERE
 | C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13, C-15, C-16, C-17, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-29, C-31, C-32, C-33, C-36, C-37, C-38, C-39, C-40, C-42, C-44, C-47, C-48, C-49, C-51, C-52, C-53 |
 | E — Buildroot and kernel configuration | E-14, E-15, E-16, E-17, E-37, E-39, E-40, E-42, E-43, E-44, E-45, E-47, E-50, E-53 |
 | G — Raspberry Pi OS and image tooling | G-04, G-06, G-11, G-12, G-13, G-14, G-15, G-16, G-17, G-21, G-61, G-71 |
+| I — HDMI audio path (added 2026-10-08) | I-01, I-02, I-03, I-04, I-05, I-06, I-07, I-08, I-09, I-10, I-11, I-12, I-13, I-14, I-15, I-16, I-17, I-18, I-22, I-25, I-28, I-29, I-30, I-31, I-32 |
 
 - `CORRECTED` entries, used in their corrected wording only: A-22, A-25, B-11, B-21, B-25, B-44, C-28, C-36, C-39, C-53, E-40, E-47, G-11, G-71.
-- `community` entries, worded as reports: C-28, C-33, C-42.
-- `reasoning` entries, labelled as reasoning: A-23, B-10, B-11, B-33, B-47, B-49, C-47, C-48, C-49, C-51, C-52, C-53, G-71.
-- Statements marked *research gap* or *research open question* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). They are not register facts and are recorded only to state what is unknown.
-- The `config.txt` lines in §6 combine attested syntax ([G-12], [G-13], [C-39]) with forms marked NEEDS VERIFICATION (OQ-100). None has been run.
+- `community` entries, worded as reports: C-28, C-33, C-42; added 2026-10-08: I-16.
+- `reasoning` entries, labelled as reasoning: A-23, B-10, B-11, B-33, B-47, B-49, C-47, C-48, C-49, C-51, C-52, C-53, G-71; added 2026-10-08: I-17, I-18, I-28.
+- Statements marked *research gap* or *research open question* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). They are not register facts and are recorded only to state what is unknown. Those for topic I (added 2026-10-08) come from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json), with the same status.
+- The `config.txt` lines in §6 combine attested syntax ([G-12], [G-13], [C-39]) with forms marked NEEDS VERIFICATION (OQ-100). None has been run. The `dtoverlay=tc358743-audio` line added on 2026-10-08 uses the attested overlay name and no parameter [G-14].
 
 ### Verified on PACSCORDER hardware
 
-Nothing (no hardware exists as of 2026-10-07). No overlay has been loaded and no `config.txt` line has been tested. TEST-PLT-001, TEST-HW-001 and TEST-DRV-001 are `BLOCKED — HARDWARE REQUIRED`.
+Nothing (no hardware exists as of 2026-10-08). No overlay has been loaded and no `config.txt` line has been tested. TEST-PLT-001, TEST-HW-001, TEST-DRV-001 and TEST-AUD-001 are `BLOCKED — HARDWARE REQUIRED`.
 
 ## Change history
 
@@ -631,3 +748,4 @@ Nothing (no hardware exists as of 2026-10-07). No overlay has been loaded and no
 | 2026-10-06 | Cross-document consistency fixes: link-frequency recommendation linked to ADR-008 (PROPOSED) and OQ-099 in §1, §5.7, §6.3 and §6.5, including ADR-008's proposal to evaluate 297000000 only on CM4 CAM1 4-lane for 1080p60 UYVY [C-44]; 4-lane port marked necessary but not shown sufficient for 1080p60 UYVY (3 of 4 lanes at 972 Mbit/s, OQ-038) in §5.8 and §6.2; `config.txt` syntax caveats (bare boolean, combined parameters, `[pi4]` matching CM4, unknown parameters) linked to OQ-100 in §1, §6.0, §6.3 and the snippets; Pi 5 CAM/DISP0 snippet now keeps `,cam0` as the active line and the `cam0` + `4lane` form as a commented alternative marked NEEDS VERIFICATION (OQ-049), so no CAM/DISP0 4-lane configuration is presented as settled; shipped kernel 6.18.50 also cited to [G-04] and 6.18.39 identified as the kernel of the [C-33] report; overlay-source-versus-tip question cross-referenced to OQ-097; §9 Files row: path note added citing the register source URLs that attest `arch/arm/boot/dts/overlays/` for all four files (the hardware-dt review's "only the filename is attested" concern does not hold, so no NEEDS VERIFICATION marker was needed; the original entry text is unchanged). Added citations C-44, G-04. No Device Tree change made; no status changed. Final verification pass (same date): §6.0 trailing-comment syntax now linked to OQ-100, whose scope note names it; §4 placeholder notes link the Pi 4/CM4 GPIO controller label to OQ-020 and the expander-GPIO reset question to OQ-022. | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: both 2-lane and 4-lane configurations required (REQ-CAP-007; OQ-001 ANSWERED) in the header, a new "Owner decisions of 2026-10-07" paragraph, §1 (CSI lanes and per-platform rows), §5.8, §6.0–§6.4 and §6.5; §5.8 now maps each candidate connector to its lane configuration and DT lane setting, adds the 720p60 lane counts [B-33], the per-configuration supported-mode limits [C-37], [C-48], [C-49], and the per-configuration EDID note (OQ-002, reasoning [B-21], [B-24]); Pi 4 Model B recorded as a 2-lane candidate only (§6.1); one-board-for-both question linked to OQ-021; §4.2 notes that a PACSCORDER overlay would be installed by the project-built OS image (REQ-BLD-002; ADR-003 still PROPOSED). Added citations B-21, B-24, B-33. No platform chosen; no ADR status changed; no Device Tree change made, so the §9 change log is unchanged. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); §4.2 decision rule: bring-up approach of ADR-002 (PROPOSED) and ADR-003 (ACCEPTED 2026-10-07), and the PACSCORDER-overlay bullet's build tool ADR-003 ACCEPTED (`rpi-image-gen`). Not changed: the dated §9 change-log entry of 2026-10-06 (it keeps "ADR-002 and ADR-003 (both PROPOSED)", Rule 21), evidence and citations, ADR-002 and ADR-008 (PROPOSED), ADR-004 (OPEN), overlay status (NOT STARTED), Change-history rows. | Claude (session 2026-10-07) |
+| 2026-10-08 | Owner decisions of 2026-10-07 (second set) and research topic I (HDMI audio path) propagated. Header and a new "second set" paragraph: CM4 and CM5 evaluated side by side (ADR-004 OPEN), HDMI audio required (REQ-CAP-006, OQ-004 ANSWERED); source-baseline note on the topic I sources read at the branch head (OQ-097 scope note). §1: CM4/CM5 rows note the bring-up role; new "Audio overlay (I2S)" row. §3.4: `tc358743-audio` is not in `overlay_map` and loads under its own name [I-05], [I-06]. §3.5: "use only if audio is required" marked superseded; added the overlay's fragments with quoted excerpts [I-01]–[I-04], the load-with-`tc358743` statements [C-37] and (community) [I-16], clock roles (reasoning [I-25], [I-28]), the stub codec [I-11] and the missing rate path (reasoning [I-18]; RISK-023, OQ-111), ALSA names [I-15] and (reasoning) [I-17], a per-platform label-resolution table (CM4 [I-10], [I-13]; CM5 [I-07], [I-08], [I-09], [I-14]; Pi 4 Model B and Pi 5 marked KERNEL SOURCE INSPECTION REQUIRED), CM5 status (unconfirmed, OQ-054) and GPIO 18–21 claims and conflicts [I-30], [I-31] (OQ-114). §3.6: stale "tc358743-fast" name explained [I-04]. §4.1: gap rows for an audio pin group without GPIO 21 (OQ-114) and for the missing ALSA rate path [I-11], [I-18], [I-22] (OQ-111, OQ-020). §5.4: audio-rate polling latency [I-22]. §6.0: "only if audio is required" marked superseded; PROPOSED `dtoverlay=tc358743-audio` on every platform. §6.2 CM4: audio bullet [I-10], [I-13], [I-15], [I-29] and the audio line in both CM4 snippets. §6.3 Pi 5: audio bullet [I-05], [I-06], [I-07]. §6.4 CM5: new "HDMI audio on CM5" notes [I-05]–[I-09], [I-12], [I-14], [I-15], [I-17], [I-29], [I-32] and the audio line in the CM5 IO Board snippet. §6.5: audio-overlay and bring-up-role rows. §7: audio kernel options [I-11], [I-12], [I-22]. §9: new change-log entry "2026-10-08 — Baseline extended: stock `tc358743-audio` overlay added to the proposed configuration" (no source change; NOT YET LOADED). Verification status: topic I IDs, community I-16, reasoning I-17, I-18, I-28, 2026-10-08 research JSON, TEST-AUD-001. No REQ or ADR status changed; overlay status NOT STARTED unchanged. | Claude (session 2026-10-08) |

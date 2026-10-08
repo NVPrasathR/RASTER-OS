@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Document status | DRAFT. **No release exists.** The current version is `Unreleased`. The release procedure below is PROPOSED and has never been executed. |
-| Last updated | 2026-10-07 |
-| Applies to | Every PACSCORDER image — the project's own OS image (REQ-BLD-002, DRAFT, owner 2026-10-07) — for Raspberry Pi 4 Model B, CM4, Raspberry Pi 5 and CM5. Both a 2-lane and a 4-lane capture configuration are required (REQ-CAP-007); the platform for each is undecided (ADR-004 OPEN). The build tool is `rpi-image-gen` under ADR-003 (ACCEPTED 2026-10-07); the process also applies if the documented Buildroot alternative is ever adopted. |
-| Verification | Source research of 2026-10-06 only ([REFERENCES.md](REFERENCES.md)). Nothing has been built, released or tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
-| Traceability | REQ-BLD-001 · REQ-BLD-002 · REQ-CAP-007 · ADR-003 (ACCEPTED) · RISK-015 · RISK-017 · TEST-BLD-001 · OQ-069, OQ-071, OQ-086, OQ-087, OQ-088, OQ-094, OQ-101 |
+| Last updated | 2026-10-08 |
+| Applies to | Every PACSCORDER image — the project's own OS image (REQ-BLD-002, DRAFT, owner 2026-10-07) — for Raspberry Pi 4 Model B, CM4, Raspberry Pi 5 and CM5. Both a 2-lane and a 4-lane capture configuration are required (REQ-CAP-007); the platform for each is undecided (ADR-004 OPEN), and bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07, second answer). The build tool is `rpi-image-gen` under ADR-003 (ACCEPTED 2026-10-07); the process also applies if the documented Buildroot alternative is ever adopted. Since the owner decisions of 2026-10-07 a release ships H.264 and H.265 encoding (REQ-ENC-001) and HDMI audio (REQ-CAP-006), which add the licence items in [§4](#4-licence-and-compliance). |
+| Verification | Source research of 2026-10-06 and of 2026-10-08 (topic H, H.265/HEVC; topic I, HDMI audio) ([REFERENCES.md](REFERENCES.md)). Nothing has been built, released or tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
+| Traceability | REQ-BLD-001 · REQ-BLD-002 · REQ-CAP-007 · ADR-003 (ACCEPTED) · RISK-015 · RISK-017 · TEST-BLD-001 · OQ-069, OQ-071, OQ-086, OQ-087, OQ-088, OQ-094, OQ-101. Added 2026-10-08: REQ-ENC-001 · REQ-CAP-006 · RISK-022 · OQ-103, OQ-109, OQ-113 |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rules 4, 9, 10, 12, 15, 17, 18, 20, 21, 24 |
 
 This document defines:
@@ -18,7 +18,7 @@ This document defines:
 
 How the image itself is built is in [BUILD_SYSTEM.md](BUILD_SYSTEM.md).
 
-Fact references such as `[G-69]` point to [REFERENCES.md](REFERENCES.md). For `CORRECTED` entries only the corrected wording is used, and the verdict is noted next to the citation. Text marked *research gap* comes from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json); it is **not** a register fact.
+Fact references such as `[G-69]` point to [REFERENCES.md](REFERENCES.md). For `CORRECTED` entries only the corrected wording is used, and the verdict is noted next to the citation. Text marked *research gap* comes from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) or, for topics H and I, [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json); it is **not** a register fact.
 
 ## Contents
 
@@ -142,6 +142,9 @@ PROPOSED procedure. **Never executed.** Copy the list into the release's entry i
 - [ ] Licence review done for every shipped component, including x264, FFmpeg, GStreamer and the Raspberry Pi firmware ([§4](#4-licence-and-compliance)). LEGAL CLARIFICATION REQUIRED (OQ-086, OQ-087, OQ-088).
 - [ ] Corresponding source for copyleft components is archived for exactly the shipped versions, from every archive the packages came from ([§4.3](#43-corresponding-source)).
 - [ ] Licence texts and notices are included as the review requires.
+- [ ] *(Added 2026-10-08.)* The review covers the H.265 and audio components: x265 / `libx265` (GPLv2-or-later or commercial) and every binary that links it, including the GPL FFmpeg build and GStreamer's `x265enc` plugin; the AAC and Opus encoders shipped ([§4.1](#41-components-with-licence-obligations)). LEGAL CLARIFICATION REQUIRED (OQ-087).
+- [ ] *(Added 2026-10-08.)* Patent licensing is resolved, or recorded as a known issue, for every codec the release ships: H.264 (OQ-086), H.265/HEVC (OQ-109) and AAC (OQ-113). LEGAL CLARIFICATION REQUIRED.
+- [ ] *(Added 2026-10-08.)* PROPOSED: the image contains no `fdk-aac` (`libfdk-aac2t64`, `fdkaacenc`, or an FFmpeg built with `libfdk_aac` / `--enable-nonfree`); checked in the SBOM ([§4.4](#44-proposed-release-rules-for-codecs-added-2026-10-08), [§5](#5-sbom)).
 
 ### 3.5 Test evidence
 
@@ -159,7 +162,7 @@ PROPOSED procedure. **Never executed.** Copy the list into the release's entry i
 
 ## 4. Licence and compliance
 
-**Status:** no licence review has been done. **LEGAL CLARIFICATION REQUIRED** (RISK-015; OQ-086, OQ-087, OQ-088). The facts below say what the sources state. They are not legal advice and not a compliance decision.
+**Status:** no licence review has been done. **LEGAL CLARIFICATION REQUIRED** (RISK-015; OQ-086, OQ-087, OQ-088). The facts below say what the sources state. They are not legal advice and not a compliance decision. *(Added 2026-10-08.)* Since the owner decisions of 2026-10-07 (H.265 required, REQ-ENC-001; HDMI audio required, REQ-CAP-006), the review also covers x265, HEVC patent pools and the audio encoders (OQ-109, OQ-113); the rows marked "added 2026-10-08" come from research topics H and I.
 
 ### 4.1 Components with licence obligations
 
@@ -168,13 +171,20 @@ PROPOSED procedure. **Never executed.** Copy the list into the release's entry i
 | x264 | Buildroot's x264 help text says x264 is released under the GNU GPL. In Buildroot, the GStreamer `x264enc` element (`BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_X264`) selects x264. | [D-47] |
 | FFmpeg with `libx264` | `libx264` is in FFmpeg configure's `EXTERNAL_LIBRARY_GPL_LIST`, so FFmpeg must be built with `--enable-gpl` to use it. | [D-42] |
 | FFmpeg in Buildroot | Buildroot packages upstream FFmpeg 6.1.5. It passes `--enable-libx264` only when `BR2_PACKAGE_X264=y` and `BR2_PACKAGE_FFMPEG_GPL=y`. `BR2_PACKAGE_FFMPEG_GPL=y` on its own changes `FFMPEG_LICENSE` from `LGPL-2.1+, libjpeg license` to `LGPL-2.1+, libjpeg license and GPL-2.0+`, adding `COPYING.GPLv2`. | [D-46] (CORRECTED) |
-| FFmpeg in Raspberry Pi OS | `ffmpeg` 8:7.1.5-0+deb13u1+rpt2 comes from the Raspberry Pi archive [G-29]. Whether that build enables `--enable-gpl` / `libx264` is **not in the register: NEEDS VERIFICATION**. | [G-29] |
+| FFmpeg in Raspberry Pi OS | `ffmpeg` 8:7.1.5-0+deb13u1+rpt2 comes from the Raspberry Pi archive [G-29]. Whether that build enables `--enable-gpl` / `libx264` is **not in the register: NEEDS VERIFICATION**. *(Superseded 2026-10-08: the source package is configured with `--enable-libx265` in every flavour and `--enable-libx264` in the full build [H-08]; `libavcodec61` depends on `libx265-215` and `libx264-164` [H-09]; linking `libx264` and `libx265`, which are on FFmpeg's GPL library list, makes it a GPL build [I-39]. Confirming the configuration on the shipped image remains BUILD TEST REQUIRED — research gap, topic I.)* | [G-29], [H-08], [H-09], [I-39] |
+| x265 / `libx265` *(added 2026-10-08)* | Copyright MulticoreWare; licensed under GPL version 2 "or (at your option) any later version", and also under a commercial proprietary licence. The x265 documentation states that neither the GPL nor the commercial licence covers HEVC patents. Raspberry Pi OS ships Debian's x265 4.1-2 (`libx265-215`) unchanged. | [H-39], [H-01], [H-02] |
+| GStreamer `x265enc` *(added 2026-10-08)* | In `gstreamer1.0-plugins-bad`; the Raspberry Pi build Build-Depends on `libx265-dev` and installs `libgstx265.so`. Reasoning: the plugin links the GPL x265, so it is part of the x265 licence review (OQ-087). | [H-11], [H-12] (CORRECTED), [H-39] |
+| HEVC patents *(added 2026-10-08)* | Access Advance (HEVC Advance pool) says a licence is "most likely" needed for any product that can encode and/or decode HEVC; the royalty falls due when a Consumer HEVC Product is sold to an end user, if a listed essential patent is in force in the country of manufacture or sale [H-41]. Its rate table for licences effective on or after 1 July 2026 lists "Connected Home & Other Devices" (examples include surveillance cameras, conferencing products, digital signage and HEVC software): for devices over $80 the in-compliance rate without trademark discount is $1.111 (Region 1) / $0.555 (Region 2) per unit, with caps and an annual credit; the non-compliant standard rate is $1.333 / $0.667 [H-42]. VCL Advance (the former Via LA HEVC/VVC programme, acquired by Access Advance as of 15 December 2025): units 1–100,000 $0.00 (for one legal entity in an affiliated group), then $0.30 (Region 1) / $0.20 (Region 2) per unit, with a $30,000,000 annual cap per enterprise [H-40]. Which category PACSCORDER falls into, and whether licensors outside both pools assert patents, is not established (research gap, topic H). **LEGAL CLARIFICATION REQUIRED (OQ-109).** | [H-40], [H-41], [H-42] |
+| AAC encoders *(added 2026-10-08)* | Shipped options: FFmpeg's native `aac` encoder in the Raspberry Pi build [I-39], [I-40] (CORRECTED); GStreamer `voaacenc` in `gstreamer1.0-plugins-bad`, linking `libvo-aacenc0` [I-44]; `avenc_aac` in Debian's `gstreamer1.0-libav`, which wraps FFmpeg's native encoder [I-46]. Their software licences are covered by the FFmpeg and GStreamer reviews above; `libvo-aacenc0`'s licence is not in the register (NEEDS VERIFICATION). | [I-39], [I-40], [I-44], [I-46] |
+| AAC patents *(added 2026-10-08)* | Not researched beyond the `fdk-aac` licence below. Research notes that the native FFmpeg `aac`, `voaacenc` and `fdk-aac` all implement patented AAC (research gap, topic I — not a register fact). **LEGAL CLARIFICATION REQUIRED (OQ-113).** | — |
+| `fdk-aac` *(added 2026-10-08)* | Debian trixie ships `fdk-aac` 2.0.3-1 in **non-free** under the "Fraunhofer-FDK-AAC-for-Android" licence; Debian's copyright file says it "is incompatible with any version of the GNU GPL", and its clause 3 grants no patent licence [I-43]. In FFmpeg 7.1's configure `libfdk_aac` is on the non-free list: a `--enable-gpl` build (needed for x264/x265) can enable it only with `--enable-nonfree`, which makes "the resulting libs and binaries ... unredistributable" [I-42]. The Raspberry Pi FFmpeg and GStreamer packages do not include it [I-39], [I-44]. Reasoning from [I-39], [I-42], [I-43]: `fdk-aac` cannot be shipped with PACSCORDER's GPL media stack. | [I-39], [I-42], [I-43], [I-44] |
+| Opus *(added 2026-10-08)* | `libopus0` 1.5.2-2 from Debian, not rebuilt by Raspberry Pi; used by FFmpeg `libopus` and GStreamer `opusenc` [I-45], [I-41]. Opus licensing is not in the register (NEEDS VERIFICATION; noted in OQ-113). | [I-41], [I-45] |
 | GStreamer `webrtcbin` | Declared with licence "LGPL" | [F-42] |
 | GStreamer `webrtcsink` (gst-plugins-rs) | MPL-2.0. Not packaged in Buildroot. | [F-43] |
 | Raspberry Pi GPU firmware and bootloader files | Buildroot 2026.08's `rpi-firmware` declares `BSD-3-Clause` with licence file `boot/LICENCE.broadcom`. That file is a binary-only, no-modification licence restricted to use "for the purposes of developing for, running or using a Raspberry Pi device", so the BSD-3-Clause label is misleading. Raspberry Pi OS installs the equivalent, newer proprietary files through `raspi-firmware 1:1.20260915-1`. | [G-69] (CORRECTED) |
 | `rpi-image-gen` (build tool) | BSD-3-Clause | [G-37] |
 | ATEM SDK (if used) | Downloading it requires accepting the "bmd-standard-sdk" terms (OQ-089). Reasoning: the current REQ-ATEM-001 scope (HDMI capture of the ATEM output, owner 2026-10-07) needs no ATEM SDK, so this applies only if the owner adds network integration. | [F-02] |
-| H.264 patents | **Not researched** (*research gap*, topics D and G). LEGAL CLARIFICATION REQUIRED (OQ-086). | — |
+| H.264 patents | **Not researched** (*research gap*, topics D and G). LEGAL CLARIFICATION REQUIRED (OQ-086). *(2026-10-08: still not researched; HEVC and AAC patents are now listed in the rows above.)* | — |
 
 ### 4.2 Why this matters more on Pi 5/CM5
 
@@ -182,6 +192,7 @@ PROPOSED procedure. **Never executed.** Copy the list into the release's entry i
 - Reasoning from [G-22], [D-31], [D-42] and [D-47]: on Pi 5/CM5 an H.264 product needs a software encoder. If that encoder is x264, GPL obligations follow.
 - A possible non-GPL alternative is `openh264enc`, which accepts only I420 input [D-41]. Its licence is **not in the register (NEEDS VERIFICATION, OQ-087)**.
 - On Pi 4/CM4 the hardware encoder driver `bcm2835-codec` exists [D-02], [G-18], but the H.264 patent question still applies (OQ-086).
+- *(Added 2026-10-08.)* **H.265 applies on every platform.** `bcm2835-codec` has no HEVC encoder [D-24] and Pi 5/CM5 have no hardware video encoder [D-31]. Reasoning from [D-24], [D-31], [H-39]: because H.265 is required (REQ-ENC-001), every release on any candidate — including the CM4 bring-up board — ships the GPL x265 and falls under the HEVC patent question (OQ-109), not only Pi 5/CM5.
 
 ### 4.3 Corresponding source
 
@@ -191,6 +202,17 @@ PROPOSED procedure. **Never executed.** Copy the list into the release's entry i
 | Buildroot | `make legal-info` collects a README, the config, sources, patches, a manifest with licences, and licence texts under `legal-info/`. It does **not** produce some material, such as some external toolchains' source and Buildroot's own source. "You (or your legal department) have to check the output of make legal-info before using it as your own compliance delivery." | [G-68] |
 
 The source must be archived for **exactly** the shipped versions. Reasoning from [G-07] and [G-08]: the archives move, and that is part of RISK-017.
+
+*(Added 2026-10-08.)* For H.265 and audio this includes Debian's x265 4.1-2 [H-01], [H-02], the Raspberry Pi `ffmpeg` and `gstreamer1.0-plugins-bad` builds [H-08], [H-12] (CORRECTED), and Debian's `gstreamer1.0-libav` [I-46]. Any package carried outside both archives to close a version gap ([BUILD_SYSTEM.md](BUILD_SYSTEM.md) §1.8) has to have its corresponding source archived by PACSCORDER itself (reasoning).
+
+### 4.4 PROPOSED release rules for codecs (added 2026-10-08)
+
+PROPOSED, OWNER DECISION REQUIRED; none of this is a legal conclusion (LEGAL CLARIFICATION REQUIRED):
+
+1. **`fdk-aac` is not shippable.** No release image contains `libfdk-aac2t64`, `fdkaacenc` or an FFmpeg built with `libfdk_aac` / `--enable-nonfree`. Reasoning from [I-42], [I-43]: with the GPL FFmpeg build that x264/x265 require, enabling it makes the result unredistributable, and Debian calls its licence incompatible with every GPL version. AAC comes from FFmpeg's native `aac`, `avenc_aac` or `voaacenc` instead [I-39], [I-40] (CORRECTED), [I-44], [I-46].
+2. **Codecs are named per release.** Each release record states which video codecs (H.264, H.265) and which audio encoders it ships on each output (OQ-103, OQ-063), because each brings its own licence and patent items ([§4.1](#41-components-with-licence-obligations)).
+3. **Patent status is recorded.** For H.264 (OQ-086), H.265 (OQ-109) and AAC (OQ-113) the release record names the licence position reached in legal review, or lists it under *Known Issues*.
+4. **x265 licence route is recorded.** Whether x265 is shipped under the GPL, with corresponding source, or under MulticoreWare's commercial licence [H-39] is decided in legal review (research open question, topic H; OQ-087) and recorded with the release.
 
 ---
 
@@ -206,6 +228,7 @@ Open:
 
 - Whether the `rpi-image-gen` SBOM maps each binary to the exact source package and version, across both the Debian and the Raspberry Pi archive, is untested (*research gap*, topic G; OQ-087).
 - PROPOSED release rule: archive the SBOM with every release, and compare it with the previous release's SBOM as part of the change record (RISK-017).
+- *(Added 2026-10-08.)* PROPOSED release rule: use the SBOM to confirm that no `fdk-aac` package is present ([§4.4](#44-proposed-release-rules-for-codecs-added-2026-10-08)) and to record the shipped versions of x265 / `libx265-215`, FFmpeg, the GStreamer plugin packages, `libopus0` and the AAC libraries ([BUILD_SYSTEM.md](BUILD_SYSTEM.md) §1.6). Whether the SBOM lists these at the needed granularity is part of the untested SBOM-to-source mapping (OQ-087).
 
 ---
 
@@ -304,6 +327,9 @@ Fill one record per release, in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) or a re
 | SBOM file | |
 | Source archive | Location |
 | Licence review | Reference to the review (RISK-015) |
+| Codecs shipped *(added 2026-10-08)* | Video codec per output (H.264, H.265; OQ-103) and audio encoder per output (AAC, Opus; OQ-063), with their package versions; confirmation that no `fdk-aac` is present ([§4.4](#44-proposed-release-rules-for-codecs-added-2026-10-08)) |
+| Patent licence position *(added 2026-10-08)* | H.264 (OQ-086), HEVC (OQ-109), AAC (OQ-113): licence held, or listed under *Known Issues* |
+| x265 licence route *(added 2026-10-08)* | GPL with corresponding source, or MulticoreWare commercial licence [H-39] (OQ-087) |
 | Test evidence archive | Location |
 
 ---
@@ -328,8 +354,10 @@ These statements are supported by entries in [REFERENCES.md](REFERENCES.md), wit
 - **SBOM:** [G-34], [G-36] (CORRECTED), [G-39], [G-40].
 - **Update mechanisms:** [G-05], [G-08], [G-40]–[G-43] ([G-43] CORRECTED), [G-48]–[G-53] ([G-51] CORRECTED), [G-64], [G-67].
 - **Provisioning and bootloader:** [G-06], [G-09], [G-10], [G-45]–[G-47], [G-54] (CORRECTED), [G-62].
+- *(Added 2026-10-08.)* **H.265 licensing and packages (topic H):** [H-01], [H-02], [H-08], [H-09], [H-11], [H-12] (CORRECTED), [H-39], [H-40], [H-41], [H-42]; context [D-24].
+- *(Added 2026-10-08.)* **Audio encoders and `fdk-aac` (topic I):** [I-39], [I-40] (CORRECTED), [I-41], [I-42], [I-43], [I-44], [I-45], [I-46].
 
-The *research gap* items (EEPROM update service, `FREEZE_VERSION`, Buildroot EEPROM handling, Connect support on Compute Modules, `image-rota` with tryboot, SBOM-to-source mapping, H.264 patents) are **not** register facts and remain NEEDS VERIFICATION.
+The *research gap* items (EEPROM update service, `FREEZE_VERSION`, Buildroot EEPROM handling, Connect support on Compute Modules, `image-rota` with tryboot, SBOM-to-source mapping, H.264 patents) are **not** register facts and remain NEEDS VERIFICATION. *(Added 2026-10-08:)* so are the topic H and I items cited as research gaps or open questions here (HEVC pool category for PACSCORDER and licensors outside the pools; AAC patents of the native encoders; confirming the FFmpeg configuration on the image; buying a commercial x265 licence instead of meeting the GPL).
 
 ### Verified on PACSCORDER hardware
 
@@ -345,3 +373,4 @@ The *research gap* items (EEPROM update service, `FREEZE_VERSION`, Buildroot EEP
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: REQ-BLD-002 (the release image is the project-built OS image; build tool per ADR-003, still PROPOSED) in the header, §1.3, §3.3 checklist and §9 template; REQ-CAP-007 (2-lane and 4-lane configurations) in the header, §1.3, §2 (results do not carry across configurations), §3.1 checklist and §9 template (configurations tested; EDID per configuration, OQ-002); §4.1 ATEM SDK row notes that the current REQ-ATEM-001 scope (HDMI capture only) needs no SDK. No citation added or removed. | Claude (session 2026-10-07) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated (verification pass): §3.1 checklist list of PROPOSED/OPEN ADRs corrected from "ADR-002 to ADR-007" to "ADR-002 to ADR-008" (ADR-008 is PROPOSED in DECISIONS.md). No citation added or removed. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); header "Applies to" (build tool is `rpi-image-gen` under ADR-003, Buildroot the documented alternative) and traceability (ADR-003 ACCEPTED); §3.1 checklist list of not-yet-accepted ADRs changed to "ADR-002 and ADR-004 to ADR-008" (ADR-001 and ADR-003 ACCEPTED); §9 template build-basis row. Other ADR statuses unchanged; no citation added or removed. | Claude (session 2026-10-07) |
+| 2026-10-08 | Licensing additions from the second set of owner decisions of 2026-10-07 (H.264 + H.265, REQ-ENC-001; HDMI audio required, REQ-CAP-006; CM4 + CM5 bring-up) and research topics H and I. Header (Last updated, Applies to, Verification, Traceability: REQ-ENC-001, REQ-CAP-006, RISK-022, OQ-103, OQ-109, OQ-113); research-gap source note extended to the 2026-10-08 JSON; §3.4 three checklist items (x265 and audio-encoder licence review; H.264/HEVC/AAC patent position; no `fdk-aac` in the image); §4 status note; §4.1 "FFmpeg in Raspberry Pi OS" NEEDS VERIFICATION marked superseded by [H-08], [H-09], [I-39], and new rows for x265 / `libx265` (GPLv2-or-later or commercial; no patent coverage [H-39]), GStreamer `x265enc`, HEVC patents (VCL Advance and Access Advance rates [H-40]–[H-42]; OQ-109), AAC encoders, AAC patents (OQ-113), `fdk-aac` (non-free, GPL-incompatible, unredistributable in a GPL FFmpeg build [I-42], [I-43]: not shippable) and Opus; H.264 patents row annotated; §4.2 H.265 applies on every platform including CM4 [D-24]; §4.3 corresponding-source note for the H.265/audio packages; new §4.4 PROPOSED release rules for codecs (`fdk-aac` not shippable; codecs, patent position and x265 licence route recorded per release); §5 SBOM rule for `fdk-aac` absence and codec package versions; §9 template rows for codecs shipped, patent licence position and x265 licence route; Verification status gains topics H and I and [D-24]. No requirement, decision, risk or test status changed; no release exists. | Claude (session 2026-10-08) |

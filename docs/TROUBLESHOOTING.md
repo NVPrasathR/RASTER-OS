@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER** |
-| Last updated | 2026-10-07 |
-| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling |
-| Verification | Every signature comes from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)). No signature has been observed on PACSCORDER hardware, because none exists as of 2026-10-06. Diagnosis steps and remedies are source-derived and **NOT YET RUN ON PACSCORDER HARDWARE**. |
+| Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER**. *(2026-10-08: 37 signatures — eight added from research topics H and I, entries 6.7 to 6.9 and 8.1 to 8.5.)* |
+| Last updated | 2026-10-08 |
+| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN) |
+| Verification | Every signature comes from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and, for the entries added on 2026-10-08, from the source research of topics H and I. No signature has been observed on PACSCORDER hardware, because none exists as of 2026-10-06. Diagnosis steps and remedies are source-derived and **NOT YET RUN ON PACSCORDER HARDWARE**. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 10 (status words), Rule 21 (record failures honestly), Rule 22 (unknowns), Rule 23 (source priority) |
 
 This document lists the failures that sources say can happen on the PACSCORDER video path:
@@ -38,6 +38,7 @@ For each failure it gives the exact log text where a source attests it, the like
    - `v4l2-ctl -d /dev/v4l-subdevN`, that is, a sub-device path given to `-d`, is NEEDS VERIFICATION (OQ-101). The register attests `-d 11` [D-17] and running the EDID and timing steps on `/dev/v4l-subdevN` [C-33], but not that option form. The `--set-edid pad=<pad>[,…]` form is attested as `v4l2-ctl` help text [B-24].
    - `config.txt` overlay parameters given by name alone (for example `4lane`, `media-controller`) or combined on one line are NEEDS VERIFICATION (OQ-100). Only `dtoverlay=tc358743,<param>=<val>` [G-12] and appending `,cam0` [C-39] are attested.
    - Reading the kernel log is written as an action. No register fact attests a specific command for it.
+   - *(Added 2026-10-08.)* Audio: the register attests the ALSA device string `hw:CARD=tc358743,DEV=0` [I-15] and one `arecord` capture command from a 2019 forum thread (community source) [I-16]. Listing ALSA cards, reading a V4L2 control, waiting for a control event, and complete GStreamer or FFmpeg H.265 and audio pipelines are NEEDS VERIFICATION (OQ-101).
 6. **Source tiers.** Facts from community sources are worded "reported by …". Reasoning facts are labelled as reasoning.
 
 ## Symptom index
@@ -71,8 +72,16 @@ For each failure it gives the exact log text where a source attests it, the like
 | 6.4 | Encoder disappears with the cut-down firmware | firmware | Pi 4, CM4 |
 | 6.5 | `flvmux` will not link to the hardware encoder output | userspace / RTMP | Pi 4, CM4 |
 | 6.6 | Buffer allocation fails at stream start (CMA exhausted) | memory | all |
+| 6.7 | H.265 will not link to `flvmux` (HEVC cannot be muxed into FLV with GStreamer 1.26.2) *(added 2026-10-08)* | userspace / RTMP | all (software H.265) |
+| 6.8 | `opusenc` rejects 44.1 kHz audio *(added 2026-10-08)* | userspace / WebRTC audio | all |
+| 6.9 | `x265enc` or `libx265` will not accept the UYVY capture format *(added 2026-10-08)* | userspace / encoder | all |
 | 7.1 | Damage from a wrongly sided FFC adapter | hardware | Pi 5 (reported); CM4 IO Board, CM5 IO Board (22-pin, reasoning) |
 | 7.2 | Bridge board unpowered or held in reset because CAM_GPIO stays low | hardware / DT | all |
+| 8.1 | Audio plays too fast or too slow, pitch is wrong, A/V drift grows — with no error (sample-rate mismatch) *(added 2026-10-08)* | audio / ALSA | CM4, CM5 |
+| 8.2 | No `tc358743` ALSA card, or the card cannot be opened, on CM5 *(added 2026-10-08)* | audio / DT / ASoC | CM5 (CM4 for the shared causes) |
+| 8.3 | GPIO 18–21 conflict between `tc358743-audio` and another overlay *(added 2026-10-08)* | audio / DT / pins | CM4, CM5 |
+| 8.4 | Audio card present but capture is silent, or "Audio present" reads 0 *(added 2026-10-08)* | audio / HDMI / wiring | CM4, CM5 |
+| 8.5 | Lip-sync offset at start, or audio/video drift over time *(added 2026-10-08)* | audio / timestamps | CM4, CM5 |
 
 ---
 
@@ -286,7 +295,7 @@ For each failure it gives the exact log text where a source attests it, the like
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - Set the source to a progressive mode.
 - Do not advertise interlaced modes in the PACSCORDER EDID (OQ-002).
-- The current driver cannot capture interlaced input (RISK-009). The ATEM Mini Pro HDMI output is 1080p only, so ATEM Mini Pro capture is not affected [F-23]. Other ATEM models, and the cameras connected directly that are the other required source type (REQ-CAP-008, owner 2026-10-07): UNKNOWN — VERIFICATION REQUIRED per model (OQ-102).
+- The current driver cannot capture interlaced input (RISK-009). The ATEM Mini Pro HDMI output is 1080p only, so ATEM Mini Pro capture is not affected [F-23]. Other ATEM models, and the cameras connected directly that are the other required source type (REQ-CAP-008, owner 2026-10-07): UNKNOWN — VERIFICATION REQUIRED per model (OQ-102). *(2026-10-08: OQ-102 was answered on 2026-10-07 — any HDMI camera, with no model list. A camera that outputs only interlaced modes is therefore possible; such modes are to be rejected and reported, not captured, per REQ-CAP-005.)*
 
 **Related.** RISK-009 · OQ-002 · TEST-CAP-004
 
@@ -622,8 +631,9 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - Use software encoding. Official documentation gives `x264enc speed-preset=1 threads=1` [D-37]. `rpicam-apps` switches to `libx264` on Pi 5 [D-33].
 - The software H.264 encoders researched, GStreamer `x264enc` and FFmpeg `libx264`, do not accept packed UYVY, so convert to a planar format first [D-40], [D-43] (OQ-060).
+- *(Added 2026-10-08.)* H.265 is software-only on **every** candidate, including Pi 4/CM4, whose `bcm2835-codec` has no HEVC encoder [D-24], [D-31]. The H.265 encoders also need planar input (see 6.9).
 
-**Related.** RISK-003 · OQ-059, OQ-060 · TEST-ENC-001
+**Related.** RISK-003 · OQ-059, OQ-060 · TEST-ENC-001 · *(added 2026-10-08)* RISK-022, OQ-104
 
 ### 6.4 Encoder disappears with the cut-down firmware
 
@@ -659,6 +669,8 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Reasoning: insert `h264parse` between the encoder and `flvmux` [F-35]. The documented reference pipeline is `x264enc ! flvmux ! rtmp2sink location=rtmp://...` [F-33].
 
+*(Added 2026-10-08.)* This remedy applies to H.264 only. An H.265 stream cannot be linked to `flvmux` at all; see 6.7.
+
 **Related.** RISK-003 · OQ-007, OQ-075 · TEST-STR-001
 
 ### 6.6 Buffer allocation fails at stream start (CMA exhausted)
@@ -678,6 +690,74 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Raise the CMA size with the `cma-*` / `cma-size` parameters of the `vc4-kms-v3d` or `cma` overlays [C-40]. The exact `config.txt` line is NEEDS VERIFICATION.
 
 **Related.** RISK-020 · OQ-053, OQ-061 · TEST-PERF-001
+
+### 6.7 H.265 will not link to `flvmux` (HEVC cannot be muxed into FLV with GStreamer 1.26.2)
+
+*Added 2026-10-08 (research topic H).*
+
+**Symptom.** A GStreamer RTMP pipeline such as `… x265enc ! h265parse ! flvmux ! rtmp2sink …` fails to link or to negotiate caps between the H.265 stream and `flvmux`. The exact error text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- GStreamer 1.26.2's `flvmux` has no H.265 on its video sink pad. It accepts only `video/x-flash-video`, `video/x-flash-screen`, `video/x-vp6-flash`, `video/x-vp6-alpha` and `video/x-h264` with `stream-format=avc` [H-27].
+- Legacy FLV/RTMP carries only AVC video; HEVC needs Enhanced RTMP FourCC signalling [F-31].
+- The separate `eflvmux` element, which muxes H.265 as `hvc1`, first appears in the GStreamer 1.28 branch and is absent from 1.24 and 1.26 (CORRECTED) [F-34]. Raspberry Pi OS ships 1.26.2 [G-26].
+
+**Evidence.** [F-31], [F-34], [G-26], [H-27]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Confirm the installed GStreamer version. The command is NEEDS VERIFICATION (OQ-101).
+2. Inspect the caps negotiation error. The debug option is NEEDS VERIFICATION.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Not fixable inside the distribution's GStreamer. The path is an ADR-007 design choice (OQ-107, RISK-025):
+- publish H.265 with FFmpeg 7.1.5, which can mux HEVC + AAC into enhanced FLV for RTMP, with FourCC `hvc1` [H-26]. Its `rtmp_enhanced_codecs` option accepts only `hvc1`, `av01` and `vp09`; any other value fails with `AVERROR_PATCHWELCOME` [H-26]. Whether a destination needs that option is OQ-106;
+- or use SRT in MPEG-TS, whose components the distribution stacks contain [H-30] (OQ-076);
+- or carry a backported `eflvmux` or a newer GStreamer: BUILD TEST REQUIRED (research gap, topic H — not a register fact; OQ-107).
+
+H.264 RTMP through `flvmux` is not affected (see 6.5).
+
+**Related.** RISK-022, RISK-025 · OQ-076, OQ-103, OQ-106, OQ-107 · TEST-STR-001
+
+### 6.8 `opusenc` rejects 44.1 kHz audio
+
+*Added 2026-10-08 (research topic I).*
+
+**Symptom.** A GStreamer WebRTC (or other Opus) pipeline fails to negotiate caps at `opusenc` when the HDMI source sends 44.1 kHz audio, while the same pipeline works with a 48 kHz source. The exact error text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- `opusenc` accepts only 48000, 24000, 16000, 12000 or 8000 Hz on its sink pad [I-47]. FFmpeg's `libopus` wrapper accepts the same five rates, and FFmpeg's native `opus` encoder accepts only 48000 Hz [I-41].
+- The HDMI source's rate is set by the source, not by PACSCORDER: the TC358743 drives the I2S clocks [I-03], and its audio PLL tracks the source's audio clock [I-26]. The driver reports 44100 Hz as one of the rates it decodes [I-19].
+
+**Evidence.** [I-03], [I-19], [I-26], [I-41], [I-47]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Read "Audio sampling rate" (TEST-AUD-001 step 4; command NEEDS VERIFICATION, OQ-101) and compare it with the caps at the encoder's sink pad.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Insert `audioresample` before `opusenc` [I-47]. In FFmpeg, resample to 48 kHz before `libopus`; the option is NEEDS VERIFICATION (OQ-101).
+- Resample only after capturing at the source's real rate. Opening the ALSA card at 48000 Hz while the source sends 44100 Hz is not a resample: it mislabels the samples (see 8.1).
+- `avenc_aac` and `voaacenc` accept both 44.1 and 48 kHz [I-47], so the RTMP/recording path needs no resample for that reason. Where audio is resampled is part of OQ-111.
+
+**Related.** RISK-019, RISK-023 · OQ-063, OQ-111 · TEST-STR-002, TEST-AUD-001
+
+### 6.9 `x265enc` or `libx265` will not accept the UYVY capture format
+
+*Added 2026-10-08 (research topic H).*
+
+**Symptom.** An H.265 pipeline fails to negotiate between the capture (UYVY) and `x265enc`, or FFmpeg refuses the input pixel format for `libx265`. The exact error text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- GStreamer 1.26.2 `x265enc` accepts only planar formats: Y444, Y42B and I420 at 8 bit, plus 10- and 12-bit variants. It does not accept packed UYVY, YUY2 or NV12 [H-13].
+- FFmpeg 7.1.5's `libx265` wrapper accepts only planar or gray formats, never packed `uyvy422`, `yuyv422` or `nv12` (CORRECTED) [H-10].
+- The capture format is UYVY (ADR-005, PROPOSED).
+
+**Evidence.** [H-10], [H-13]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Check the caps or pixel format at the encoder input.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Convert UYVY to a planar format (for example I420 or Y42B) before the encoder [H-13], [H-10]. Reasoning: on the CPU at 1080p60 that conversion reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43]. Whether a hardware block can do it is OQ-060.
+- Related low-latency setting, not this signature: FFmpeg's wrapper copies its thread count into x265's frame threads after applying preset and tune (CORRECTED) [H-10], while `tune=zerolatency` sets one frame thread [H-16]. Reasoning from both: the FFmpeg thread count overrides zerolatency's setting, so set it explicitly and record it (OQ-104).
+
+**Related.** RISK-022 · OQ-060, OQ-104 · TEST-DMA-001, TEST-ENC-001
 
 ---
 
@@ -725,6 +805,143 @@ Reasoning: the warning was given for Pi 5 [C-04], but the CM4 IO Board [C-03] an
 
 ---
 
+## 8. HDMI audio
+
+*Section added 2026-10-08 (research topic I).* HDMI audio is required (REQ-CAP-006, DRAFT; owner, 2026-10-07). The path is the `tc358743-audio` overlay: the TC358743 drives I2S into the Pi on GPIO 18–20, a `linux,spdif-dir` stub codec stands in for the bridge, and the ALSA card id is `tc358743` [I-01], [I-02], [I-03], [I-15], [A-47]. The CPU side is `bcm2835-i2s` on CM4 [I-10] and RP1 I2S1 on CM5 [I-07]. Test procedure: TEST-AUD-001.
+
+### 8.1 Audio plays too fast or too slow, pitch is wrong, A/V drift grows — with no error
+
+**Symptom.**
+- Recorded or streamed audio is too fast and high-pitched, or too slow and low-pitched, and drifts further from the video over time.
+- ALSA, the encoder and the muxer report **no error**.
+- It happens with sources at one rate (for example 44.1 kHz) and not at another (for example 48 kHz).
+
+**Likely cause** (reasoning from source [I-18]).
+- The kernel has no path that carries the HDMI sample rate into ALSA. The `linux,spdif-dir` stub codec has no `hw_params` and no controls and accepts 8–768 kHz [I-11]. The Pi I2S is the clock consumer and ignores the requested rate [I-13], [I-18]. Nothing outside the TC358743 driver uses its sampling-rate control [I-18].
+- So if the application opens the card at 48000 Hz while the source sends 44100 Hz, the 44.1 kHz frames are labelled 48 kHz. Played at 48 kHz they run 1.0884 times fast (+8.84 %, about +1.47 semitones), and the audio timeline is 0.919 of real time, so A/V drift accumulates [I-18].
+- Reasoning (Claude; the same arithmetic reversed): opening at 44100 Hz while the source sends 48000 Hz gives slow, low-pitched audio and a timeline 1.088 times real time.
+- After a source rate change, the new rate takes up to about 1 s, plus I2C time, to reach the driver's control, because without an `interrupts` property the driver polls every 1000 ms [I-22]. Reasoning from [I-22]: audio captured in that window is mislabelled even when the application follows the control (RISK-023).
+
+**Evidence.** [I-11], [I-13], [I-18], [I-19], [I-20], [I-21], [I-22], [I-23]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Read "Audio sampling rate" (ID 0x00981980, read-only) [I-20]. It is on `/dev/videoN` on CM4 with legacy Unicam, and only on the TC358743 sub-device node on CM5 [I-23]. The `v4l2-ctl` option is NEEDS VERIFICATION (OQ-101).
+2. Compare it with the rate the application opened the ALSA device at.
+3. Play a steady tone of known frequency from the source and measure it in the recording (TEST-AUD-001 step 6).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Open the ALSA device at the rate read from the control. The driver decodes it from register FS_SET and returns 0 when there is no TMDS signal [I-19].
+- Subscribe to `V4L2_EVENT_CTRL` on that control, which the driver accepts, and reopen ALSA at the new rate on every change [I-21]. The application that does this is NOT STARTED.
+- Or force one rate through the EDID audio descriptors (OQ-002). Whether to read the rate, force it, or both is OQ-111.
+- To shorten the detection window, wire the TC358743 INT output to a Pi GPIO and add an `interrupts` property, if the hardware allows (OQ-020); the stock overlays have none [I-22].
+
+**Related.** RISK-023, RISK-024 · OQ-002, OQ-020, OQ-111 · TEST-AUD-001, TEST-REC-001, TEST-STR-001, TEST-STR-002
+
+### 8.2 No `tc358743` ALSA card, or the card cannot be opened, on CM5
+
+**Symptom.** On CM5, after adding `dtoverlay=tc358743-audio`, either:
+- no ALSA card with id `tc358743` appears; or
+- the card appears, but opening or starting the capture fails; or
+- an application that looks for the CM4 PCM name does not find the device.
+
+The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **Unconfirmed path.** No official statement or test result shows the overlay capturing audio on CM5 (research gap, topic I; OQ-054). What the source shows:
+  - the firmware does not block the overlay: `overlay_map` has no `tc358743-audio` entry, and an overlay not in the map is assumed compatible with all platforms [I-05], [I-06];
+  - the labels it needs exist on CM5: `i2s_clk_consumer` is RP1 I2S1 (pin group GPIO 18–21), and the `sound` node exists [I-07], [I-08];
+  - `dwc-i2s` accepts the codec-master (BC_FC) format only when the hardware reports the instance as a clock consumer, and returns `-EINVAL` for mixed formats; the RP1 datasheet calls I2S1 the clock-consumer instance [I-09];
+  - `hw_params` accepts only 2, 4, 6 or 8 channels and S16/S24/S32_LE, and the capture channel count and formats come from RP1 hardware registers that source inspection cannot see [I-14].
+- **Missing companion overlay.** A Raspberry Pi engineer reported that `tc358743-audio` requires `tc358743` to be loaded as well, because the bridge must be configured (community source) [I-16]. On CM5, `dtoverlay=tc358743` loads `tc358743-pi5` [I-05]. The overlay README's "tc358743-fast" is a stale name; no such overlay is built [I-04].
+- **Wrong device name.** On CM5 the PCM name differs from CM4's `bcm2835-i2s-dir-hifi dir-hifi-0` [I-15]; reasoning from source, it is expected to be `1f000a4000.i2s-dir-hifi dir-hifi-0` [I-17]. The card index also varies; a 2019 forum thread reported the same card as card 0 and as card 1 (community source) [I-16].
+- **Pin conflict.** Another overlay may hold GPIO 18–21 (see 8.3).
+
+**Evidence.** [I-04], [I-05], [I-06], [I-07], [I-08], [I-09], [I-12], [I-14], [I-15], [I-16], [I-17]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Check `config.txt` for both the `tc358743` line (TEST-DRV-001) and `dtoverlay=tc358743-audio`.
+2. Inspect the kernel log for messages from the sound card, from `dwc-i2s` and from the TC358743 driver. Record them.
+3. List the ALSA cards and record the card id, index and PCM name. The command is NEEDS VERIFICATION (OQ-101).
+4. Check the other overlays for GPIO 18–21 (8.3).
+5. The kernel options are not the expected cause: they are set in both defconfigs and in both packaged 6.18.50 kernels [I-12]. Check this only if the image is custom-built (TEST-BLD-001).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Load both overlays: official documentation says audio needs `tc358743-audio` in addition to `tc358743` [C-37], and a Raspberry Pi engineer reported the same requirement (community source) [I-16].
+- Open the device by card id, `hw:CARD=tc358743,DEV=0`, never by PCM name or card index [I-15]; on CM5 the PCM name is expected to differ (reasoning from source) [I-17].
+- If `dwc-i2s` rejects the format or `hw_params`, no source-derived fix exists. Record the result in TEST-AUD-001. The resolution is KERNEL SOURCE INSPECTION REQUIRED and HARDWARE TEST REQUIRED (OQ-054). Reasoning from ADR-004's analysis: while audio is required, this result gates CM5 as the product platform.
+
+**Related.** RISK-014 · OQ-052, OQ-054, OQ-101, OQ-114 · TEST-AUD-001, TEST-BLD-001
+
+### 8.3 GPIO 18–21 conflict between `tc358743-audio` and another overlay
+
+**Symptom.** With `tc358743-audio` and another GPIO overlay both loaded, either the audio card fails (8.2, 8.4) or the other function (PWM, IR receiver, analogue-audio remap) no longer responds. The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- When `tc358743-audio` is enabled, the I2S pin group claims GPIO 18, 19, 20 **and 21**, although the TC358743 path uses only 18, 19 and 20. On CM4 the pins are set to ALT0; on CM5 to function `i2s1` [I-30].
+- Overlays that default to these pins [I-31]:
+  - `pwm` and `pwm-2chan` default to pin 18, and the overlay README notes that pin 18 "is the one used by the I2S audio interface";
+  - `gpio-ir` defaults to `gpio_pin` 18;
+  - `audremap` offers `pins_18_19` on BCM2835/BCM2711. On BCM2712 it is redirected to `audremap-pi5`, where `pins_18_19` is "Not available; this will not enable audio out".
+- Not a conflict: `gpio-fan` defaults to GPIO 12 [I-31]. On CM5 the base Device Tree's power button and fan entries do not use header GPIO 18–21 [I-32].
+
+**Evidence.** [I-10], [I-08], [I-30], [I-31], [I-32]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). List every `dtoverlay` line in `config.txt` and compare their pins with GPIO 18–21. Check the carrier's own use of these pins against its schematic (OQ-018).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Remove the conflicting overlay, or move it to another pin with its pin parameter. The parameter syntax is NEEDS VERIFICATION (OQ-100).
+- If GPIO 21 must be freed for another use, a custom overlay with its own pin group for GPIO 18–20 is needed (research gap, topic I — not a register fact; BUILD TEST REQUIRED). The pin allocation is an owner decision (OQ-114).
+
+**Related.** RISK-014 · OQ-018, OQ-100, OQ-114 · TEST-AUD-001
+
+### 8.4 Audio card present but capture is silent, or "Audio present" reads 0
+
+**Symptom.** The `tc358743` card opens and capture runs, but the recording is silent or corrupt, or "Audio present" reads 0 while the source is playing. The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **No HDMI signal or no audio packets.** "Audio sampling rate" reads 0 when there is no TMDS signal, and "Audio present" reflects the chip's audio-sample status bit [I-19]. The driver unmasks its audio-change interrupts only while +5V / cable is detected [I-21]. No EDID means no hot-plug, so no signal (2.1).
+- **Wiring.** The overlay expects LRCK/WFS on GPIO 19, BCK/SCK on GPIO 18 and DATA/SD on GPIO 20 [A-47], [G-14]. These are separate from the CSI-2 cable (reasoning; OQ-025).
+- **I/O voltage.** The TC358743's four audio pins are VDDIO2 outputs, rated 1.8–3.3 V [I-27]. The CM4 and CM5 IO Boards have a selectable 1.8 V or 3.3 V GPIO voltage, and VDDIO2 should match it, or the lines need level shifting [I-29] (OQ-024).
+- **Source format.** The driver always configures 2-channel I2S [I-24]. What the I2S output carries for compressed (AC-3, DTS) or multichannel input is UNKNOWN (OQ-110).
+
+**Evidence.** [A-47], [G-14], [I-19], [I-21], [I-24], [I-27], [I-29]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Read "Audio present" and "Audio sampling rate" (8.1, step 1).
+2. Check HPD and the EDID (2.1).
+3. Measure BCK and LRCK on GPIO 18 and 19 with an instrument (HARDWARE TEST REQUIRED).
+4. Check the IO board's GPIO voltage setting against the bridge board's VDDIO2 level (VENDOR CONFIRMATION REQUIRED, OQ-024).
+5. Repeat with a 2-channel LPCM source.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Correct the wiring or the GPIO voltage setting, or add level shifting [I-29].
+- Use 2-channel LPCM sources. Advertising only 2-channel LPCM in the EDID is a research proposal (research design risk, topic I — not a register fact; OQ-002, OQ-110).
+
+**Related.** RISK-014 · OQ-002, OQ-024, OQ-025, OQ-110 · TEST-AUD-001, TEST-DRV-002
+
+### 8.5 Lip-sync offset at start, or audio/video drift over time
+
+**Symptom.** Audio leads or lags video in recordings or streams from the start, or the offset grows during a long run. No log signature is attested.
+
+**Likely cause.**
+- **Separate clocks.** The TC358743's internal audio PLL tracks the N/CTS values in the source's ACR packets, so its I2S clocks follow the source's audio clock [I-26]. Video buffers are stamped with `CLOCK_MONOTONIC` at frame start by every Raspberry Pi CSI receiver driver in `rpi-6.18.y` [I-33].
+- **GStreamer 1.26.2.** In a `v4l2src` + `alsasrc` pipeline, `alsasrc`'s audio clock normally becomes the pipeline clock, and ALSA driver timestamps are then not used [I-36], [I-35]. `v4l2src` sets PTS from the pipeline clock minus the measured buffer age; after a bad timestamp it assumes a one-frame delay for the rest of the session [I-37].
+- **FFmpeg 7.1.** The ALSA input stamps packets with wall-clock time, while the V4L2 input passes monotonic timestamps through by default. Without `-ts abs` or `mono2abs` the clock bases are mixed, and the CLI's default per-input start shift discards the real offset between the inputs [I-38].
+- **Sample-rate mismatch** adds drift (8.1).
+
+**Evidence.** [I-18], [I-26], [I-33], [I-35], [I-36], [I-37], [I-38]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Measure the offset at start and after a long run with a clapper or flash-and-beep source (TEST-AUD-001 step 9; TEST-PERF-001). Record the framework and its clock settings. First rule out 8.1.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- FFmpeg: give the V4L2 input `-ts abs` or `mono2abs`, so that both inputs use one clock base [I-38]. The full command line is NEEDS VERIFICATION (OQ-101).
+- GStreamer: the clock arrangement (the monotonic system clock with ALSA driver timestamps, or the audio clock as pipeline clock) is unmeasured on PACSCORDER (research gap, topic I). Choose it from TEST-AUD-001 measurements (OQ-112).
+- The clock model is to be recorded with ADR-007 (OPEN). The tolerance is UNDEFINED (OQ-112).
+
+**Related.** RISK-024, RISK-023 · OQ-040, OQ-112 · TEST-AUD-001, TEST-PERF-001
+
+---
+
 ## Verification status
 
 ### Verified from sources (fact IDs)
@@ -733,18 +950,20 @@ Every signature, cause and remedy above cites entries of [REFERENCES.md](REFEREN
 
 | Topic | Fact IDs cited |
 |---|---|
-| A — TC358743 hardware | A-03, A-04, A-08, A-15, A-16, A-19, A-20, A-21, A-22, A-23, A-24, A-25, A-29, A-30, A-31, A-33, A-43, A-44, A-45, A-46, A-50 |
+| A — TC358743 hardware | A-03, A-04, A-08, A-15, A-16, A-19, A-20, A-21, A-22, A-23, A-24, A-25, A-29, A-30, A-31, A-33, A-43, A-44, A-45, A-46, A-50; added 2026-10-08: A-47 |
 | B — tc358743 Linux driver | B-06, B-07, B-09, B-10, B-11, B-12, B-14, B-16, B-18, B-19, B-21, B-22, B-23, B-24, B-25, B-26, B-27, B-29, B-31, B-32, B-34, B-38, B-39, B-41, B-42, B-43, B-45, B-47, B-48, B-49 |
 | C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-08, C-10, C-11, C-13, C-14, C-16, C-17, C-19, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-39, C-40, C-41, C-42, C-43, C-45, C-47, C-49, C-50, C-51, C-52, C-53 |
-| D — Encoders | D-03, D-17, D-19, D-20, D-21, D-22, D-28, D-29, D-31, D-33, D-37, D-38, D-39, D-40, D-43, D-48 |
+| D — Encoders | D-03, D-17, D-19, D-20, D-21, D-22, D-28, D-29, D-31, D-33, D-37, D-38, D-39, D-40, D-43, D-48; added 2026-10-08: D-24 |
 | E — Buildroot and kernel configuration | E-13, E-32, E-37, E-39, E-47, E-48 |
-| F — ATEM and streaming | F-23, F-33, F-34, F-35 |
-| G — Raspberry Pi OS and image tooling | G-04, G-12, G-18, G-22, G-23, G-25, G-26, G-32, G-65 |
+| F — ATEM and streaming | F-23, F-33, F-34, F-35; added 2026-10-08: F-31 |
+| G — Raspberry Pi OS and image tooling | G-04, G-12, G-18, G-22, G-23, G-25, G-26, G-32, G-65; added 2026-10-08: G-14 |
+| H — H.265 software encoding and transport (added 2026-10-08) | H-10, H-13, H-16, H-26, H-27, H-30, H-43 |
+| I — HDMI audio path (added 2026-10-08) | I-01, I-02, I-03, I-04, I-05, I-06, I-07, I-08, I-09, I-10, I-11, I-12, I-13, I-14, I-15, I-16, I-17, I-18, I-19, I-20, I-21, I-22, I-23, I-24, I-26, I-27, I-29, I-30, I-31, I-32, I-33, I-35, I-36, I-37, I-38, I-41, I-47 |
 
-- `CORRECTED` entries cited: A-22, A-25, B-11, B-21, B-25, C-28, C-36, C-39, C-53, E-47, F-34.
-- `community` entries cited, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43, C-45, D-17.
-- `reasoning` entries cited, labelled as reasoning: A-23, B-10, B-11, B-27, B-47, B-49, C-47, C-49, C-50, C-51, C-52, C-53, D-29, F-35.
-- Two signatures rest partly on research gaps, not register facts: 4.2 (`Incorrect pixel format`) and the extra modes in 3.5. They are marked NEEDS VERIFICATION where used. The "even for HD sources" note in 4.3 is also a research gap, labelled as such.
+- `CORRECTED` entries cited: A-22, A-25, B-11, B-21, B-25, C-28, C-36, C-39, C-53, E-47, F-34; added 2026-10-08: H-10.
+- `community` entries cited, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43, C-45, D-17; added 2026-10-08: I-16.
+- `reasoning` entries cited, labelled as reasoning: A-23, B-10, B-11, B-27, B-47, B-49, C-47, C-49, C-50, C-51, C-52, C-53, D-29, F-35; added 2026-10-08: H-43, I-17, I-18.
+- Two signatures rest partly on research gaps, not register facts: 4.2 (`Incorrect pixel format`) and the extra modes in 3.5. They are marked NEEDS VERIFICATION where used. The "even for HD sources" note in 4.3 is also a research gap, labelled as such. *(Added 2026-10-08.)* Entries 6.7 to 6.9 and 8.1 to 8.5 also use items marked *research gap* or *research design risk* (topics H and I) from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json): the backported-`eflvmux` option (6.7), the CM5 audio path being unconfirmed (8.2), the custom GPIO 18–20 overlay (8.3), the 2-channel-only EDID proposal (8.4) and the unmeasured GStreamer clock choice (8.5). They are not register facts and are labelled where used. None of the eight new signatures has attested log text; each says so.
 - "Verified from sources" means only that the cited source says so. Under Rule 23, a hardware measurement overrides any of these facts.
 
 ### Verified on PACSCORDER hardware
@@ -759,3 +978,5 @@ Nothing (no hardware exists as of 2026-10-06). No signature in this document has
 | 2026-10-06 | Review: every remedy marked NOT YET RUN ON PACSCORDER HARDWARE; EDID-persistence statement in 2.1 re-sourced to [A-31], [B-21] plus a research gap instead of [B-22]; `failed to get refclk` cause reworded to match [A-22]; extra modes in 3.5 marked NEEDS VERIFICATION; 3.4 notes which `-V` line is literal in the source; encoder UYVY scope (D-40, D-43) narrowed; 7.1 extended to CM4/CM5 IO Board 22-pin connectors as reasoning; 7.2 remedy labelled reasoning. | Claude (session 2026-10-06, review) |
 | 2026-10-06 | Cross-document consistency fixes: 2.5 "ADR-006 (PROPOSED) chooses" changed to "proposes … if it is accepted"; `v4l2-ctl -d /dev/v4l-subdevN` marked NEEDS VERIFICATION (OQ-101) in the conventions, 2.1 and 2.2, and other unattested command steps (`i2cdetect -y`, media-graph print, event wait, video-node format, EDID/control read-back) linked to OQ-101; bare/combined `config.txt` parameter syntax marked NEEDS VERIFICATION (OQ-100) in the conventions, 2.5 and 3.1; link-frequency remedies in 1.3, 3.1, 3.3 and 3.5 linked to ADR-008 (PROPOSED; OQ-099); 3.1 states that a 4-lane path is necessary but not shown sufficient for 1080p60 UYVY (OQ-038); 3.4 labels kernel 6.18.39 as the kernel of the [C-33] report only, with 6.18.50 [G-04] / 6.18.55 [E-37] and OQ-097; 3.3 and 3.5 link the CSI-2 error-counter method to OQ-050/OQ-095; 3.5 notes RISK-006 covers 2-lane 1080p50 UYVY; 4.3 "even for HD sources" no longer attributed to [B-34] (research gap, topic B); 2.1 EDID trigger linked to OQ-093. | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: interlaced-input remedy no longer generalises "ATEM capture is not affected" from the ATEM Mini Pro [F-23] to all ATEM models; other ATEM models and directly connected cameras (REQ-CAP-008) are UNKNOWN per model (OQ-102). §3.1 remedy split by lane configuration (REQ-CAP-007): on the 2-lane configuration 1080p60 is beyond the link [C-37] and the EDID restriction applies; the `4lane` remedy is for the 4-lane configuration. No new fact ID cited. | Claude (session 2026-10-07) |
+| 2026-10-08 | Second set of owner decisions of 2026-10-07 and research topics H and I propagated; no entry rewritten or deleted. Header: status (37 signatures), "Applies to" (software H.265, `tc358743-audio` path, CM4 + CM5 bring-up) and "Verification" rows. Conventions: audio command attestation note (OQ-101). Symptom index: eight rows added. New entries: 6.7 H.265 will not link to `flvmux` (GStreamer 1.26.2 has no H.265 in `flvmux`, `eflvmux` only in 1.28; FFmpeg enhanced FLV, SRT or backport; OQ-107, RISK-025); 6.8 `opusenc` rejects 44.1 kHz audio ([I-47]; resample after capturing at the true rate); 6.9 `x265enc` / `libx265` reject UYVY (planar only; conversion cost; FFmpeg thread-count note); new section 8 HDMI audio: 8.1 sample-rate mismatch with no error (RISK-023, OQ-111), 8.2 missing or unusable `tc358743` card on CM5 (unconfirmed path, companion overlay, PCM name, OQ-054), 8.3 GPIO 18–21 conflicts (OQ-114), 8.4 silent capture or "Audio present" 0 (signal, wiring, VDDIO2 voltage, source format), 8.5 lip-sync offset and drift (RISK-024, OQ-112). Dated notes: 2.3 (OQ-102 answered, no model list), 6.3 (H.265 software-only on every candidate), 6.5 (H.265 see 6.7). Verification table: A-47, D-24, F-31, G-14, topic H and I rows; CORRECTED H-10; community I-16; reasoning H-43, I-17, I-18; 2026-10-08 research JSON items labelled. | Claude (session 2026-10-08) |
+| 2026-10-08 | Citation verification of the topic H and I additions: 8.2 Remedy — "Load both overlays [I-16]" now rests on the official statement [C-37] with the community report [I-16] labelled as such; the card-id bullet labels [I-17] as reasoning from source. All other [H-xx] and [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |

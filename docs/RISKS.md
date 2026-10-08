@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| Document status | Active — 22 risks, all OPEN |
-| Last updated | 2026-10-07 |
+| Document status | Active — 25 risks, all OPEN |
+| Last updated | 2026-10-08 |
 | Applies to | PACSCORDER on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5; both the 2-lane and the 4-lane capture configuration (REQ-CAP-007) |
 | Verification | Source research only. No risk has been confirmed or retired by a test; nothing has been tested on PACSCORDER hardware. |
-| Basis | Source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)) and the owner decisions of 2026-10-07 recorded in [REQUIREMENTS.md](REQUIREMENTS.md) (REQ-CAP-007, REQ-CAP-008, REQ-BLD-002; REQ-ATEM-001 scope). **No risk below has been confirmed or retired on PACSCORDER hardware** — none exists yet. |
+| Basis | Source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)) and the owner decisions of 2026-10-07 recorded in [REQUIREMENTS.md](REQUIREMENTS.md) (REQ-CAP-007, REQ-CAP-008, REQ-BLD-002; REQ-ATEM-001 scope; second set: CM4 and CM5 evaluated side by side, HDMI audio required, H.264 and H.265, any HDMI camera). Source research of 2026-10-08, topics H (H.265/HEVC) and I (HDMI audio) ([REFERENCES.md](REFERENCES.md) [H-01] to [H-43], [I-01] to [I-47]; raw lists in [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json)). **No risk below has been confirmed or retired on PACSCORDER hardware** — none exists yet. |
 
 This register lists facts, found in sources, that could stop PACSCORDER meeting a requirement. Each entry names:
 
@@ -34,14 +34,17 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 | RISK-012 | Pi 5/CM5 TC358743 path has no official documentation | REQ-PLT-001, ADR-004 | Medium | OPEN |
 | RISK-013 | Signal changes detected only by 1 s polling | REQ-CAP-004 | Low | OPEN |
 | RISK-014 | HDMI audio needs a separate I2S path with the stock driver | REQ-CAP-006 | Medium | OPEN |
-| RISK-015 | GPL and patent licensing of software H.264 encoding | REQ-ENC-001, product release | Medium | OPEN |
+| RISK-015 | GPL and patent licensing of software H.264 encoding (extended 2026-10-08 to H.265 and AAC) | REQ-ENC-001, REQ-CAP-006 (AAC), product release | Medium | OPEN |
 | RISK-016 | RGB888 pixel-format label differs between receivers | ADR-005 | Low | OPEN |
 | RISK-017 | Raspberry Pi OS image reproducibility needs an archive mirror | REQ-BLD-001, REQ-BLD-002, ADR-003 | Medium | OPEN |
 | RISK-018 | ATEM control protocol is reverse-engineered | REQ-ATEM-001 — only if network tally/control is added; not in current scope (owner, 2026-10-07) | Medium | OPEN |
-| RISK-019 | WebRTC browser profile/level and audio codec constraints | REQ-STR-002 | Medium | OPEN |
+| RISK-019 | WebRTC browser profile/level and audio codec constraints (H.265 browser support added 2026-10-08) | REQ-STR-002 | Medium | OPEN |
 | RISK-020 | Contiguous memory (CMA) sizing for capture buffers | REQ-CAP-001, REQ-DMA-001 | Low | OPEN |
 | RISK-021 | Third-party bridge-board wiring hazards | Hardware | Medium | OPEN |
 | RISK-022 | H.265 is required but software-only on every candidate | REQ-ENC-001, REQ-STR-001, REQ-STR-002, REQ-REC-001 | High | OPEN |
+| RISK-023 | HDMI audio sample-rate mismatch is not detected by ALSA | REQ-CAP-006, REQ-REC-001, REQ-STR-001, REQ-STR-002 | High (if unmitigated) | OPEN |
+| RISK-024 | A/V synchronisation across separate audio and video clock domains | REQ-CAP-006, REQ-REC-001, REQ-STR-001, REQ-STR-002, ADR-007 | Medium | OPEN |
+| RISK-025 | HEVC over RTMP may force a split GStreamer/FFmpeg architecture | REQ-STR-001, REQ-ENC-001, ADR-007 | Medium | OPEN |
 
 ---
 
@@ -171,11 +174,18 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Evidence:**
   - The silicon can send audio over CSI-2 [A-05] or on I2S/TDM output pins [A-11].
   - The Linux driver always configures 2-channel I2S [A-13]; whether audio over CSI-2 works with the Raspberry Pi receivers is unknown (OQ-033).
-  - The `tc358743-audio` overlay expects I2S on GPIO 18/19/20 [A-47], [G-14]. [A-47] is marked as applying to Pi 4/CM4; whether the overlay works on Pi 5/CM5 is unverified (research gaps, topics B and C — not register facts; OQ-054).
-- **Impact:** With the stock driver, audio needs extra wiring that the CSI-2 camera cable does not carry (reasoning). The audio pins are outputs in the VDDIO2 domain, which is 1.8 V or 3.3 V depending on the board [A-12]; research noted that VDDIO2 must be 3.3 V to interface with Pi GPIO 18/19/20 (research gap, topic A — not a register fact; OQ-024, OQ-025).
-- **Open questions:** OQ-004, OQ-025, OQ-033, OQ-054.
+  - The `tc358743-audio` overlay expects I2S on GPIO 18/19/20 [A-47], [G-14]. [A-47] is marked as applying to Pi 4/CM4; whether the overlay works on Pi 5/CM5 is unverified (research gaps, topics B and C — not register facts; OQ-054). *(2026-10-08: research topic I found that the overlay's Device Tree labels resolve on CM5 — see below; operation there is still unverified.)*
+  - *(Added 2026-10-08, research topic I.)* Overlay mechanics: it enables `i2s_clk_consumer`, adds a `linux,spdif-dir` stub codec as bit-clock and frame master (the TC358743 has no ASoC codec driver of its own), and creates the ALSA card `tc358743` with 2 × 32-bit slots [I-01], [I-02], [I-03], [I-15]. The datasheet makes the TC358743 the I2S clock master only [I-25]; reasoning: overlay and datasheet agree on clock roles [I-28].
+  - CM4: `i2s_clk_consumer` is the single `bcm2835-i2s` on GPIO 18–21 [I-10], which captures exactly 2 channels at 8–384 kHz in S16_LE, S24_LE or S32_LE [I-13]. A 2019 forum thread shows the card enumerated on a Pi with `bcm2835-i2s` and an `arecord` capture command run against it (community source) [I-16].
+  - CM5: `overlay_map` has no entry for the overlay, so the firmware does not block it [I-05], [I-06]; its labels resolve to RP1 I2S1 on GPIO 18–21 [I-07], [I-08]; `dwc-i2s` accepts the codec-master format only on a clock-consumer instance, which I2S1 is [I-09]. RP1 I2S1's capture channel count and formats come from hardware registers not visible in source [I-14]. No official statement or test shows audio being captured through this path (research gap, topic I; OQ-054).
+  - Stereo only: the driver hard-codes 2-channel I2S at probe and never selects its TDM, CSI or 4/6/8-channel settings [I-24]. Behaviour with compressed or multichannel HDMI audio is undocumented (research gap, topic I; OQ-110).
+  - The ALSA path does not follow the HDMI sample rate: RISK-023. A/V clock domains: RISK-024.
+  - Pins: the four audio pins are VDDIO2 outputs, rated 1.8–3.3 V [I-27]; the CM4 and CM5 IO Boards have a selectable 1.8 V or 3.3 V GPIO voltage, which VDDIO2 should match, or the audio lines need level shifting [I-29]. The overlay also claims GPIO 21, which the audio path does not use [I-30]; the `pwm`, `pwm-2chan` and `gpio-ir` overlays default to GPIO 18, and `audremap` offers `pins_18_19` on BCM2711 [I-31] (OQ-114).
+- **Impact:** With the stock driver, audio needs extra wiring that the CSI-2 camera cable does not carry (reasoning). The audio pins are outputs in the VDDIO2 domain, which is 1.8 V or 3.3 V depending on the board [A-12]; research noted that VDDIO2 must be 3.3 V to interface with Pi GPIO 18/19/20 (research gap, topic A — not a register fact; OQ-024, OQ-025). *(Superseded 2026-10-08: on the CM4 and CM5 IO Boards the GPIO voltage is selectable, 1.8 V or 3.3 V, and VDDIO2 should match the selected voltage or the lines need level shifting [I-29]; 3.3 V is therefore not the only option there.)*
+  - *(Added 2026-10-08.)* Reasoning from [I-13], [I-24]: the product captures stereo audio only. The CM5 path is a bring-up gate until TEST-AUD-001 runs on CM5 (research design risk, topic I). Using HDMI audio removes GPIO 18–21 from other uses unless a custom overlay is written (OQ-114). Severity unchanged (Medium): the CM4 path is documented and the CM5 labels resolve, but nothing has been run on PACSCORDER hardware.
+- **Open questions:** OQ-004, OQ-025, OQ-033, OQ-054; added 2026-10-08: OQ-024, OQ-110, OQ-114.
 - **Owner decision (2026-10-07):** audio is required (REQ-CAP-006 DRAFT, OQ-004 ANSWERED), so this risk now affects a firm requirement.
-- **Retire by:** An owner decision on REQ-CAP-006 (OQ-004), then TEST-AUD-001.
+- **Retire by:** An owner decision on REQ-CAP-006 (OQ-004), then TEST-AUD-001. *(2026-10-08: the owner decision was made on 2026-10-07; what remains is TEST-AUD-001 on CM4 and on CM5, both evaluated in bring-up (ADR-004).)*
 
 ## RISK-015 — GPL and patent licensing of software encoding
 
@@ -183,8 +193,12 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - x264 is GPL; FFmpeg must be built `--enable-gpl` to use it [D-42], [D-46], [D-47].
   - The GPU firmware licence is proprietary [G-69].
   - H.264 patent licensing was not researched (OQ-086).
+  - *(Added 2026-10-08, research topics H and I — H.265 and AAC are now required: REQ-ENC-001, REQ-CAP-006.)* The Raspberry Pi FFmpeg links `libx264` and `libx265`, which makes it a GPL build [I-39], [H-09]. x265 is copyright MulticoreWare, licensed under GPL version 2 or later and also under a commercial licence; neither licence covers HEVC patents [H-39].
+  - HEVC patent pools charge per unit. VCL Advance (the former Via LA HEVC/VVC programme, acquired by Access Advance as of 15 December 2025): $0.00 for units 1–100,000, then $0.30 (Region 1) / $0.20 (Region 2) per unit [H-40]. Access Advance says a licence is "most likely" needed for any product that can encode or decode HEVC [H-41]; its "Connected Home & Other Devices" category lists devices over $80 at $1.111 (Region 1) / $0.555 (Region 2) per unit in compliance, before trademark discount [H-42].
+  - AAC: the shipped encoders are FFmpeg's native `aac` and GStreamer's `voaacenc` [I-39], [I-44]. `fdk-aac` is in Debian non-free under a licence Debian calls incompatible with every GPL version, and it grants no patent licence [I-43]; a GPL FFmpeg build can enable it only with `--enable-nonfree`, which makes the result unredistributable [I-42]. AAC patent licensing was not researched beyond this (research gap, topic I; OQ-113).
 - **Impact:** Product licensing and source-offer obligations, especially on Pi 5/CM5, where software encoding is mandatory.
-- **Open questions:** OQ-086, OQ-087, OQ-088.
+  - *(Added 2026-10-08.)* Reasoning from [H-39] to [H-42]: shipping H.265 encoding adds HEVC patent-pool licensing, quoted per unit by two pools, on top of the GPL obligations of x265 and whatever H.264 licensing applies (OQ-086); this applies on CM4 as well as CM5, because H.265 is software-encoded on both. `fdk-aac` is not an option in the GPL FFmpeg build without making it unredistributable [I-42]. Severity unchanged (Medium): this is a cost and legal-review risk, not a technical blocker.
+- **Open questions:** OQ-086, OQ-087, OQ-088; added 2026-10-08: OQ-109, OQ-113.
 - **Retire by:** Legal review (LEGAL CLARIFICATION REQUIRED).
 
 ## RISK-016 — RGB888 pixel-format label differs between receivers
@@ -223,9 +237,12 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - Reasoning: the common `42e01f` decodes as Constrained Baseline Level 3.1 [F-38], which cannot describe 1080p; 1080p needs Level 4.0 or above, 1080p60 Level 4.2 [F-40].
   - The MediaMTX project reports that browsers do not accept H.264 B-frames in WebRTC (community source) [F-45].
   - RFC 7874 requires WebRTC endpoints to implement Opus and G.711; AAC is not a required WebRTC codec, so AAC audio has to be transcoded (typically to Opus) for browser playback [F-41].
+  - *(Added 2026-10-08, research topic H — H.265 is required by REQ-ENC-001.)* RFC 7742 does not require H.265 [H-32]. Chrome turned on H.265 in WebRTC by default in Chrome 136 on desktop, Android and WebView, only where the platform provides it in hardware, with no software fallback [H-33]. Safari 18.0 added the standard HEVC RTP payload format [H-34]. No evidence was found that Firefox supports H.265 in WebRTC [H-35]. A Microsoft Q&A answer reports that Edge 147 had not enabled it by default as of May 2026 (community source) [H-36]. GStreamer 1.26.2's `rtph265pay` lacks profile, tier and level in its caps, added in 1.26.4 [H-31].
+  - *(Added 2026-10-08, research topic I.)* Opus encoders available: FFmpeg's `libopus` wrapper [I-41] and GStreamer `opusenc` [I-45]. Both accept only 48, 24, 16, 12 or 8 kHz, so a 44.1 kHz HDMI source needs resampling first [I-41], [I-47]. FFmpeg 7.1.5's FLV muxer has no Opus [H-26]; reasoning: simultaneous RTMP and WebRTC with audio need two audio encodes.
 - **Impact:** 1080p WebRTC needs correct level signalling and an Opus audio path.
-- **Open questions:** OQ-008, OQ-073, OQ-074.
-- **Retire by:** TEST-STR-002 in Chrome, Firefox and Safari.
+  - *(Added 2026-10-08.)* Reasoning from [H-33] to [H-36]: an H.265-only WebRTC stream would not play in Firefox (no support found), would play in Chrome only on platforms with hardware HEVC decode, and, per a community report, not in Edge by default, so an H.264 WebRTC track has to remain. If H.265 is also streamed, CM5 needs a second concurrent software video encode (RISK-022, OQ-108). Severity unchanged (Medium): H.264 remains the baseline codec that RFC 7742 requires browsers to implement [F-36].
+- **Open questions:** OQ-008, OQ-073, OQ-074; added 2026-10-08: OQ-108, OQ-063.
+- **Retire by:** TEST-STR-002 in Chrome, Firefox and Safari. *(Added 2026-10-08: also in Edge, and on each target viewer device, if H.265 is offered over WebRTC — OQ-108.)*
 
 ## RISK-020 — CMA sizing for capture buffers
 
@@ -253,18 +270,68 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Added:** 2026-10-07, after the owner chose H.264 + H.265 (REQ-ENC-001, OQ-005).
 - **Evidence:**
   - No candidate platform has a hardware HEVC encoder [D-24], [D-31].
-  - The only official software-encode figure is H.264 1080p30 on Pi 5 at ~30–40% CPU [G-22]; no sourced H.265 figure exists (research topic H in progress, 2026-10-07).
+  - The only official software-encode figure is H.264 1080p30 on Pi 5 at ~30–40% CPU [G-22]; no sourced H.265 figure exists (research topic H in progress, 2026-10-07). *(2026-10-08: research topic H is complete. It found no official H.265 figure; the evidence is a community statement and community benchmarks — see below.)*
   - Legacy RTMP/FLV carries only H.264 video; HEVC needs Enhanced RTMP [F-31]. GStreamer `eflvmux` appears in 1.28 [F-34]; Raspberry Pi OS ships 1.26.2 [G-26] (reasoning).
   - WebRTC endpoints must support only VP8 and H.264 [F-36].
+  - *(Added 2026-10-08, research topic H.)* Encoders: Raspberry Pi OS uses Debian's x265 4.1-2 unchanged [H-01], [H-02]; the Raspberry Pi FFmpeg 7.1.5 links `libx265` [H-08], [H-09]; GStreamer `x265enc` ships in plugins-bad [H-11], [H-12] (CORRECTED). Both accept only planar input, never the TC358743's packed UYVY [H-10] (CORRECTED), [H-13]; reasoning: a CPU conversion to I420 at 1080p60 reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43].
+  - Cost: research found no raspberrypi.com H.265 figure in a site search [H-19]. A Raspberry Pi engineer stated on the official forum (October 2024) that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. Community benchmarks report `libx265` "Live" results of 10.00 FPS on Pi 5 and 4.33 FPS on a Pi 400 (Cortex-A72 @ 1.8 GHz) [H-20], [H-21]; that test uses vbench clips, `-threads 1` and a 2022 x265 snapshot, so it is not a 1080p60 live measurement (community source) [H-22]. Reasoning: in that harness `libx265` was about 6.6 times slower than `libx264` on Pi 5 [H-23].
+  - CM4 versus CM5: x265's Neon DotProd kernels can apply only on CM5's Cortex-A76 [H-04], [H-05]. Trixie's x265 4.1-2 lacks the 4.2 and 4.3 AArch64 speed-ups [H-07].
+  - Latency: `tune=zerolatency` disables B-frames and lookahead and sets one frame thread, leaving only wavefront row parallelism [H-16]; GStreamer 1.26.2 `x265enc` reports a hard-coded 5-frame latency unless `tune=zerolatency` [H-15].
+  - Transport: FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV [H-26], but GStreamer 1.26.2 `flvmux` cannot carry H.265 [H-27] (RISK-025). YouTube Live lists H.265 over RTMP/RTMPS [H-29]; whether it accepts FFmpeg's signalling is unverified (OQ-106). The distribution stacks contain the components for HEVC over SRT in MPEG-TS [H-30].
+  - WebRTC: H.265 plays only in some browsers [H-33], [H-34], [H-35], [H-36] (community source for [H-36]; RISK-019).
+  - Recording: GStreamer 1.26.2 and FFmpeg 7.1.5 can write HEVC to MP4 and Matroska [H-37], [H-38].
 - **Impact:** H.265 at the required rates may exceed CPU or thermal limits, especially alongside H.264 outputs; HEVC over RTMP and WebRTC may not reach common receivers.
-- **Open questions:** OQ-103, OQ-005, OQ-059.
+  - *(Added 2026-10-08.)* Reasoning from [H-05], [H-19] to [H-23]: the available evidence points the same way as the original assessment — real-time 1080p60 H.265 in software is doubtful on CM5 and more so on CM4, which lacks DotProd [H-05] and whose Cortex-A72 core scored lowest in the community benchmark (on a Pi 400) [H-21]. This is not a measurement; it stays unproven until TEST-ENC-001 runs (OQ-104). Recording containers are not a constraint [H-37], [H-38]; RTMP needs FFmpeg, a newer GStreamer or SRT (RISK-025, OQ-107); WebRTC H.265 reaches only some browsers, so an H.264 track remains (RISK-019, OQ-108). Severity unchanged (High).
+- **Open questions:** OQ-103, OQ-005, OQ-059; added 2026-10-08: OQ-104, OQ-105, OQ-106, OQ-107, OQ-108, OQ-060.
 - **Retire by:** OQ-103 owner scoping, then TEST-ENC-001 and TEST-PERF-001 with H.265 runs on CM4 and CM5.
+
+## RISK-023 — HDMI audio sample-rate mismatch is not detected by ALSA
+
+- **Added:** 2026-10-08, from research topic I. HDMI audio is required (owner, 2026-10-07: REQ-CAP-006, OQ-004).
+- **Evidence:**
+  - The overlay's `linux,spdif-dir` stub codec has no DAI operations and no ALSA controls, accepts 8–768 kHz, and has no reference to the TC358743 driver [I-11]. The Pi I2S runs as clock consumer [I-09], [I-13]; on CM4 the requested rate never reaches hardware in this mode [I-13].
+  - Reasoning from source: no kernel path carries HDMI sample-rate changes into ALSA, and nothing outside `tc358743.c` uses the rate control. If the application opens the card at 48000 Hz while the source sends 44100 Hz, the frames are labelled 48 kHz, play 8.84 % fast (about 1.47 semitones high), and the audio timeline is 8.1 % short, so A/V drift accumulates [I-18].
+  - The driver exposes the rate: "Audio sampling rate" (ID 0x00981980, read-only) and "Audio present" (0x00981981) [I-19], [I-20], updated from the CBIT interrupt status, with `V4L2_EVENT_CTRL` change events [I-21]. On CM4 with legacy Unicam the controls are on `/dev/videoN`; on CM5 only on the TC358743 sub-device node [I-23]. Without a wired interrupt a rate change takes up to about 1 s, plus I2C time, to reach the control [I-22].
+  - Encoders constrain the rate: `opusenc` and `libopus` accept only 48, 24, 16, 12 or 8 kHz [I-41], [I-47].
+- **Impact:** Reasoning from [I-18], [I-22]: if PACSCORDER assumes one constant rate, every recording and stream from a source at another rate has wrong-speed, wrong-pitch audio and a growing A/V offset, with no ALSA error; and after a rate change, audio captured during the detection window of up to about 1 s is mislabelled. Sources are any HDMI camera plus ATEM outputs (REQ-CAP-008), so the rate is not known in advance.
+- **Severity:** High (if unmitigated). Claude's assessment: the failure is silent and affects every output, but the driver already exposes the rate and its change event [I-20], [I-21], so the mitigation lies in PACSCORDER's own software (or in a single-rate EDID; OQ-111).
+- **Open questions:** OQ-111, OQ-020.
+- **Retire by:** Implementing rate detection and ALSA reopen, or a single-rate EDID policy (OQ-111), then TEST-AUD-001 with sources at 44.1 kHz and 48 kHz and a rate change during capture, on CM4 and CM5.
+
+## RISK-024 — A/V synchronisation across separate audio and video clock domains
+
+- **Added:** 2026-10-08, from research topic I.
+- **Evidence:**
+  - Audio clock: the TC358743's internal audio PLL tracks the N/CTS values sent by the source, so its I2S clocks follow the HDMI source's audio clock [I-26].
+  - Video timestamps: every Raspberry Pi CSI receiver driver in `rpi-6.18.y` stamps buffers with `CLOCK_MONOTONIC` in its frame-start interrupt [I-33].
+  - ALSA: alsa-lib 1.2.14, the trixie version, switches each newly opened `hw` PCM to monotonic timestamps when the kernel PCM protocol is 2.0.9 or later [I-34].
+  - GStreamer 1.26.2: `alsasrc` uses ALSA driver timestamps only when the element clock is a monotonic `GstSystemClock`, and by default provides a clock and slaves by skew [I-35]. In a `v4l2src` + `alsasrc` pipeline the audio clock normally becomes the pipeline clock, so ALSA driver timestamps are then not used [I-36]. `v4l2src` derives PTS from the pipeline clock minus the measured buffer age, and after a bad timestamp assumes a one-frame delay for the rest of the session [I-37].
+  - FFmpeg 7.1: the ALSA input stamps packets with wall-clock time, while the V4L2 input passes monotonic timestamps through by default; without `-ts abs` or `mono2abs` the clock bases are mixed, and the CLI's default per-input start shift discards the real offset between the inputs [I-38].
+- **Impact:** Reasoning from [I-26], [I-33] to [I-38]: audio and video are clocked independently, and each framework aligns them differently by default, so lip-sync can be offset at start and drift over long recordings and streams, on CM4 and CM5. A sample-rate mismatch adds drift (RISK-023). No measurement exists (research gap, topic I), and the owner has not yet set an A/V tolerance (REQ-CAP-006; OQ-112).
+- **Severity:** Medium. Claude's assessment: both frameworks offer clock and timestamp options [I-35], [I-38], but no configuration has been measured on PACSCORDER.
+- **Open questions:** OQ-112, OQ-040.
+- **Retire by:** The A/V offset measurement in TEST-AUD-001 and a multi-hour drift check in TEST-PERF-001, with the framework chosen under ADR-007, on CM4 and CM5, against the tolerance set under OQ-112.
+
+## RISK-025 — HEVC over RTMP may force a split GStreamer/FFmpeg architecture
+
+- **Added:** 2026-10-08, from research topic H. It develops the RTMP evidence item of RISK-022 into a design risk for ADR-007.
+- **Evidence:**
+  - GStreamer 1.26.2's `flvmux` has no H.265 on its video sink pad [H-27]; `eflvmux` first appears in the 1.28 branch (CORRECTED) [F-34]; Raspberry Pi OS ships GStreamer 1.26.2 [G-26].
+  - FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV for RTMP publishing [H-26], and the Raspberry Pi build links `libx265` [H-09].
+  - FFmpeg 7.1.5's FLV muxer has no Opus [H-26], while WebRTC requires Opus or G.711 [F-41].
+  - Alternative transport: the distribution stacks contain the components for HEVC over SRT in MPEG-TS [H-30]; whether SRT is acceptable is OQ-076.
+- **Impact:** If RTMP must carry H.265 (OQ-103) and GStreamer is chosen for capture, recording and WebRTC (ADR-007), HEVC RTMP needs FFmpeg 7.1.5, a backported `eflvmux`, a newer GStreamer carried outside the distribution, or SRT instead (research gap, topic H; OQ-107). Research expects a split GStreamer/FFmpeg design to add inter-process communication and buffer copies (research design risk, topic H — not a register fact); the two frameworks also handle A/V timestamps differently [I-35], [I-38] (RISK-024). Carrying a newer GStreamer adds maintenance outside the distribution (ADR-003; reasoning).
+- **Severity:** Medium. Claude's assessment: workable paths exist [H-26], [H-30], but each adds design or maintenance cost, and the risk applies only if RTMP carries H.265 (OQ-103).
+- **Open questions:** OQ-107, OQ-015.
+- **Retire by:** An ADR-007 decision that records the HEVC RTMP path (OQ-107), then TEST-STR-001 with H.265 to each required destination (OQ-106).
 
 ## Verification status
 
 ### Verified from sources (fact IDs)
 
 Every **Evidence** item cites [REFERENCES.md](REFERENCES.md) entries with verdict `CONFIRMED` or `CORRECTED`. `CORRECTED` entries (A-22, A-26, B-11, B-21, C-53, D-46, E-47, G-69) are used in their corrected wording. Community-tier entries (A-43, C-35, C-42, C-43, C-45, D-50, F-11, F-18, F-45) and the community report [C-33] are worded as reports. Reasoning-tier entries (A-23, A-26, B-10, B-11, B-27, B-47, B-49, C-47, C-48, C-52, C-53, D-52, F-38, F-40) are labelled as reasoning. Statements marked *research gap* come from the research JSON and are not register facts. Severity is Claude's assessment, not a measurement.
+
+Added 2026-10-08 (research topics H and I): the `CORRECTED` entries H-10 and H-12 are used in their corrected wording, as is F-34 (cited in RISK-022 and RISK-025; also `CORRECTED`). Community-tier entries H-19, H-20, H-21, H-22, H-36 and I-16 are worded as reports. Reasoning-tier entries H-23, H-43, I-18 and I-28 are labelled as reasoning. Statements marked *research gap* or *research design risk* in RISK-014, RISK-015, RISK-022, RISK-024 and RISK-025 come from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) and are not register facts. Every H and I entry cited has verdict `CONFIRMED` or `CORRECTED`.
 
 ### Verified on PACSCORDER hardware
 
@@ -281,3 +348,5 @@ Nothing (no hardware exists as of 2026-10-06). No risk has been confirmed or ret
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: RISK-001 impact — 1080p60 required on 4-lane configurations only, 2-lane configurations bounded by the physical limit (1080p50 UYVY / 1080p30 RGB888), Pi 4 Model B still a 2-lane candidate (REQ-CAP-007; OQ-001 ANSWERED), retire-by per configuration, [C-02] added for CM4 CAM0; RISK-002 and RISK-003 note that 1080p60 capture is required on the 4-lane candidates (REQ-CAP-007); RISK-006 linked to REQ-CAP-007 (both corruption-prone cases are now required modes); RISK-008 and RISK-009 extended to direct camera sources (REQ-CAP-008, OQ-102; camera HDCP and interlace behaviour UNKNOWN, not asserted), RISK-009 ATEM statement narrowed to the ATEM Mini Pro; RISK-017 linked to REQ-BLD-002; RISK-018 scope note — network integration not in current scope, relevance reduced, not retired; RISK-021 links OQ-021 to REQ-CAP-007; header Applies-to and Basis rows updated. No risk added, removed, re-scored or retired. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); RISK-017 impact now says the product image is built with `rpi-image-gen` under ADR-003 (ACCEPTED 2026-10-07), and its OQ-012 reference is recorded as ANSWERED. RISK-017 stays OPEN (Medium): a risk is retired only by test evidence (TEST-BLD-001, NOT STARTED). No risk added, removed, re-scored or retired. | Claude (session 2026-10-07) |
 | 2026-10-07 | RISK-022 added (H.265 software-only on every candidate; owner chose H.264 + H.265). RISK-014 notes that audio is now required (OQ-004 answered). | Claude (session 2026-10-07) |
+| 2026-10-08 | Research topics H and I propagated. RISK-022 evidence extended with topic H facts (encoders, planar-only input, community cost statement and benchmarks, DotProd only on CM5, latency, transport, WebRTC, recording); its "topic H in progress" note marked as superseded; impact reasoning added; severity unchanged (High). RISK-014 evidence extended with topic I facts (overlay mechanics, CM4 `bcm2835-i2s`, CM5 labels resolve but operation unconfirmed, stereo only, VDDIO2 and GPIO 18–21); its "VDDIO2 must be 3.3 V" research note marked as superseded by [I-29]; retire-by annotated (owner decision already made); severity unchanged (Medium). RISK-015 extended to H.265 and AAC ([H-39] to [H-42], [I-39], [I-42], [I-43], [I-44]); title annotated, Affects adds REQ-CAP-006; severity unchanged (Medium). RISK-019 extended with H.265 browser support ([H-31] to [H-36]) and Opus encoder rates ([I-41], [I-45], [I-47]); severity unchanged (Medium). New risks RISK-023 (audio sample-rate mismatch not detected by ALSA, High if unmitigated), RISK-024 (A/V synchronisation across clock domains, Medium) and RISK-025 (split GStreamer/FFmpeg architecture for HEVC over RTMP, Medium). Open-questions lines updated (OQ-024, OQ-060, OQ-063, OQ-104 to OQ-108, OQ-109 to OQ-114, OQ-015, OQ-020, OQ-040). Header count 25, Basis row and Verification status updated. No risk retired. | Claude (session 2026-10-08) |
+| 2026-10-08 | Citation verification of the topic H and I additions: RISK-019 reasoning bullet reworded — "H.264 remains a working baseline" replaced by "the baseline codec that RFC 7742 requires browsers to implement [F-36]" (Rule 10: "working" is not used without test evidence); the Firefox point now says "no support found" and the Edge point is marked as a community report [H-36]. No severity, status or ID changed. | Claude (session 2026-10-08) |

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | Active — source research only. Describes the in-tree driver that ADR-002 (PROPOSED) would use unmodified. PACSCORDER integration: NOT STARTED |
-| Last updated | 2026-10-07 |
-| Applies to | `drivers/media/i2c/tc358743.c`, `drivers/media/i2c/tc358743_regs.h` and `include/media/i2c/tc358743.h` in raspberrypi/linux `rpi-6.18.y` and torvalds/linux `master`, as read on 2026-10-06; all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5) |
-| Verification | Source inspection only (research of 2026-10-06, [REFERENCES.md](REFERENCES.md)). Nothing has been built, loaded or tested. No PACSCORDER hardware or code exists as of 2026-10-06. |
+| Last updated | 2026-10-08 |
+| Applies to | `drivers/media/i2c/tc358743.c`, `drivers/media/i2c/tc358743_regs.h` and `include/media/i2c/tc358743.h` in raspberrypi/linux `rpi-6.18.y` and torvalds/linux `master`, as read on 2026-10-06; the audio setup, audio controls and audio events in `rpi-6.18.y` as read for research topic I on 2026-10-08 (sections 11.7 and 22.1); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). |
+| Verification | Source inspection only (research of 2026-10-06, plus research topic I of 2026-10-08, [REFERENCES.md](REFERENCES.md)). Nothing has been built, loaded or tested. No PACSCORDER hardware or code exists as of 2026-10-08. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 7 (driver documentation), Rules 8, 10, 22, 23 |
 
 This document answers the Rule 25 question "How is TC358743 controlled?" for the Linux driver layer. It documents what the in-tree `tc358743` driver does, as established by reading its source. It does **not** document observed behaviour: nothing has been run on PACSCORDER hardware ([section 26](#26-what-was-actually-verified-rule-7)).
@@ -22,8 +22,8 @@ Conventions:
 
 - Fact IDs such as `[B-15]` point to [REFERENCES.md](REFERENCES.md). `OQ-NNN` points to [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), `RISK-NNN` to [RISKS.md](RISKS.md), `REQ-…` to [REQUIREMENTS.md](REQUIREMENTS.md), `ADR-NNN` to [DECISIONS.md](DECISIONS.md).
 - Facts of tier `community` are worded as reports. Calculations are marked **reasoning** and list their inputs.
-- Text marked *research gap* comes from the `gaps` / `open_questions` lists in [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). It is not a register fact and is recorded only to show what is unknown.
-- Source line numbers such as `tc358743.c:2210` are quoted from the register entries. They refer to the file as read on 2026-10-06; the `rpi-6.18.y` and torvalds/linux `master` copies differ only at lines 2361–2362 [B-02], so the quoted numbers hold for both. They will drift as the file changes.
+- Text marked *research gap* comes from the `gaps` / `open_questions` lists in [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). It is not a register fact and is recorded only to show what is unknown. *(Added 2026-10-08.)* Text marked *research gap* or *research open question* with "topic I" comes from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json), with the same status.
+- Source line numbers such as `tc358743.c:2210` are quoted from the register entries. They refer to the file as read on 2026-10-06; the `rpi-6.18.y` and torvalds/linux `master` copies differ only at lines 2361–2362 [B-02], so the quoted numbers hold for both. They will drift as the file changes. *(2026-10-08: the line number quoted in [I-24] comes from the `rpi-6.18.y` branch head as read for research topic I; the packaged 6.18.50 source was not compared — OQ-097 scope note.)*
 
 ## 1. Status at a glance
 
@@ -36,7 +36,8 @@ Conventions:
 | TEST-DRV-001 Driver probe and chip ID | BLOCKED — HARDWARE REQUIRED |
 | TEST-DRV-002 EDID load and HDMI hot-plug assertion | BLOCKED — HARDWARE REQUIRED |
 | TEST-CAP-001 / 002 / 003 / 004 (driver-dependent capture tests) | BLOCKED — HARDWARE REQUIRED |
-| Requirements served | REQ-DRV-001 (DRAFT), REQ-CAP-003, REQ-CAP-004, REQ-CAP-005 (PROPOSED) — all NOT STARTED |
+| TEST-AUD-001 HDMI audio capture over I2S (driver audio setup and controls; added 2026-10-08) | BLOCKED — HARDWARE REQUIRED |
+| Requirements served | REQ-DRV-001 (DRAFT), REQ-CAP-003, REQ-CAP-004, REQ-CAP-005 (PROPOSED) — all NOT STARTED. *(Added 2026-10-08: the driver's audio setup and controls also serve REQ-CAP-006, DRAFT — audio required by the owner on 2026-10-07 — NOT STARTED.)* |
 
 ## 2. Rule 7 coverage
 
@@ -61,7 +62,7 @@ Conventions:
 | Recovery | [21](#21-recovery) |
 | "Also document what was actually verified" | [26](#26-what-was-actually-verified-rule-7) and [Verification status](#verification-status) |
 
-Additional sections: Kconfig and module ([4](#4-kconfig-and-module)), controls ([22](#22-controls)), module parameters and debugfs ([23](#23-module-parameters-and-debugfs)), mainline vs Raspberry Pi tree parity ([24](#24-mainline-vs-raspberry-pi-tree-parity)), known defects and limitations ([25](#25-known-defects-and-limitations)).
+Additional sections: Kconfig and module ([4](#4-kconfig-and-module)), controls ([22](#22-controls)), module parameters and debugfs ([23](#23-module-parameters-and-debugfs)), mainline vs Raspberry Pi tree parity ([24](#24-mainline-vs-raspberry-pi-tree-parity)), known defects and limitations ([25](#25-known-defects-and-limitations)). *(Added 2026-10-08.)* HDMI audio (REQ-CAP-006): audio configuration ([11.7](#117-audio-configuration-tc358743_set_hdmi_audio)) and audio controls and events ([22.1](#221-hdmi-audio-controls-sampling-rate-decode-updates-and-events)).
 
 ## 3. Scope and source baseline
 
@@ -91,7 +92,8 @@ Additional sections: Kconfig and module ([4](#4-kconfig-and-module)), controls (
 - The same defconfig settings hold in the 6.12.61 commit that Buildroot 2026.08 uses [E-39], [E-06]. Both defconfigs also set `CONFIG_I2C_BCM2835=m` and `CONFIG_I2C_MUX_PINCTRL=m` [E-39].
 - The Raspberry Pi OS Lite image of 2026-10-06 ships `tc358743.ko.xz` for both the `rpi-v8` and the `rpi-2712` kernels [G-16].
 - The driver matches DT compatible `"toshiba,tc358743"` and I2C device id `"tc358743"` [A-20].
-- CEC: whether PACSCORDER needs it is OQ-016 (OWNER DECISION REQUIRED). Enabling it changes polling from 1000 ms to 10 ms when no interrupt is wired [A-30], [B-19].
+- CEC: whether PACSCORDER needs it is OQ-016 (OWNER DECISION REQUIRED). Enabling it changes polling from 1000 ms to 10 ms when no interrupt is wired [A-30], [B-19]. *(2026-10-08: `CONFIG_VIDEO_TC358743_CEC` is also not set in the packaged 6.18.50 `rpi-v8` and `rpi-2712` kernels [I-22].)*
+- *(Added 2026-10-08.)* The TC358743 has no ASoC codec driver of its own, and the overlay's ALSA side uses a generic stub codec [I-02]. Reasoning from [I-02]: the driver therefore needs no extra Kconfig symbol for audio. The ALSA, I2S and stub-codec options for CM4 and CM5 are in [DEVICE_TREE.md](DEVICE_TREE.md) §7 [I-12].
 
 ## 5. Driver architecture
 
@@ -331,7 +333,7 @@ Steps 1–6 follow the source lines quoted in [B-50] (L946–966). Steps 7–10 
 6. `EDID_MODE` = E-DDC [B-50].
 7. HDMI PHY configuration [B-50].
 8. HDCP: manual authentication (disabled) [B-50], [A-04].
-9. Audio: 2-channel I2S — `SDO_MODE1 = MASK_SDO_FMT_I2S`; `CONFCTL` with `MASK_AUDCHNUM_2 | MASK_AUDOUTSEL_I2S | MASK_AUTOINDEX` [A-13].
+9. Audio: 2-channel I2S — `SDO_MODE1 = MASK_SDO_FMT_I2S`; `CONFCTL` with `MASK_AUDCHNUM_2 | MASK_AUDOUTSEL_I2S | MASK_AUTOINDEX` [A-13]. *(2026-10-08: this is `tc358743_set_hdmi_audio()`; full register list in section 11.7 [I-24].)*
 10. InfoFrame capture [B-50].
 
 Reasoning (inputs: formulas in [B-50], 27 MHz from the overlay [A-45]). At 27 MHz the reference-clock registers hold `SYS_FREQ` 2700, `FH_MIN` 270, `FH_MAX` 1782 and `LOCKDET_REF` 270000. These values are useful when reading a register dump during bring-up. Frame-rate detection depends on `SYS_FREQ` being exact [B-28]. Reasoning: a DT `clock-frequency` that is accepted (26/27/42 MHz) but differs from the fitted oscillator would therefore distort reported frame rates and lane rates.
@@ -349,6 +351,32 @@ The probe applies default timings `V4L2_DV_BT_CEA_640X480P59_94` through `s_dv_t
 - CEC registers 0x0600–0x06FF (`CECEN` 0x0600) [A-34].
 - `CSI_CONTROL` 0x040C is written indirectly through `CSI_CONFW` 0x0500 [A-25].
 - `HPD_CTL` 0x8544, bit `HPD_OUT0` [B-21].
+- *(Added 2026-10-08.)* Audio: `FS_SET` 0x8621 with `MASK_FS` 0x0f; `AU_STATUS0` 0x8523 with `MASK_S_A_SAMPLE` 0x01 [I-19]. `CONFCTL` channel count: `MASK_AUDCHNUM_8` 0x0000, `_6` 0x0400, `_4` 0x0800, `_2` 0x0c00 [I-24].
+
+### 11.7 Audio configuration (`tc358743_set_hdmi_audio()`)
+
+*Added 2026-10-08 from research topic I.* HDMI audio is required (REQ-CAP-006, DRAFT; owner 2026-10-07, OQ-004 ANSWERED).
+
+**When it runs.** `tc358743_set_hdmi_audio()` is called only from `tc358743_initial_setup()`, which runs once at probe (line 2267 as quoted in [I-24]). Reasoning from [I-24]: the audio configuration is never changed after probe, by stream start, by a mode change or by a sample-rate change.
+
+**What it writes** [I-24]:
+
+| Register | Value written | Effect stated in the source |
+|---|---|---|
+| `SDO_MODE1` | `MASK_SDO_FMT_I2S` | I2S output format |
+| `CONFCTL` | OR-ed with `MASK_AUDCHNUM_2 \| MASK_AUDOUTSEL_I2S \| MASK_AUTOINDEX` | 2 channels, output on I2S |
+| `FS_IMODE` | `MASK_NLPCM_SMODE \| MASK_FS_SMODE` | — (meaning not in the public datasheet; see below) |
+| `ACR_MODE` | `MASK_CTS_MODE` | — |
+| `BUFINIT_START` | 500 ms | — |
+| `FS_MUTE` | 0x00 | — |
+| Auto-mute / auto-play masks; `ACR_MDF0/1` limits | Set; the values are not quoted in the register | — |
+| `DIV_MODE` | Delay 100 ms | — |
+
+- The register header also defines `MASK_AUDOUTSEL_TDM` (0x18), `MASK_AUDOUTSEL_CSI` (0x00) and `MASK_AUDCHNUM_4/6/8`, but the driver never selects them [I-24].
+- **Silicon side.** The public datasheet Rev. 1.0 (2017-10-26) gives the I2S output as a single stereo data lane, master-clock mode only, 16/18/20/24-bit data that "depend on HDMI input stream", MSB first left- or right-justified, 32-bit time slots only, with a 256fs oversampling clock; TDM is "Fixed to 8 channels" [I-25]. An internal audio PLL tracks the N/CTS values of the source's ACR packets [I-26], so the I2S clocks follow the source, independently of the CSI-2 video timing (A/V synchronisation: OQ-112, RISK-024). The datasheet says audio can also travel over MIPI CSI-2, but the driver selects I2S [I-26] (OQ-033).
+- **Consequences (reasoning from [I-24], [I-25], [I-13]).** The stock driver gives stereo I2S only. 8-channel TDM would need a driver change, and on CM4 `bcm2835-i2s` captures exactly 2 channels [I-13], so it could not take TDM there (research design risk, topic I). Under ADR-002 (PROPOSED) no such patch is written unless a defect is shown on hardware.
+- **Unknown (research gaps, topic I — not register facts).** The driver leaves the `SDO_MODE1` bit-length field at 0, so the placement of 16- to 24-bit samples in the 32-bit slots, and whether 32-bit capture keeps every valid bit, are not publicly documented. The meaning of the `FS_IMODE` NLPCM bit and of the auto-mute bits is in Toshiba's non-public register reference. What the chip outputs for compressed (IEC 61937) or multichannel LPCM input is therefore unknown. DATASHEET REQUIRED (OQ-027); HARDWARE TEST REQUIRED — OQ-110, TEST-AUD-001. Which sample rates the silicon supports: OQ-033.
+- **Unknown.** How the output behaves while the source changes rate, mutes or switches programme, given the 500 ms `BUFINIT_START` and 100 ms `DIV_MODE` delay [I-24]: research open question, topic I; HARDWARE TEST REQUIRED (OQ-111).
 
 ## 12. HDMI detection
 
@@ -365,6 +393,7 @@ How the driver learns about the source:
 | Changes | Sync change (`MISC_INT I_SYNC_CHG`) or DE size/position change (`CLK_INT I_IN_DE_CHG`) → `tc358743_format_change()` | [B-39] |
 | Delivery to the driver | IRQ, or I2C polling every 1000 ms | [B-19], [A-30] |
 | Exposure to userspace | `V4L2_CID_DV_RX_POWER_PRESENT` control; `V4L2_EVENT_SOURCE_CHANGE`; `QUERY_DV_TIMINGS` result | [B-16], [B-39], [B-29] |
+| Audio (added 2026-10-08) | CBIT interrupt status: sample-rate change (`MASK_I_CBIT_FS`) updates "Audio sampling rate"; audio lock or unlock (`MASK_I_AF_LOCK`, `MASK_I_AF_UNLOCK`) updates "Audio present". These interrupts are unmasked only while +5V is detected. Userspace can get a `V4L2_EVENT_CTRL` control-change event on a rate change (section 22.1). | [I-21] |
 
 Result of `QUERY_DV_TIMINGS` by input state. Rows 1–2 are reasoning that combines [B-21] (HPD needs EDID and +5V) with [B-29] (HPD low → `-ENOLINK`):
 
@@ -488,6 +517,7 @@ Consequences (reasoning from [B-38], [B-35]):
 - Frame size and rate cannot be enumerated on the sub-device pad. Userspace uses the DV-timings operations (`dv_timings_cap`, `enum_dv_timings`, `query_dv_timings`) instead. See [V4L2.md](V4L2.md).
 - TRY formats are not stored: `set_fmt` with `V4L2_SUBDEV_FORMAT_TRY` returns 0 without effect [B-35].
 - Streaming is started only through the classic `s_stream` operation.
+- *(Added 2026-10-08.)* `subscribe_event` passes `V4L2_EVENT_CTRL` to `v4l2_ctrl_subdev_subscribe_event()` [I-21]. This is how userspace can learn of an HDMI audio sample-rate change and reopen ALSA at the new rate (section 22.1; OQ-111).
 
 Sub-device flags: `V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS`. A `/dev/v4l-subdevN` node therefore exists when the receiver driver registers sub-device nodes [B-18]. On Pi 4/CM4 in legacy Unicam mode those nodes are registered read-only [C-36]; see [V4L2.md](V4L2.md) for which node carries which ioctl on each platform.
 
@@ -573,9 +603,11 @@ Capability (`tc358743_timings_cap`) [A-08], [B-26], [C-18]:
 | Masking at probe | `enable_interrupts(+5V present)`, then `INTMASK` | [B-15] |
 | Masking on +5V loss | All interrupts except DDC masked | [B-23] |
 | Sources handled (from the register) | +5V / DDC (section 12); `MISC_INT I_SYNC_CHG`; `CLK_INT I_IN_DE_CHG`. CEC interrupt handling (when `CONFIG_VIDEO_TC358743_CEC` is set) is not covered by the register: KERNEL SOURCE INSPECTION REQUIRED | [B-23], [B-39] |
+| Audio sources (added 2026-10-08) | CBIT interrupt: `MASK_I_CBIT_FS` (sample rate changed) and `MASK_I_AF_LOCK` / `MASK_I_AF_UNLOCK` (audio lock); unmasked only while +5V / cable is detected | [I-21] |
 | Sub-device op | `interrupt_service_routine` | [B-38] |
 
 - Reasoning: without an IRQ, a connect, disconnect or mode change is noticed up to about 1 s late [A-30]. HPD follows about 140 ms after +5V is seen with an EDID loaded [B-21]. RISK-013.
+- *(Added 2026-10-08.)* The same polling delays audio: the shared `tc358743.dtsi` has no `interrupts` property and CEC is not enabled in the packaged kernels, so a source sample-rate change can take up to about 1 s, plus I2C time, to reach the "Audio sampling rate" control [I-22] (RISK-023, OQ-111, OQ-020).
 - Whether the PACSCORDER board wires INT to a Pi GPIO, and which: UNKNOWN — VERIFICATION REQUIRED (VENDOR CONFIRMATION REQUIRED, OQ-020). Wiring it also needs a DT `interrupts` property ([DEVICE_TREE.md](DEVICE_TREE.md)).
 
 ## 20. Error handling
@@ -620,12 +652,15 @@ The driver detects changes and notifies; it never reconfigures timings itself [B
 | Too many lanes for the wiring | Receiver STREAMON → `-EINVAL` | Report the mode as unsupported for the wired lanes (REQ-CAP-005) | [B-32] |
 | No stable sync | `QUERY_DV_TIMINGS` → `-ENOLCK` | Retry until stable or until a timeout to be defined | [B-29] |
 | Driver unload and reload | Remove leaves HPD as it was and does not reset the chip; re-probe starts with no EDID | Re-write the EDID (write trigger after a reload: OQ-093). Whether reload is a usable recovery step is UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED, OQ-039). | [B-40], [B-21]; OQ-039, OQ-093 |
+| HDMI audio sample-rate change (added 2026-10-08) | On `MASK_I_CBIT_FS` updates "Audio sampling rate"; accepts `V4L2_EVENT_CTRL` subscriptions. The rate reads 0 when there is no TMDS signal. Up to about 1 s late without INT. The ALSA side is not told. | Subscribe to `V4L2_EVENT_CTRL` for `TC358743_CID_AUDIO_SAMPLING_RATE`; on a change, read the control and reopen ALSA at the new rate; treat 0 as no audio rate. Rate policy (follow the source, or force one rate through the EDID): OQ-111. | [I-19], [I-21], [I-22], [I-18] (reasoning); RISK-023 |
+| HDMI audio lock lost or regained (added 2026-10-08) | On `MASK_I_AF_LOCK` / `MASK_I_AF_UNLOCK` updates "Audio present" | Read "Audio present" before opening ALSA and after a change; whether a control event is raised for it, and how the I2S output behaves meanwhile, is NEEDS VERIFICATION (HARDWARE TEST REQUIRED, OQ-111) | [I-21] |
 
 Notes:
 
 - Reasoning: after a disconnect the stored timings are zero [B-23]. `S_DV_TIMINGS` with the re-queried timings is therefore not skipped as "identical" [B-30], even if the source returns in the same mode.
 - Reasoning: the capture buffer size depends on the format. A resolution change therefore implies stopping the stream and re-allocating buffers before restarting. NEEDS VERIFICATION on hardware (TEST-CAP-003). Buffer handling is in [DMA.md](DMA.md).
-- Whether `tc358743_update_controls()` on +5V loss [B-23] raises a `V4L2_EVENT_CTRL` that userspace can subscribe to [B-38]: NEEDS VERIFICATION (KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED, TEST-CAP-003).
+- Whether `tc358743_update_controls()` on +5V loss [B-23] raises a `V4L2_EVENT_CTRL` that userspace can subscribe to [B-38]: NEEDS VERIFICATION (KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED, TEST-CAP-003). *(2026-10-08, partly addressed: [I-21] states that userspace can get a control-change event on an audio sample-rate change. The +5V-loss path itself is still NEEDS VERIFICATION.)*
+- *(Added 2026-10-08.)* The audio rows above are PROPOSED, NOT STARTED and NOT YET RUN ON PACSCORDER HARDWARE; they will be checked by TEST-AUD-001. The `hw:CARD=tc358743` naming and the per-platform node that carries the controls are in section 22.1.
 - Pi 5/CM5: an open issue reports that the rp1-cfe video nodes do not deliver the source-change event, and a Raspberry Pi engineer replied that applications should subscribe on the source sub-device node instead [C-42] (OQ-051). The PROPOSED procedure therefore subscribes on the sub-device node. See [V4L2.md](V4L2.md).
 - Detection latency without INT wired: up to about 1 s (section 19, RISK-013).
 - Whether HDMIRST in a re-probe's initial setup [B-50] clears HPD: UNKNOWN — VERIFICATION REQUIRED (DATASHEET REQUIRED, HARDWARE TEST REQUIRED, OQ-032).
@@ -643,7 +678,55 @@ The control handler holds exactly 3 controls [B-16]:
 - `V4L2_CID_USER_TC358743_BASE = V4L2_CID_USER_BASE + 0x1080` [B-16]. The numeric values are reasoning [B-17].
 - No `V4L2_CID_LINK_FREQ` and no `V4L2_CID_PIXEL_RATE` control is registered [B-16]. Consequence: the RP1 CFE falls back to 999 Mbps (section 14.5) [C-31], [B-49]. Separately, Raspberry Pi engineers reported that libcamera does not support the bridge because it is not a raw sensor [C-41] ([V4L2.md](V4L2.md), ADR-001).
 - The access mode of `V4L2_CID_DV_RX_POWER_PRESENT` is not stated in the register: NEEDS VERIFICATION (KERNEL SOURCE INSPECTION REQUIRED).
-- With this driver, audio samples leave the chip on I2S, not through V4L2: the driver configures 2-channel I2S output [A-13] (REQ-CAP-006, RISK-014, OQ-004). The I2S path is the driver's choice, not a silicon limit: the chip can also send audio over CSI-2 [A-05].
+- With this driver, audio samples leave the chip on I2S, not through V4L2: the driver configures 2-channel I2S output [A-13] (REQ-CAP-006, RISK-014, OQ-004). The I2S path is the driver's choice, not a silicon limit: the chip can also send audio over CSI-2 [A-05]. *(2026-10-08: OQ-004 was ANSWERED on 2026-10-07 — audio is required. The audio controls are described in section 22.1.)*
+
+### 22.1 HDMI audio controls: sampling-rate decode, updates and events
+
+*Added 2026-10-08 from research topic I.* The samples travel on I2S to ALSA (card `tc358743`, [DEVICE_TREE.md](DEVICE_TREE.md) §3.5). The driver's two audio controls are the only place where the HDMI sample rate and audio presence are visible to userspace.
+
+**Control IDs** [I-20] (consistent with [B-16], [B-17]):
+
+| Control | Definition | Numeric ID | Type and access |
+|---|---|---|---|
+| "Audio sampling rate" `TC358743_CID_AUDIO_SAMPLING_RATE` | `V4L2_CID_USER_TC358743_BASE + 0` | 0x00981980 | INTEGER, 0–768000, step 1, read-only |
+| "Audio present" `TC358743_CID_AUDIO_PRESENT` | `V4L2_CID_USER_TC358743_BASE + 1` | 0x00981981 | BOOLEAN, read-only |
+
+`V4L2_CID_USER_TC358743_BASE = V4L2_CID_USER_BASE + 0x1080`, and `V4L2_CID_USER_BASE = V4L2_CID_BASE = (V4L2_CTRL_CLASS_USER | 0x900) = 0x00980900`; so 0x980900 + 0x1080 = 0x981980 [I-20].
+
+**Sampling-rate decode** [I-19]:
+
+- `get_audio_sampling_rate()` reads `FS_SET` (0x8621) masked with `MASK_FS` (0x0f) and maps the code through `code_to_rate[]`:
+
+  | Code | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | Rate (Hz) | 44100 | 0 | 48000 | 32000 | 22050 | 384000 | 24000 | 352800 | 88200 | 768000 | 96000 | 705600 | 176400 | 0 | 192000 | 0 |
+
+- It returns 0 when `no_signal()` is true, that is when `SYS_STATUS` lacks `MASK_S_TMDS`. The driver comment says "Register FS_SET is not cleared when the cable is disconnected".
+- `audio_present()` reads `AU_STATUS0` (0x8523) masked with `MASK_S_A_SAMPLE` (0x01).
+- The table is the driver's decoder, not a list of rates the silicon supports; the public datasheet gives none (research open question, topic I; OQ-033).
+
+**Updates and events** [I-21], [I-22]:
+
+- The driver updates "Audio sampling rate" when the CBIT interrupt status has `MASK_I_CBIT_FS` set, and "Audio present" on `MASK_I_AF_LOCK` or `MASK_I_AF_UNLOCK`. These CBIT interrupts are unmasked only while +5V / cable is detected [I-21].
+- `tc358743_subscribe_event()` accepts `V4L2_EVENT_CTRL` (and `V4L2_EVENT_SOURCE_CHANGE`), so userspace can get a control-change event on a rate change and reopen the ALSA stream at the new rate [I-21].
+- Without `interrupts` in the Device Tree the driver polls every 1000 ms; the 10 ms CEC interval does not apply because CEC is not enabled in the defconfigs or packaged kernels. A rate change can therefore take up to about 1 s, plus I2C time, to reach the control [I-22] (OQ-020, OQ-111).
+
+**Where the controls appear** [I-23]:
+
+| Platform / mode | Node that carries the audio controls | Facts |
+|---|---|---|
+| CM4, `tc358743` overlay default (legacy Unicam, `media-controller` off) | The capture video node `/dev/videoN`: Unicam copies the sensor's controls onto it with `v4l2_ctrl_add_handler()` | [I-23] |
+| CM5 (RP1 CFE, `"raspberrypi,rp1-cfe"`) | Only the TC358743 sub-device node `/dev/v4l-subdevN`: CFE never calls `v4l2_ctrl_add_handler()` | [I-23] |
+| Pi 4 Model B (legacy mode) / Pi 5 | Reasoning: the same overlay and receiver drivers bind as on CM4 / CM5 ([DEVICE_TREE.md](DEVICE_TREE.md) §6.5), so the same split is expected; not stated in [I-23] | [I-23], [B-43], [C-11] |
+| CM4 in Media Controller mode (ADR-006, PROPOSED) | Reasoning from [I-23]: with `mc_api` true Unicam does not copy the controls, so they are only on the sub-device node | [I-23] |
+
+[V4L2.md](V4L2.md) §11 gives the userspace view (ADR-006 PROPOSED would use the sub-device node everywhere).
+
+**What the kernel does not do (reasoning)** [I-18]: the ALSA side has no path from these controls. The `linux,spdif-dir` stub codec has no controls and no `hw_params` and accepts 8–768 kHz; the Pi I2S runs as clock consumer and ignores the requested rate; nothing outside `tc358743.c` uses `TC358743_CID_AUDIO_SAMPLING_RATE`. If the application opens the card at 48000 Hz while the source sends 44100 Hz, the frames arrive at 44.1 kHz but are labelled 48 kHz; played at 48 kHz they run 48000/44100 = 1.0884 times fast (+8.84 %, about +1.47 semitones), and the audio timeline is 44100/48000 = 0.919 of real time, so A/V drift accumulates [I-18]. RISK-023, OQ-111.
+
+**Community evidence.** A 2019 forum thread on a Pi with `bcm2835-i2s` shows `audio_sampling_rate` (0x00981980) reading 48000, read-only, and `audio_present` (0x00981981) reading 1, with capture by `arecord ... -D sysdefault:CARD=tc358743` (community source, 2019 kernel) [I-16]. Not observed on PACSCORDER hardware.
+
+**PACSCORDER use (PROPOSED — NOT STARTED, NOT YET RUN ON PACSCORDER HARDWARE).** Before opening ALSA, read "Audio present" and "Audio sampling rate" on the node that carries them; subscribe to `V4L2_EVENT_CTRL` for the rate control; on a change, close and reopen ALSA at the new rate. Whether to follow the source rate or force one rate through the EDID audio descriptors is OQ-111 (OWNER DECISION REQUIRED, to be recorded with ADR-007). Verified by TEST-AUD-001.
 
 ## 23. Module parameters and debugfs
 
@@ -699,6 +782,9 @@ From source inspection only; none reproduced on hardware.
 | D16 | `s_stream` does not check signal presence and always returns 0 | STREAMON can succeed with no input | [B-36] | REQ-CAP-004 |
 | D17 | IR not supported (held in reset) | — | [A-49] | — |
 | D18 | CEC not enabled in Raspberry Pi defconfigs | CEC unavailable without a kernel rebuild (reasoning: `CONFIG_VIDEO_TC358743_CEC` is a build-time bool) | [A-34], [B-20], [E-39] | OQ-016 |
+| D19 (added 2026-10-08) | Audio configured once at probe, hard-coded to 2-channel I2S; TDM, CSI and 4/6/8-channel settings never selected | Stereo only; compressed or multichannel HDMI audio behaviour undocumented (research gap, topic I) | [I-24], [I-25] | RISK-014, OQ-110 |
+| D20 (added 2026-10-08) | No kernel path carries the HDMI sample rate into ALSA; only the driver's read-only control has it (reasoning) | A rate mismatch makes audio run fast or slow with no ALSA error, and A/V drift accumulates (reasoning) | [I-18], [I-11], [I-20] | RISK-023, OQ-111 |
+| D21 (added 2026-10-08) | Audio-rate control updated from the 1000 ms poll with the stock overlay | A source rate change can take up to about 1 s, plus I2C time, to reach userspace | [I-22], [I-21] | RISK-023, OQ-111, OQ-020 |
 
 Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CFE's graph walk accepts an entity that exposes `V4L2_CID_LINK_FREQ` [C-31], so a driver patch adding that control could give CFE the real rate. Under ADR-002 (PROPOSED) such a patch is written only after the defect is shown on hardware.
 
@@ -711,6 +797,7 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 - A research agent read `tc358743.c` and `tc358743_regs.h` in both `rpi-6.18.y` and torvalds/linux `master` [A-48], [B-02]; the DT binding in both trees [B-03]; `include/media/i2c/tc358743.h` [A-42], [B-16]; and the Raspberry Pi overlays and defconfigs in `rpi-6.18.y` [B-41], [B-43], [B-20], [E-39]. A second, independent agent re-fetched the sources and tried to refute every claim ([REFERENCES.md](REFERENCES.md), "How this register was produced").
 - Topic A (TC358743 hardware): 50 claims, 47 CONFIRMED, 3 CORRECTED (A-22, A-25, A-26). Topic B (driver and binding): 50 claims, 46 CONFIRMED, 4 CORRECTED (B-11, B-21, B-25, B-44) ([REFERENCES.md](REFERENCES.md) summary).
 - "CONFIRMED" means the cited source says so. It does not mean the behaviour has been observed.
+- *(Added 2026-10-08.)* Research topic I (HDMI audio path) read the driver's audio setup, audio controls and audio events, the `tc358743-audio` overlay, the ALSA stub codec and both Pi I2S drivers in `rpi-6.18.y`, with the same researcher-plus-independent-verifier method: 47 claims, 46 CONFIRMED, 1 CORRECTED (I-40, not cited here) ([REFERENCES.md](REFERENCES.md) summary). The sources were read at the branch head, while the packaged kernels are 6.18.50 (research gap, topic I; OQ-097 scope note).
 
 **Not done, even at source level:**
 
@@ -734,6 +821,7 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 | Connect / disconnect / mode change; event delivery; recovery | 19, 21 | TEST-CAP-003 |
 | Unsupported-mode rejection; FIFO behaviour near lane limits | 14, 18, 20 | TEST-CAP-004 |
 | I2S audio controls and path | 22 | TEST-AUD-001 |
+| Audio configuration, sampling-rate decode, control updates and events; rate-change handling (added 2026-10-08) | 11.7, 22.1, 21 | TEST-AUD-001 |
 
 ## 27. Open questions referenced
 
@@ -741,7 +829,7 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 |---|---|---|
 | OQ-002 | Supported input modes and EDID content | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED |
 | OQ-003 | Capture pixel format (ADR-005) | OWNER DECISION REQUIRED |
-| OQ-004 | Is HDMI audio required? | OWNER DECISION REQUIRED |
+| OQ-004 | Is HDMI audio required? | OWNER DECISION REQUIRED *(superseded: ANSWERED 2026-10-07 — audio required, REQ-CAP-006 DRAFT)* |
 | OQ-013 | Driver strategy (ADR-002) | OWNER DECISION REQUIRED |
 | OQ-016 | Is HDMI CEC required? | OWNER DECISION REQUIRED; KERNEL SOURCE INSPECTION REQUIRED |
 | OQ-019 | REFCLK oscillator frequency | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED |
@@ -772,11 +860,15 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 | OQ-051 | Source-change events on Pi 5/CM5 | HARDWARE TEST REQUIRED |
 | OQ-052 | CM5 carrier connector and I2C mapping | HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED |
 | OQ-053 | Whether CFE capture buffers use CMA on Pi 5/CM5 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED |
+| OQ-054 | `tc358743-audio` overlay on Pi 5/CM5 (added 2026-10-08) | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED |
 | OQ-064 | Buildroot baseline (kernel 6.12.61) | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED |
 | OQ-093 | EDID provisioning trigger and ordering | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED |
 | OQ-097 | `tc358743.c` in the shipped 6.18.50 versus the inspected 6.18.55 | KERNEL SOURCE INSPECTION REQUIRED |
 | OQ-099 | CSI-2 link frequency (ADR-008) | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED |
 | OQ-101 | Command syntax used in procedures but not in the source register | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED |
+| OQ-110 | TC358743 I2S output for compressed, multichannel and 24-bit HDMI audio (added 2026-10-08) | DATASHEET REQUIRED; HARDWARE TEST REQUIRED |
+| OQ-111 | HDMI audio sample-rate detection, rate changes and output sample rate (added 2026-10-08) | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED; BUILD TEST REQUIRED |
+| OQ-112 | A/V synchronisation across the I2S audio and CSI-2 video clock domains (added 2026-10-08) | HARDWARE TEST REQUIRED; OWNER DECISION REQUIRED |
 
 ## Verification status
 
@@ -788,19 +880,20 @@ This document cites the following register entries, all with verdict `CONFIRMED`
 |---|---|
 | A — TC358743 hardware | A-02, A-04, A-05, A-07, A-08, A-09, A-10, A-12, A-13, A-14, A-15, A-16, A-17, A-18, A-19, A-20, A-21, A-22, A-23, A-24, A-25, A-27, A-28, A-29, A-30, A-31, A-32, A-33, A-34, A-35, A-36, A-37, A-38, A-39, A-42, A-43, A-44, A-45, A-46, A-48, A-49, A-50 |
 | B — tc358743 Linux driver | B-01, B-02, B-03, B-05, B-06, B-07, B-08, B-09, B-10, B-11, B-12, B-13, B-14, B-15, B-16, B-17, B-18, B-19, B-20, B-21, B-22, B-23, B-24, B-26, B-27, B-28, B-29, B-30, B-31, B-32, B-33, B-34, B-35, B-36, B-37, B-38, B-39, B-40, B-41, B-43, B-44, B-45, B-46, B-47, B-49, B-50 |
-| C — Raspberry Pi CSI-2 receive path | C-06, C-09, C-12, C-15, C-16, C-18, C-19, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-29, C-31, C-32, C-33, C-34, C-35, C-36, C-41, C-42, C-43, C-44, C-46, C-47, C-48, C-51, C-52, C-53 |
+| C — Raspberry Pi CSI-2 receive path | C-06, C-09, C-11 (added 2026-10-08), C-12, C-15, C-16, C-18, C-19, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-29, C-31, C-32, C-33, C-34, C-35, C-36, C-41, C-42, C-43, C-44, C-46, C-47, C-48, C-51, C-52, C-53 |
 | E — Buildroot and kernel configuration | E-06, E-37, E-38, E-39 |
 | G — Raspberry Pi OS | G-04, G-16 |
+| I — HDMI audio path (added 2026-10-08) | I-02, I-11, I-12, I-13, I-16, I-18, I-19, I-20, I-21, I-22, I-23, I-24, I-25, I-26 |
 
 - `CORRECTED` entries, used in their corrected wording only: A-22, A-25, B-11, B-21, B-44, C-28, C-36, C-53.
-- `community` entries, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43.
-- `reasoning` entries, labelled as reasoning: A-23, B-10, B-11, B-17, B-27, B-33, B-47, B-49, C-46, C-47, C-48, C-51, C-52, C-53.
-- Statements marked *research gap* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) and are not register facts.
+- `community` entries, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43; added 2026-10-08: I-16.
+- `reasoning` entries, labelled as reasoning: A-23, B-10, B-11, B-17, B-27, B-33, B-47, B-49, C-46, C-47, C-48, C-51, C-52, C-53; added 2026-10-08: I-18.
+- Statements marked *research gap* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) and are not register facts. Those marked *research gap*, *research open question* or *research design risk* for topic I (added 2026-10-08) come from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json), with the same status.
 - "Verified from sources" means only that the cited source says so. Under Rule 23 a hardware measurement overrides any of these facts.
 
 ### Verified on PACSCORDER hardware
 
-Nothing (no hardware exists as of 2026-10-06).
+Nothing (no hardware exists as of 2026-10-08). The owner decisions of 2026-10-07 (audio required; CM4 and CM5 side by side) are requirements and plans, not hardware evidence.
 
 ## Change history
 
@@ -810,3 +903,5 @@ Nothing (no hardware exists as of 2026-10-06).
 | 2026-10-06 | Adversarial review against the source register. Changes: probe sub-steps 3a–3h re-ordered by the quoted source lines (clock lookup, endpoint, clock enable) and "failed to get refclk" log line added; post-probe HPD statement limited to what the driver does (silicon HPD state → OQ-032); CHIPID revision byte linked to OQ-029; "never back to sleep" downgraded to reasoning + KERNEL SOURCE INSPECTION REQUIRED; camera power-enable lines described per base DT; `ddc5v_delay` meaning marked NEEDS VERIFICATION; FIFO-level attribution of [A-43] corrected; call order of initial-setup steps 7–10 marked NEEDS VERIFICATION; RGB888 difference described as a fourcc-label difference [C-34], [C-35]; libcamera statement reworded as a report [C-41]; audio statement cited [A-13]; open-question markers aligned with [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) and OQ-029, OQ-053 added; UNKNOWN markers normalised to "UNKNOWN — VERIFICATION REQUIRED"; architecture paragraph cited; source-inspection scope in section 26 stated per tree. No hardware result added: nothing has been tested. | Claude (session 2026-10-06) |
 | 2026-10-06 | Cross-document consistency fixes: EDID persistence no longer cited to [B-22] (now [A-31], [B-21], [A-33] plus *research gap*, topic B) in sections 13 and 25 (D9); OQ-097 linked for the 6.18.50 vs 6.18.55 driver-source question (sections 3, 24, 26); OQ-093 linked for the EDID write trigger (sections 13, 21, 25); `--clear-edid` argument form and sub-device `-d` form pointed to OQ-101; "UYVY SMPTE170M even for HD sources" attributed to the research gap, not [B-34] (section 17, D12); I2S audio stated as the driver's choice with [A-05] (section 22, D15); 3-of-4-lane note and link-frequency proposal linked to ADR-008 / OQ-099 (section 14); section 27 table extended with OQ-093, OQ-097, OQ-099, OQ-101. No status changed. | Claude (session 2026-10-06) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); section 24 gap: "only if the Buildroot alternative in ADR-003 is chosen" → "only if ADR-003 (ACCEPTED: Raspberry Pi OS with `rpi-image-gen`) is re-evaluated and its documented Buildroot alternative is chosen" (OQ-064 unchanged). No evidence, other ADR status (ADR-002, ADR-005, ADR-006 PROPOSED) or implementation status changed. | Claude (session 2026-10-07) |
+| 2026-10-08 | Owner decisions of 2026-10-07 (second set: audio required, CM4 and CM5 side by side) and research topic I propagated. Header, conventions (2026-10-08 research JSON; [I-24] line number from the branch head, OQ-097) and §1 (TEST-AUD-001 row; REQ-CAP-006 served). §2: pointers to the new sections. §4: CEC not set in packaged kernels [I-22]; no audio Kconfig in the driver [I-02], [I-12]. §11.4 step 9 points to the new §11.7; §11.6 adds the audio registers [I-19], [I-24]. New §11.7 `tc358743_set_hdmi_audio()`: called once at probe, registers written [I-24], datasheet I2S/TDM limits [I-25], audio PLL [I-26] (OQ-112, RISK-024), stereo-only consequence (reasoning; research design risk), and unknowns (bit length, NLPCM and auto-mute meaning, compressed/multichannel, rate-change behaviour: research gaps; OQ-110, OQ-111, OQ-027, OQ-033). §12: audio row (CBIT interrupts) [I-21]. §15: `V4L2_EVENT_CTRL` for audio-rate changes [I-21]. §19: audio interrupt sources [I-21] and audio-rate polling latency [I-22]. §21: PROPOSED recovery rows for audio rate change and audio lock [I-18], [I-19], [I-21], [I-22]; the +5V-loss `V4L2_EVENT_CTRL` NEEDS VERIFICATION note marked partly addressed by [I-21]. §22: OQ-004 noted as ANSWERED; new §22.1 with control IDs [I-20], the `code_to_rate[]` decode and no-signal rule [I-19], updates and events [I-21], [I-22], the per-platform node that carries the controls [I-23] (Pi 4 Model B / Pi 5 and CM4 Media Controller rows labelled reasoning), the missing ALSA rate path (reasoning [I-18]; RISK-023, OQ-111), a community report [I-16] and a PROPOSED userspace use. §25: defects D19–D21. §26: topic I source-inspection scope and counts; test-map row. §27: OQ-004 marked ANSWERED; OQ-054, OQ-110, OQ-111, OQ-112 added. Verification status: topic I IDs, community I-16, reasoning I-18. No REQ or ADR status changed; driver strategy ADR-002 still PROPOSED; nothing tested. | Claude (session 2026-10-08) |
+| 2026-10-08 | Citation verification of the topic I additions: §4 audio-Kconfig bullet split into the sourced fact ([I-02]: no ASoC codec driver of its own; generic stub codec) and a labelled inference ("Reasoning from [I-02]: no extra Kconfig symbol for audio"). All other [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |

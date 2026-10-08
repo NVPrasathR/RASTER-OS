@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-07 |
+| Last updated | 2026-10-08 |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 4 |
 
 Every meaningful change is recorded here. Versioning is semantic-style (`Unreleased`, `v0.1.0`, `v0.2.0`, `v1.0.0`; see [RELEASE.md](RELEASE.md)). History is never rewritten: a correction is a new entry.
@@ -37,6 +37,14 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-08: **Source register extended** with topic H (H.265/HEVC software encoding and transport, 43 facts) and topic I (HDMI audio path, 47 facts): 90 facts, 86 CONFIRMED and 4 CORRECTED. The register now holds 467 facts; existing entries are unchanged. Raw data: `docs/research/2026-10-08-hevc-audio-research.json`.
+- 2026-10-08: Owner decisions of 2026-10-07 (second set) and the topic H/I facts propagated to the registers and technical documents.
+  - OQ-104 to OQ-114 added: H.265 throughput, SIMD, RTMP, WebRTC and licensing; audio formats, sample rate, A/V sync, AAC licensing and GPIO allocation.
+  - RISK-023 (audio sample-rate mismatch), RISK-024 (A/V sync across clock domains) and RISK-025 (HEVC over RTMP may force a split GStreamer/FFmpeg design) added.
+  - RISK-014, RISK-015, RISK-019 and RISK-022 extended.
+  - TEST-AUD-001 written out in full; TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (ID unchanged).
+- 2026-10-07: Git history: the owner's local commits "update doc" and "update" (18:23, never pushed) were squashed, at the owner's request, into `7107a39` "docs: bootstrap PACSCORDER rules, source register and documentation baseline", to meet Rule 15. File contents are identical (same tree). The old history is kept on local branch `backup/pre-squash-2026-10-07`.
+
 - 2026-10-07: Owner decisions recorded.
   - OQ-001 and OQ-009 are ANSWERED.
   - REQ-CAP-001 and REQ-ATEM-001 are updated: 1080p60 is required on 4-lane; ATEM scope is HDMI capture only.
@@ -64,7 +72,8 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - No hardware exists. Every hardware test is BLOCKED — HARDWARE REQUIRED.
 - No code exists. Every requirement is NOT STARTED.
 - No requirement is ACCEPTED (16 DRAFT, 4 PROPOSED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001 and ADR-003 are ACCEPTED.
-- H.265 is required but software-only on every candidate board (RISK-022).
+- H.265 is required but software-only on every candidate board. Real-time 1080p H.265 is unproven and doubtful on the evidence available (RISK-022, OQ-103, OQ-104).
+- HDMI audio on CM5 is unconfirmed (RISK-014). Audio sample-rate changes are not tracked by the kernel (RISK-023).
 - 1080p60 capture is not possible on a 2-lane link (RISK-001). Since 2026-10-07, 1080p60 is required on 4-lane configurations only, and Pi 4 Model B remains a 2-lane candidate (REQ-CAP-007). 1080p60 encode is unproven on every candidate platform (RISK-002, RISK-003).
 
 ## Change history
@@ -75,3 +84,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-07 | Unreleased/Changed: owner decisions of 2026-10-07. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 acceptance, requirement-count correction, TEST-ATEM-001 retitle; RISK-001 known-issue line updated for REQ-CAP-007. | Claude (session 2026-10-07) |
 | 2026-10-07 | Second set of owner answers; Known Issues updated (ADR counts, RISK-022). | Claude (session 2026-10-07) |
+| 2026-10-08 | Topics H and I; propagation of the second owner decisions; commit squash recorded; Known Issues extended. | Claude (session 2026-10-08) |

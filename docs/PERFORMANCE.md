@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | DRAFT — budgets calculated from source research; **no measurement exists** |
-| Last updated | 2026-10-07 |
-| Applies to | Pi 4 Model B, CM4, Pi 5, CM5; the 2-lane and the 4-lane configuration — REQ-PERF-001, REQ-CAP-001, REQ-CAP-007, REQ-CAP-008, REQ-ENC-001, REQ-DMA-001 |
-| Verification | Source research of 2026-10-06 only ([REFERENCES.md](REFERENCES.md)). Nothing has been measured or tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
+| Last updated | 2026-10-08 |
+| Applies to | Pi 4 Model B, CM4, Pi 5, CM5; the 2-lane and the 4-lane configuration — REQ-PERF-001, REQ-CAP-001, REQ-CAP-006, REQ-CAP-007, REQ-CAP-008, REQ-ENC-001 (H.264 and H.265), REQ-DMA-001 |
+| Verification | Source research of 2026-10-06, plus research topics H (H.265/HEVC) and I (HDMI audio) of 2026-10-08 ([REFERENCES.md](REFERENCES.md)). Nothing has been measured or tested on PACSCORDER hardware; no hardware exists as of 2026-10-08. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rules 8, 10, 22, 23, 25 |
 
 | Item | Status |
@@ -45,6 +45,9 @@ No performance target has been set by the owner. REQ-PERF-001 is PROPOSED, and i
 | Bitrate(s) and number of simultaneous encodes | UNDEFINED | OWNER DECISION REQUIRED (OQ-005) |
 | Boot-to-first-frame time | UNDEFINED | OWNER DECISION REQUIRED (OQ-068) |
 | Capture rates per lane configuration | Owner, 2026-10-07 (OQ-001 ANSWERED): both a 2-lane and a 4-lane configuration, each capturing every frame rate its link carries (REQ-CAP-007, DRAFT). Recorded interpretation: 1080p60 required on the 4-lane configuration; the 2-lane configuration is limited to 1080p50 UYVY / 1080p30 RGB888 for 1920x1080 [C-37], [C-48] (§3.2). The exact mode list is UNDEFINED | OWNER DECISION REQUIRED (OQ-002; fractional rates OQ-040) |
+| Codecs (added 2026-10-08) | Owner, 2026-10-07: H.264 **and** H.265 for recording and streaming (REQ-ENC-001, DRAFT). Which output uses which codec, in which modes, is UNDEFINED. This is a codec requirement, not a performance target | OWNER DECISION REQUIRED (OQ-103) |
+| HDMI audio (added 2026-10-08) | Owner, 2026-10-07: required in recordings and streams (OQ-004 ANSWERED; REQ-CAP-006, DRAFT). Channel count, sample rates and the A/V synchronisation tolerance are UNDEFINED | OWNER DECISION REQUIRED (OQ-004 answer; tolerance OQ-112) |
+| Platforms measured in bring-up (added 2026-10-08) | Owner, 2026-10-07: CM4 and CM5 side by side; the product platform is decided from the measurements (ADR-004 OPEN) | Measurements in §9 (none yet) |
 
 ---
 
@@ -99,7 +102,7 @@ These results match the official Raspberry Pi statement: 2 lanes support at most
 | 4-lane | CM4 CAM1, Pi 5, CM5 | All six 1080p30/50/60 × UYVY/RGB888 combinations (1080p60 UYVY on 3 of 4 lanes, OQ-038) | — | [C-02], [C-04], [C-05], [C-37], [C-49] |
 
 - At 594 Mbit/s the 2-lane configuration carries only 1080p30 UYVY [C-48]; the 4-lane limits at that rate are listed above [C-49].
-- **HDMI sources (REQ-CAP-008).** Sources are ATEM switcher outputs and cameras connected directly (models OQ-102). The ATEM Mini Pro outputs 1080p23.98 to 1080p60 with no 720p or 1080i [F-23]. Reasoning (inputs [F-23], [C-48]): on the 2-lane configuration its 1080p59.94 and 1080p60 standards exceed the link budget, and 1080p50 fits only in UYVY. Camera output modes are UNKNOWN (OQ-102).
+- **HDMI sources (REQ-CAP-008).** Sources are ATEM switcher outputs and cameras connected directly (models OQ-102). The ATEM Mini Pro outputs 1080p23.98 to 1080p60 with no 720p or 1080i [F-23]. Reasoning (inputs [F-23], [C-48]): on the 2-lane configuration its 1080p59.94 and 1080p60 standards exceed the link budget, and 1080p50 fits only in UYVY. Camera output modes are UNKNOWN (OQ-102). *(Superseded in part, 2026-10-08: OQ-102 was ANSWERED by the owner on 2026-10-07. There is no model list: sources are any HDMI camera, plus ATEM switcher outputs. Camera output modes therefore stay UNKNOWN per camera. What PACSCORDER accepts is defined by the supported-mode matrix and the EDID (OQ-002). Representative cameras and an ATEM are still needed for TEST-CAP-001 and TEST-CAP-004.)*
 - **EDID (reasoning; OQ-002).** Because the two configurations carry different mode sets [C-48], [C-49], the EDID may need to differ per lane configuration; see [CSI_PIPELINE.md](CSI_PIPELINE.md) §11.3.
 
 Reasoning from [C-47] and [C-49]: a 4-lane port is necessary for 1080p60, but it is not shown to be sufficient for 1080p60 UYVY. At the default 972 Mbit/s the driver activates 3 of the 4 lanes for that mode, which is unproven (OQ-038). A 4-lane port also gives no extra per-lane margin to modes the driver packs into fewer lanes. The link-frequency choice is ADR-008 (PROPOSED): keep 486 MHz everywhere, and evaluate 297 MHz (4 active lanes for 1080p60 UYVY) only on CM4 CAM1 in TEST-CAP-002. The owner decision is OQ-099.
@@ -150,6 +153,8 @@ A 1920×1080 frame is coded as 120 × 68 = 8,160 macroblocks [F-40], [D-36]. H.2
 
 Reasoning inputs: share = macroblocks/s ÷ 522,240 [F-40]; ratio = macroblocks/s ÷ 244,800 [D-52].
 
+*(Added 2026-10-08.)* The table above is H.264 only. H.265 level and tier limits are not in the source register (NEEDS VERIFICATION), so no H.265 level row is given. No platform has a hardware HEVC encoder [D-24], [D-31], so no hardware-rate specification exists to compare an H.265 load against. The H.265 limit is CPU time on every platform (§5.3).
+
 ### 4.2 Budget per platform
 
 - **Pi 4 / CM4 (hardware).**
@@ -160,7 +165,8 @@ Reasoning inputs: share = macroblocks/s ÷ 522,240 [F-40]; ratio = macroblocks/s
   - Whether a GPU overclock such as `gpu_freq=550` (suggested in the official 720p120 recipe [D-52]) would be acceptable in the product is OWNER DECISION REQUIRED (OQ-096).
   - A Pi 4 Model B never presents more than 1080p50 UYVY to the encoder, because of its 2 lanes [C-01], [C-48]; that is 1.67× the specification (reasoning). The same ceiling applies to any 2-lane configuration of REQ-CAP-007. On a 4-lane configuration (CM4 CAM1) 1080p60 is captured; whether it must also be encoded at that rate is REQ-ENC-001 / OQ-005.
 - **Pi 5 / CM5 (software).** There is no hardware encoder, so no macroblock-rate specification exists; encoding runs in software [G-22], so the limit is CPU time (§5) (reasoning).
-- **Simultaneous encodes.** If recording, RTMP and WebRTC need separate encodes (OQ-005), the demand is the sum of (macroblocks per frame × frames/s) over all encodes (reasoning). Whether the Pi 4/CM4 hardware encoder can run several encode sessions at once, and at what total rate, is UNKNOWN — HARDWARE TEST REQUIRED.
+- **H.265, all platforms (added 2026-10-08).** No candidate has a hardware HEVC encoder [D-24], [D-31]. Reasoning: on Pi 4 Model B and CM4 as well, H.265 is a CPU load (§5.2, §5.3), whatever the hardware H.264 encoder's margin is.
+- **Simultaneous encodes.** If recording, RTMP and WebRTC need separate encodes (OQ-005), the demand is the sum of (macroblocks per frame × frames/s) over all encodes (reasoning). Whether the Pi 4/CM4 hardware encoder can run several encode sessions at once, and at what total rate, is UNKNOWN — HARDWARE TEST REQUIRED. *(Added 2026-10-08.)* With H.264 and H.265 both required (REQ-ENC-001), an H.265 output adds a software encode on every platform. If WebRTC needs an H.264 track alongside H.265 (OQ-108), CM5 runs two software video encodes at once (reasoning; OQ-104).
 
 ### 4.3 Bitrate, storage and network
 
@@ -169,6 +175,12 @@ Reasoning inputs: share = macroblocks/s ÷ 522,240 [F-40]; ratio = macroblocks/s
   - at 25 Mbit/s: 25 × 10⁶ × 3600 / 8 = 11.25 GB (decimal) per hour;
   - at 10 Mbit/s: 4.5 GB per hour.
 - Pi 5/CM5: the bitrate ranges of `x264enc`, `libx264` and `openh264enc` were not researched — NEEDS VERIFICATION. The storage arithmetic above depends only on the bitrate, so it applies to any encoder at the same bitrate (reasoning).
+- *(Added 2026-10-08.)* H.265, all platforms: GStreamer `x265enc` takes `bitrate` in kbit/s, with a default of 2048 and a maximum of 102400 [H-14]. The `libx265` range is not in the source register — NEEDS VERIFICATION.
+- *(Added 2026-10-08.)* One destination's figures, for scale only. YouTube Live recommends these 1080p60 bitrates [H-29]:
+  - H.265: 4 Mbps minimum, 12 Mbps recommended;
+  - H.264: 6 Mbps minimum, 17 Mbps recommended.
+
+  **Reasoning (input [H-29]):** video only, at the recommended rates, that is 12 × 10⁶ × 3600 / 8 = 5.4 GB (decimal) per hour for H.265 and 7.65 GB per hour for H.264. These are YouTube's ingest recommendations, not PACSCORDER bitrates (OQ-005, OQ-007).
 - The PACSCORDER bitrate, storage medium and its sustained write rate, and network uplink capacity are UNKNOWN — OWNER DECISION REQUIRED / HARDWARE TEST REQUIRED (OQ-005, OQ-006, OQ-007, OQ-008).
 
 ---
@@ -185,11 +197,12 @@ Everything else is UNKNOWN — HARDWARE TEST REQUIRED.
 |---|---|---|
 | H.264 encode, 1080p30 | ~30–40% CPU (official, "from ISP") [G-22] | Whether this means all CPU cores together or one core: UNKNOWN — VENDOR CONFIRMATION REQUIRED (OQ-059). The BCM2712 core count is not in the source register. Whether it applies to TC358743 input: UNKNOWN — HARDWARE TEST REQUIRED. Reasoning: that input is not expected to come "from ISP", because Raspberry Pi engineers reported that libcamera does not support the bridge [C-41] |
 | H.264 encode, 1080p50 / 1080p60 | UNKNOWN | HARDWARE TEST REQUIRED (OQ-059). A Raspberry Pi engineer reported 1080p60 software encode from camera capture as "easily achievable" [D-50] (community); this is not a PACSCORDER budget |
-| UYVY → I420/NV12 (or other planar) conversion per frame | UNKNOWN | Required because `x264enc`, `libx264` and `openh264enc` do not accept packed UYVY [D-40], [D-41], [D-43]. Hardware offload: UNKNOWN (OQ-060) |
+| **H.265 encode (x265), 1080p30 / 1080p50 / 1080p60** (added 2026-10-08) | **UNKNOWN.** No official figure was found [H-19]. Summary of §5.3: reported by a Raspberry Pi engineer as "too intensive an operation to perform at any significant resolution" [H-19] (community); a community benchmark reports 10.00 FPS for `libx265` "Live" on Pi 5 in a test that is not a 1080p60 live measurement [H-20], [H-22] (community) | HARDWARE TEST REQUIRED (OQ-104; SIMD paths OQ-105; RISK-022). Details and caveats in §5.3 |
+| UYVY → I420/NV12 (or other planar) conversion per frame | UNKNOWN | Required because `x264enc`, `libx264` and `openh264enc` do not accept packed UYVY [D-40], [D-41], [D-43]. Hardware offload: UNKNOWN (OQ-060). *(Added 2026-10-08.)* For H.265 the output must be planar (I420 or Y42B), because `x265enc` and `libx265` accept neither UYVY nor NV12 [H-10] (CORRECTED), [H-13]. Memory traffic at 1080p60 to I420: about 249 MB/s read and 187 MB/s written, before x265 starts (reasoning [H-43]; other modes in [DMA.md](DMA.md) §8A). CPU time: still UNKNOWN |
 | V4L2 capture handling | UNKNOWN | HARDWARE TEST REQUIRED |
-| Additional simultaneous encodes (recording + RTMP + WebRTC) | UNKNOWN | HARDWARE TEST REQUIRED (OQ-005, OQ-059) |
+| Additional simultaneous encodes (recording + RTMP + WebRTC) | UNKNOWN | HARDWARE TEST REQUIRED (OQ-005, OQ-059). *(Added 2026-10-08.)* This includes H.264 and H.265 running together (OQ-103, OQ-104). If WebRTC keeps an H.264 track beside H.265, that is two software video encodes on this CPU (OQ-108) |
 | Muxing, RTMP, WebRTC (RTP, ICE, DTLS/SRTP) | UNKNOWN | HARDWARE TEST REQUIRED; see [STREAMING.md](STREAMING.md) |
-| Audio capture and encode | UNKNOWN | OQ-004, OQ-063 |
+| Audio capture and encode | UNKNOWN | OQ-004, OQ-063. *(Superseded in part, 2026-10-08: audio is required, OQ-004 ANSWERED. The cost is still UNKNOWN — HARDWARE TEST REQUIRED, OQ-063.)* Encoders available: FFmpeg native `aac` and `libopus` [I-39], [I-41]; GStreamer `voaacenc`, `avenc_aac` and `opusenc` [I-44], [I-45], [I-46]. Reasoning (as recorded in OQ-063, from [H-26] and [F-41]): RTMP from FFmpeg and WebRTC together need two audio encodes, AAC and Opus. `opusenc` accepts only 48, 24, 16, 12 or 8 kHz, so a 44.1 kHz source needs resampling first [I-47]; that resampling is an extra CPU load (reasoning; rate handling OQ-111) |
 | ATEM integration | No separate load expected (reasoning): the ATEM integration is HDMI capture of the ATEM output only (REQ-ATEM-001, REQ-CAP-008; owner 2026-10-07), which is the capture load above | OQ-009 ANSWERED. Network tally/control and RTMP exchange are not in current scope; they would add load only if the owner adds them |
 | **Total and remaining headroom** | **UNKNOWN** | TEST-ENC-001, TEST-PERF-001 |
 
@@ -200,10 +213,38 @@ Everything else is UNKNOWN — HARDWARE TEST REQUIRED.
 | H.264 encode | Done by the VideoCore firmware through `ril.video_encode` [D-08]. The Arm CPU cost of driving it is UNKNOWN | HARDWARE TEST REQUIRED |
 | UYVY input | A Raspberry Pi engineer reported it as accepted directly by the encoder [D-18] (community). Otherwise the `/dev/video12` ISP M2M device can convert [D-25]. CPU cost UNKNOWN | HARDWARE TEST REQUIRED (OQ-057) |
 | Raw-frame copy into the encoder | None if capture buffers are imported as DMABUF [D-19], [D-34]. One copy per frame if upstream FFmpeg `h264_v4l2m2m` is used, because it is MMAP-only [D-44]. CPU cost UNKNOWN | HARDWARE TEST REQUIRED (OQ-058, ADR-007) |
-| Software x264 fallback on the BCM2711 Arm CPU (if hardware cannot reach the required rate) | No official figure (research gap, topic D). The CPU core type and count are not in the source register | UNKNOWN — HARDWARE TEST REQUIRED (OQ-056) |
-| Streaming, audio | UNKNOWN | as for Pi 5 / CM5 |
+| **H.265 encode (software x265 on the BCM2711 Cortex-A72)** (added 2026-10-08) | **UNKNOWN.** The hardware encoder has no HEVC [D-24], so H.265 is a CPU load here too (reasoning). The Cortex-A72 has no DotProd, I8MM, SVE or SVE2 [H-05]. The only figure is community-reported: 4.33 FPS for `libx265` "Live" on a Pi 400 (BCM2711, Cortex-A72 @ 1.80 GHz) in a test that is not a 1080p60 live measurement [H-21], [H-22]. The CM4's clock is not in the source register, so that figure cannot be carried over to CM4 | HARDWARE TEST REQUIRED (OQ-104, OQ-105; RISK-022). §5.3 |
+| UYVY → planar conversion for H.265 (added 2026-10-08) | Needed here too: `x265enc` and `libx265` do not accept UYVY [H-10] (CORRECTED), [H-13]. It is not needed for the hardware H.264 path (row above). On the CPU at 1080p60: about 249 MB/s read and 187 MB/s written (reasoning [H-43]). Whether the `/dev/video12` ISP can do it instead is UNKNOWN (OQ-057). CPU time UNKNOWN | HARDWARE TEST REQUIRED (OQ-057, OQ-104) |
+| Software x264 fallback on the BCM2711 Arm CPU (if hardware cannot reach the required rate) | No official figure (research gap, topic D). The CPU core type and count are not in the source register. *(Superseded in part, 2026-10-08: the core type is now in the register, Cortex-A72 [H-05]. An official core count is still not in it.)* | UNKNOWN — HARDWARE TEST REQUIRED (OQ-056) |
+| Streaming, audio | UNKNOWN | as for Pi 5 / CM5 (*2026-10-08:* audio is required; encoders and the two-encode reasoning are in the §5.1 audio row; CPU cost OQ-063) |
 | ATEM integration | No separate load expected (reasoning; HDMI capture only, §5.1) | OQ-009 ANSWERED |
 | **Total and remaining headroom** | **UNKNOWN** | TEST-ENC-001, TEST-PERF-001 |
+
+### 5.3 H.265 (HEVC) budget line — CM4 and CM5 (added 2026-10-08)
+
+H.265 is required (owner, 2026-10-07; REQ-ENC-001). Which outputs use it is OQ-103. Bring-up evaluates CM4 and CM5 side by side (ADR-004 OPEN). This section collects the H.265 inputs per board. **It contains no budget value, because no source gives one** (Rules 8 and 22: never guess).
+
+| Item | CM4 (BCM2711; also Pi 4 Model B, reasoning) | CM5 (BCM2712; also Pi 5, reasoning) | Sources |
+|---|---|---|---|
+| Hardware HEVC encoder | None | None | [D-24], [D-31] |
+| Encoder | x265 4.1-2 from Debian, through `x265enc` or `libx265` | same | [H-01], [H-02], [H-09], [H-11] |
+| CPU core and x265 SIMD | Cortex-A72: no DotProd, I8MM, SVE or SVE2 | Cortex-A76: Neon DotProd kernels can apply; I8MM, SVE and SVE2 cannot. Active on the image: OQ-105 | [H-04], [H-05] |
+| Input conversion before x265 | UYVY → planar (I420/Y42B); ≈ 249 MB/s read + ≈ 187 MB/s written at 1080p60 (reasoning) | same | [H-10], [H-13], [H-43] |
+| Low-latency settings | `tune=zerolatency`: B-frames 0, lookahead 0, one frame thread, only WPP row parallelism | same | [H-16] |
+| Only figure found (community; not a 1080p60 live measurement) | 4.33 FPS `libx265` "Live" on a Pi 400 (Cortex-A72 @ 1.80 GHz) | 10.00 FPS `libx265` "Live" on Pi 5 (Cortex-A76 @ 2.40 GHz); `libx264` 66.17 FPS in the same test | [H-20], [H-21], [H-22] |
+| Relative cost, same harness (reasoning) | — | `libx265` ≈ 6.6 × slower than `libx264` | [H-23] |
+| Raspberry Pi statement (community) | — | 6by9 (forum, 2024): "too intensive an operation to perform at any significant resolution" | [H-19] |
+| Official figure | None found | None found | [H-19] |
+| Concurrent H.264 | On the hardware encoder; it does not use the CPU budget for x265 (reasoning; driving cost UNKNOWN, §5.2) | Software, on the same CPU (reasoning; §5.1) | [D-10], [G-22], [D-31] |
+| **H.265 CPU budget at 1080p30 / 50 / 60** | **UNKNOWN — HARDWARE TEST REQUIRED** | **UNKNOWN — HARDWARE TEST REQUIRED** | OQ-104, RISK-022 |
+| Thermal / throttling under sustained all-core load | UNKNOWN | UNKNOWN | OQ-104, §8 |
+
+Rules for using these inputs (Claude's reasoning):
+
+- **Do not derive an H.265 CPU budget by multiplying [G-22] ("H264 1080p30 encode (from ISP) ~30–40% CPU") by [H-23] (≈ 6.6; a reasoning-tier entry).** The ratio comes from a different harness (vbench clips, `-threads 1`, a 2022 x265 snapshot), as reported for the community benchmark [H-22]. Whether the percentage means all cores or one core is unknown (OQ-059). Research notes that the two readings give opposite feasibility conclusions (research open question, topic H).
+- Do not carry the Pi 400 figure over to CM4. The community benchmark reports its clock as 1.80 GHz [H-21], and the CM4's clock is not in the source register.
+- The community figures were measured with an x265 snapshot that predates x265 4.0's Arm optimisations [H-22], [H-06], while trixie ships 4.1 [H-01]. The x265 4.2 and 4.3 AArch64 speed-ups are not in trixie [H-07]. A measured value therefore holds only for the x265 version recorded with it (§9 "SW version").
+- What the evidence suggests (reasoning, not a measurement; same reading as RISK-022): real-time 1080p60 H.265 in software is doubtful on CM5 and more so on CM4. It stays UNKNOWN until TEST-ENC-001 runs with H.265 (§10.3).
 
 ---
 
@@ -220,6 +261,7 @@ Everything else is UNKNOWN — HARDWARE TEST REQUIRED.
 | Pi 4/CM4 encoded (CAPTURE) buffer | 768 KiB each above 720p; a larger `sizeimage` can be requested | [D-23] | Buffer count UNKNOWN |
 | Pi 4/CM4 encoder raw (OUTPUT) buffers | No extra buffers when capture buffers are imported as DMABUF (reasoning from [D-19], [D-34]); otherwise frame-sized MMAP buffers allocated through `videobuf2-dma-contig` [D-19] | [D-19] | Count and pool: NEEDS VERIFICATION |
 | Pi 5/CM5 conversion output buffers (planar format) | UNKNOWN | — | Depend on the format and framework (OQ-060, ADR-007) |
+| One 1920×1080 I420 (planar 4:2:0) frame, the conversion output for x265 — added 2026-10-08 | 3,110,400 bytes (1920 × 1080 × 1.5) | [H-43] (reasoning) | Needed for H.265 on **every** platform, Pi 4/CM4 included [H-10], [H-13]. Buffer count and allocator (CMA or not) UNKNOWN (ADR-007; OQ-061) |
 | `vc-sm-cma` shared memory, pulled in by the codec drivers | UNKNOWN | [D-03] | OQ-061 |
 
 ### 6.2 CMA pool
@@ -268,6 +310,9 @@ Measurement method: read the `CmaFree` field of `/proc/meminfo` while streaming 
 | Encode, Pi 4/CM4 hardware | No source figure. No B-frame reordering, because the encoder produces no B-frames [D-14] | [D-14] | UNKNOWN — HARDWARE TEST REQUIRED |
 | Encode, Pi 5/CM5 software | Official: software encoders "generally output frames with a longer latency than the old hardware encoders". Low-latency mode drops B-frames and arithmetic coding | [D-32], [G-22] | UNKNOWN — HARDWARE TEST REQUIRED (OQ-059) |
 | `rpicam-apps` low-latency `libx264` reference settings | `ultrafast`, `zerolatency`, 4 slices, `refs=1`, `rc-lookahead 0` | [D-35] | Reference only |
+| Encode, H.265 software (x265), all platforms — added 2026-10-08 | `tune=zerolatency` sets B-frames 0, lookahead 0 and one frame thread [H-16]. Without it, x265 4.1 `ultrafast` still uses 3 B-frames and a 5-frame lookahead [H-17]. GStreamer 1.26.2 `x265enc` *reports* a hard-coded 5-frame latency unless `tune=zerolatency` (then 0) [H-15]. Reasoning: 5 frames are 83.3 ms at 1080p60, 100 ms at 1080p50 and 166.7 ms at 1080p30, using the frame periods above. In FFmpeg the thread count replaces zerolatency's single frame thread unless it is set explicitly [H-10] (CORRECTED), [H-16] | [H-10], [H-15], [H-16], [H-17] | UNKNOWN — HARDWARE TEST REQUIRED (OQ-104) |
+| UYVY → planar conversion before software encode — added 2026-10-08 | A further CPU stage before x265 on every platform, and before x264 on Pi 5/CM5 [H-10], [H-13], [D-43]. Its time per frame is not in the source register | [H-43] (traffic, reasoning) | UNKNOWN — HARDWARE TEST REQUIRED (OQ-060, OQ-104) |
+| Capture and audio timestamps (A/V alignment) — added 2026-10-08 | Every Raspberry Pi CSI receiver driver stamps buffers with `CLOCK_MONOTONIC` at frame start [I-33]. alsa-lib 1.2.14 switches newly opened `hw` PCMs to monotonic timestamps on kernel PCM protocol 2.0.9 or later [I-34]. In GStreamer 1.26.2, `alsasrc` normally becomes the pipeline clock in a `v4l2src` + `alsasrc` pipeline and then does not use ALSA driver timestamps [I-35], [I-36]. `v4l2src` maps buffer timestamps through a measured delay [I-37]. In FFmpeg 7.1, the ALSA input uses wall-clock time and the V4L2 input uses monotonic time by default [I-38] | [I-33] to [I-38] | A/V offset and drift: UNKNOWN — HARDWARE TEST REQUIRED (OQ-112, RISK-024); tolerance UNDEFINED (OQ-112) |
 | Muxing, network, server, player / browser | UNKNOWN | — | See [STREAMING.md](STREAMING.md), [RECORDING.md](RECORDING.md) |
 | **End-to-end** | **UNDEFINED target; UNKNOWN value** | — | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED |
 
@@ -281,6 +326,7 @@ Measurement method: read the `CmaFree` field of `/proc/meminfo` while streaming 
 | TC358743 typical power | 480.5 mW at 720p60; 543.2 mW at 1080p60 | [A-38] | Datasheet value |
 | Raspberry Pi SoC temperature limits, throttling behaviour, cooling requirements (Pi 4 Model B, CM4, Pi 5, CM5) | **UNKNOWN — VERIFICATION REQUIRED.** No fact in the source register covers them | — | VENDOR CONFIRMATION REQUIRED (official Raspberry Pi documentation to be researched); HARDWARE TEST REQUIRED |
 | Thermal effect of Pi 5/CM5 software encoding | UNKNOWN. RISK-003 lists CPU and thermal load at 1080p60 as an impact; software encoding is CPU work [G-22] | [G-22] | HARDWARE TEST REQUIRED (OQ-059) |
+| Thermal effect of software H.265 encoding, CM4 and CM5 (added 2026-10-08) | UNKNOWN. H.265 is CPU work on every platform, because there is no hardware HEVC encoder [D-24], [D-31] (reasoning). OQ-104 asks whether CM5 throttles under sustained all-core load. A Raspberry Pi engineer's statement that software H.265 encode is "too intensive" [H-19] is community evidence, not a thermal figure | [D-24], [D-31], [H-19] | HARDWARE TEST REQUIRED (OQ-104) |
 | Product ambient range, enclosure, airflow | UNDEFINED | — | OWNER DECISION REQUIRED (OQ-010) |
 | Product power input and budget | UNKNOWN — VERIFICATION REQUIRED | — | OQ-023 |
 | D-PHY timing and FIFO-level validity across temperature | UNKNOWN | [B-12], [C-43] | HARDWARE TEST REQUIRED (OQ-035) |
@@ -291,7 +337,7 @@ The command used to read SoC temperature and throttling state is not attested in
 
 ## 9. Measurements
 
-**No measurements exist.** As of 2026-10-06 there is no PACSCORDER hardware, no code, and no test has been run. Every value in §3–§8 is a calculation or a source statement, not a measurement.
+**No measurements exist.** As of 2026-10-06 there is no PACSCORDER hardware, no code, and no test has been run. Every value in §3–§8 is a calculation or a source statement, not a measurement. *(Re-checked 2026-10-08: still no measurements. The H.265 inputs added in §5.3 are source statements and community reports, not measurements.)*
 
 Add one row per measured value. Never delete or rewrite a row (Rule 21); add a correcting row instead.
 
@@ -303,9 +349,9 @@ Column rules:
 
 - **Platform**: board and connector or carrier, and the lane configuration of REQ-CAP-007 (2-lane or 4-lane), for example "CM4 on <carrier>, CAM1, 4-lane".
 - **HW rev**: PACSCORDER hardware revision. None exists yet (OQ-018).
-- **SW version**: image, kernel version, firmware version, and the versions of the framework and encoder packages.
+- **SW version**: image, kernel version, firmware version, and the versions of the framework and encoder packages. *(Added 2026-10-08.)* For H.265 runs, also the x265 version and the CPU capabilities x265 reports (DotProd on CM5; OQ-105).
 - **Test ID**: one of the canonical IDs in [README.md](README.md).
-- **Notes**: include at least the input mode, pixel format, active lanes, link frequency, encoder and settings, duration, ambient temperature and cooling.
+- **Notes**: include at least the input mode, pixel format, active lanes, link frequency, encoder and settings, duration, ambient temperature and cooling. *(Added 2026-10-08.)* Also the codec (H.264 or H.265), preset, tune and thread settings, the conversion path (CPU or hardware) and target format, any concurrent encodes, and whether audio was being captured and encoded.
 
 ---
 
@@ -322,7 +368,7 @@ These procedures define *what* to measure for the budgets above. The authoritati
   - device enumeration (OQ-101);
   - pointing `v4l2-ctl` at a sub-device node with `-d <sub-device path>` (OQ-101; only `-d 11` [D-17] and running the step "on /dev/v4l-subdevN" [C-33] are attested);
   - reading the kernel, firmware and EEPROM versions for the §9 "SW version" column (OQ-101).
-- Measure each platform and each lane configuration under evaluation separately (ADR-004, OQ-011; REQ-CAP-007 requires both a 2-lane and a 4-lane configuration). Never assume that results carry over between the 2-lane and the 4-lane configuration, or between Pi 4 Model B and CM4, or between Pi 5 and CM5, or between OS images, for example 16K-page and 4K-page kernels (OQ-055).
+- Measure each platform and each lane configuration under evaluation separately (ADR-004, OQ-011; REQ-CAP-007 requires both a 2-lane and a 4-lane configuration). Never assume that results carry over between the 2-lane and the 4-lane configuration, or between Pi 4 Model B and CM4, or between Pi 5 and CM5, or between OS images, for example 16K-page and 4K-page kernels (OQ-055). *(Added 2026-10-08.)* The owner's bring-up pair is CM4 and CM5, side by side (ADR-004 OPEN until measured), so each procedure below is run on both boards. Also never assume that H.265 results carry over between x265 versions [H-07], or between GStreamer `x265enc` and FFmpeg `libx265`, whose thread and latency handling differ [H-10], [H-15].
 - Record every result in §9 and in [TESTING.md](TESTING.md). Then update the affected OQ, RISK and REQ entries as their own rules require.
 
 ### 10.2 TEST-CAP-002 — capture rate and link budget (REQ-CAP-001, REQ-CAP-007)
@@ -349,7 +395,7 @@ Scope (aligned with [TESTING.md](TESTING.md) TEST-CAP-002): this test covers the
    - Pi 4/CM4 in Media Controller mode: the source register has no attested `media-ctl` sequence. Unicam registers only the `unicam-image` node, linked directly from the TC358743 pad with an IMMUTABLE|ENABLED link [C-36] (CORRECTED verdict). Which pad formats must be set is NEEDS VERIFICATION (OQ-044, OQ-046).
    - The full sequence belongs in [CSI_PIPELINE.md](CSI_PIPELINE.md) and [V4L2.md](V4L2.md).
 5. Link frequency at the default 972 Mbit/s, as ADR-008 (PROPOSED; OQ-099) proposes. On Pi 5/CM5, do not use 594 Mbit/s (RISK-011, [C-52]).
-6. HDMI source: each required source model that outputs the mode under test, ATEM output or camera (REQ-CAP-008; models OQ-102).
+6. HDMI source: each required source model that outputs the mode under test, ATEM output or camera (REQ-CAP-008; models OQ-102). *(Superseded in part, 2026-10-08: OQ-102 ANSWERED. There is no model list; sources are any HDMI camera plus ATEM outputs. Use representative cameras and an ATEM that output the mode under test.)*
 
 **Runs**
 
@@ -393,6 +439,13 @@ NOT YET RUN ON PACSCORDER HARDWARE. Status: BLOCKED — HARDWARE REQUIRED.
 - **Pi 5 / CM5, software encoder:**
   - 1080p60, 1080p50 and 1080p30, including the UYVY → planar conversion [D-43].
   - Use each ADR-007 candidate under evaluation. The official documentation names `x264enc speed-preset=1 threads=1` as the Pi 5 replacement [D-37]; also record runs with other thread and preset settings.
+- **H.265, CM4 and CM5 (and any other platform kept)** *(added 2026-10-08)*. RISK-022 and OQ-104 ask TEST-ENC-001 to include these runs. Its canonical title was changed on 2026-10-08 to "Sustained real-time H.264 / H.265 encode"; the authoritative steps belong in [TESTING.md](TESTING.md).
+  - Modes: 1920×1080 at 30 and 60 fps with 8-bit planar input (OQ-104), plus 1080p50, because REQ-CAP-007 captures it. On a 2-lane connector use the highest mode it captures (§3.2).
+  - Encoders: GStreamer `x265enc` and FFmpeg `libx265`, each with fast presets (`ultrafast`, `superfast`) and `tune=zerolatency` [H-14], [H-16], [H-17]. Also run one non-zerolatency setting for recording, if OQ-103 assigns H.265 to recording.
+  - FFmpeg: set and record the frame-thread count explicitly, because the wrapper's thread count replaces zerolatency's single frame thread [H-10] (CORRECTED), [H-16]. The exact option syntax is a research gap (topic H): BUILD TEST REQUIRED.
+  - Include the UYVY → planar (I420) conversion in the measured load [H-43]. Record whether it runs on the CPU or on a hardware converter (OQ-057, OQ-060).
+  - Repeat with a concurrent H.264 encode (hardware on CM4, software on CM5) and with audio capture and encode, as OQ-104 asks.
+  - Before the runs, record the x265 version and the CPU capabilities x265 reports. Expected (reasoning from [H-04], [H-05]): DotProd on CM5 only. The command is NEEDS VERIFICATION (OQ-105).
 - **Concurrency:** repeat with the number of simultaneous encodes that OQ-005 requires.
 
 **Metrics**
@@ -401,7 +454,8 @@ NOT YET RUN ON PACSCORDER HARDWARE. Status: BLOCKED — HARDWARE REQUIRED.
 |---|---|---|
 | Encoded frames per second compared with input | Real-time capacity (§4) | Tool NEEDS VERIFICATION |
 | Dropped or late frames | REQ-PERF-001 | Tool NEEDS VERIFICATION |
-| Encode latency per frame | §7 | Reasoning: the Pi 4/CM4 encoder copies input timestamps to output buffers [D-19], so latency = dequeue time − input timestamp, provided the application queues the capture timestamp and reads the dequeue time from the same clock. Which clock the timestamps use is NEEDS VERIFICATION. Pi 5/CM5 method NEEDS VERIFICATION |
+| Encode latency per frame | §7 | Reasoning: the Pi 4/CM4 encoder copies input timestamps to output buffers [D-19], so latency = dequeue time − input timestamp, provided the application queues the capture timestamp and reads the dequeue time from the same clock. Which clock the timestamps use is NEEDS VERIFICATION. Pi 5/CM5 method NEEDS VERIFICATION. *(Superseded in part, 2026-10-08: on the capture side the clock is now in the register. Every Raspberry Pi CSI receiver driver stamps buffers with `CLOCK_MONOTONIC` at frame start [I-33]. The dequeue-side clock, and the method for software H.264/H.265 encoders, are still NEEDS VERIFICATION)* |
+| x265 CPU capabilities (H.265 runs; added 2026-10-08) | §5.3; DotProd only on CM5 [H-04], [H-05] | Method NEEDS VERIFICATION (OQ-105) |
 | Largest encoded frame (bytes) | The default CAPTURE `sizeimage` is 768 KiB [D-23] (OQ-056) | Record the maximum `bytesused` over the run (method NEEDS VERIFICATION) |
 | CPU, per core and total | §5 | Tool NEEDS VERIFICATION |
 | SoC temperature and throttling | §8 | Tool NEEDS VERIFICATION |
@@ -415,7 +469,7 @@ NOT YET RUN ON PACSCORDER HARDWARE. Status: BLOCKED — HARDWARE REQUIRED.
 - TEST-CAP-002 and TEST-ENC-001 have recorded results of TESTED — PASS on the platform.
 - Duration, ambient temperature range, enclosure and drop threshold are defined. Today they are UNDEFINED — OWNER DECISION REQUIRED (OQ-010).
 
-**Load:** the full product load required by the owner: capture, encode, recording, RTMP, WebRTC and audio, as applicable (OQ-004, OQ-005), on each lane configuration under evaluation (REQ-CAP-007). The ATEM integration is HDMI capture only (REQ-ATEM-001, REQ-CAP-008; OQ-009 ANSWERED 2026-10-07), so it is covered by the capture load; network ATEM functions are not in current scope.
+**Load:** the full product load required by the owner: capture, encode, recording, RTMP, WebRTC and audio, as applicable (OQ-004, OQ-005), on each lane configuration under evaluation (REQ-CAP-007). The ATEM integration is HDMI capture only (REQ-ATEM-001, REQ-CAP-008; OQ-009 ANSWERED 2026-10-07), so it is covered by the capture load; network ATEM functions are not in current scope. *(Added 2026-10-08.)* Audio is required (OQ-004 ANSWERED), so the load always includes audio capture and encoding. The video load includes H.264 and H.265 on the outputs that OQ-103 assigns. Run on CM4 and on CM5 (ADR-004).
 
 **Sampled metrics** (at a regular interval, recorded with timestamps):
 
@@ -425,7 +479,8 @@ NOT YET RUN ON PACSCORDER HARDWARE. Status: BLOCKED — HARDWARE REQUIRED.
 - frames captured, encoded and dropped;
 - encoder output rate;
 - recording file growth and stream health;
-- ambient temperature next to the TC358743, compared with its −30 to +70 °C rating [A-41].
+- ambient temperature next to the TC358743, compared with its −30 to +70 °C rating [A-41];
+- *(added 2026-10-08)* A/V offset over the run, for the multi-hour drift check that RISK-024 names (method NEEDS VERIFICATION; tolerance OQ-112).
 
 **Pass criteria:** UNDEFINED (OQ-010).
 
@@ -462,10 +517,21 @@ The command that waits for the event is NEEDS VERIFICATION (OQ-101). The result 
 - Latency: [A-30], [A-29], [B-19], [B-39], [C-20], [E-39], [D-14], [D-32], [D-35]; community report [C-42].
 - Thermal and power: [A-41], [A-38], [B-12].
 - Procedure commands and node choice: [C-37], [B-24], [B-25], [C-11], [C-36], [D-17], [D-37]; community report [C-33].
+- *(Added 2026-10-08.)* H.265 budget inputs (§4, §5.1–§5.3, §6.1, §7, §8, §10):
+  - no hardware HEVC encoder: [D-24], [D-31];
+  - encoders and versions: [H-01], [H-02], [H-06], [H-07], [H-09], [H-11];
+  - input formats and conversion: [H-10] (CORRECTED), [H-13]; reasoning [H-43];
+  - settings and latency: [H-14], [H-15], [H-16], [H-17];
+  - SIMD: [H-04], [H-05];
+  - cost evidence: community reports [H-19], [H-20], [H-21], [H-22]; reasoning [H-23];
+  - bitrate scale: [H-29].
+- *(Added 2026-10-08.)* Audio load and A/V timestamps (§5.1, §7):
+  - encoders: [I-39], [I-41], [I-44], [I-45], [I-46], [I-47], with [H-26], [F-41];
+  - timestamps: [I-33], [I-34], [I-35], [I-36], [I-37], [I-38].
 
 ### Verified on PACSCORDER hardware
 
-**Nothing** (no hardware exists as of 2026-10-07). No budget in this document has been measured. TEST-CAP-002, TEST-ENC-001, TEST-PERF-001 and TEST-CAP-003 are BLOCKED — HARDWARE REQUIRED.
+**Nothing** (no hardware exists as of 2026-10-07). No budget in this document has been measured. TEST-CAP-002, TEST-ENC-001, TEST-PERF-001 and TEST-CAP-003 are BLOCKED — HARDWARE REQUIRED. *(Re-checked 2026-10-08: still nothing. The H.265 budget line in §5.3 has no value, only UNKNOWN.)*
 
 ---
 
@@ -478,3 +544,6 @@ The command that waits for the event is NEEDS VERIFICATION (OQ-101). The result 
 | 2026-10-06 | Cross-document consistency fixes: the ~675 ns LP↔HS figure now carries the caveat that it was reported only for 2-lane 1080p50 UYVY at 972 Mbit/s ([C-50], community input); §3.2/§3.3 and TEST-CAP-002 say a 4-lane port is necessary but not shown sufficient for 1080p60 UYVY (3 of 4 lanes, OQ-038); link-frequency statements reference ADR-008 / OQ-099, and TEST-CAP-002 adds the ADR-008 297 MHz CM4 CAM1 evaluation run; `gpu_freq=550` acceptability now OQ-096 (§4.2, §10.3), with OQ-056 kept for the measurement; 2-lane 1080p50 UYVY load-class note added from CSI_PIPELINE.md §10.6; CSI-2 error-counter method linked to OQ-050 / OQ-095; `-d <sub-device path>`, frame counting, event waiting and version-recording commands linked to OQ-101; 6.18.39 labelled as the kernel of the [C-33] report only (shipped 6.18.50 [G-04], inspected 6.18.55 [E-37]); RISK-002 10-minute duration labelled as a research open question Final verification pass (same date): §10.3 precondition aligned with TESTING.md TEST-ENC-001 (on 2-lane connectors a passing lower-rate capture replaces the 1080p60 TEST-CAP-002 result); CPU sampling, SoC temperature/throttling read-out and device enumeration in §8 and §10.1 linked to OQ-101, whose scope note now names them. | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: §2 row "Whether 1080p60 is mandatory — UNDEFINED (OQ-001)" replaced by the REQ-CAP-007 capture scope (OQ-001 ANSWERED; mode list OQ-002, fractional rates OQ-040); new §3.2 per-lane-configuration budget table with candidate connectors and supported-mode limits [C-37], [C-48], [C-49], [B-33], HDMI-source note (REQ-CAP-008, OQ-102, [F-23]) and per-configuration EDID note (OQ-002, reasoning); §3.3 marks 2-lane / 4-lane candidates and the one-board-for-both question (OQ-021); §4.2 2-lane encode ceiling tied to REQ-CAP-007; §5.1/§5.2 ATEM load row: HDMI capture only, network functions not in current scope (OQ-009 ANSWERED, REQ-ATEM-001); §9 platform column, §10.1, §10.2 (scope aligned with TESTING.md TEST-CAP-002, "Verifies" REQ-CAP-001 and REQ-CAP-007; HDMI-source precondition 6), §10.3 and §10.4 now name the lane configuration; §6.2 OS-basis note references REQ-BLD-002 (ADR-003 still PROPOSED). Added citations B-33, F-23. No platform chosen; no ADR status changed; no measurement added. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); §6.2 CMA unknowns: "the build tool is ADR-003 (PROPOSED)" → "the build tool is `rpi-image-gen` (ADR-003, ACCEPTED)". No budget, evidence, other ADR status or implementation status changed. | Claude (session 2026-10-07) |
+| 2026-10-08 | H.265 budget inputs (research topic H), audio load and A/V timestamps (research topic I), and the owner decisions of 2026-10-07 (second set). Changes: <br>• Header: "Applies to" and "Verification" updated. <br>• §2: rows for codecs (H.264 + H.265; OQ-103), HDMI audio (OQ-004 ANSWERED; tolerance OQ-112) and the CM4 + CM5 side-by-side bring-up (ADR-004 OPEN). <br>• §3.2: HDMI-source note marked superseded in part (OQ-102 ANSWERED: any HDMI camera plus ATEM, no model list). <br>• §4.1/§4.2: H.265 levels not in the register; H.265 is a CPU load on every platform; H.264 + H.265 concurrency. §4.3: `x265enc` bitrate range [H-14]; YouTube 1080p60 bitrates with storage reasoning [H-29]. <br>• §5.1: new H.265 row; conversion row (planar only, [H-43] traffic); concurrency row; audio row marked superseded in part (audio required; encoders [I-39]–[I-47]). §5.2: H.265 and conversion rows; "core type not in register" marked superseded in part ([H-05]). <br>• New §5.3 H.265 budget line for CM4 and CM5. It holds inputs only, and the budget is UNKNOWN; it warns against multiplying [G-22] by [H-23] and against carrying the Pi 400 figure over to CM4. <br>• §6.1: I420 frame-size row [H-43]. §7: H.265 latency, conversion-stage and A/V timestamp rows. §8: H.265 thermal row. §9: re-check note; SW version and Notes rules extended. <br>• §10.1: CM4 + CM5 and x265 version rules. §10.2: precondition 6 marked superseded in part (OQ-102). §10.3: H.265 runs, the latency-clock note marked superseded in part ([I-33]), and an x265 CPU-capability metric. §10.4: audio always in the load; A/V drift metric. §11: fact lists. <br>New citations: D-24, D-31, H-01, H-02, H-04 to H-07, H-09 to H-11, H-13 to H-17, H-19 to H-23, H-26, H-29, H-43, I-33 to I-39, I-41, I-44 to I-47, F-41. No measurement added; no REQ or ADR status changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | Citation verification of the topic H and I additions: §5.3 usage rules — the harness description [H-22] and the Pi 400 clock [H-21] now worded as community reports, and [H-23] marked as a reasoning-tier entry. All other [H-xx] and [I-xx] citations and the storage arithmetic (12 and 17 Mbit/s for one hour) checked; no change needed. No measurement added; no status changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |

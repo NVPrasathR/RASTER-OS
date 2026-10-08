@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | Active — 17 procedures defined; **no test has been run** |
-| Last updated | 2026-10-07 |
-| Applies to | PACSCORDER on every candidate platform (Pi 4 Model B, CM4, Pi 5, CM5), in both the 2-lane and the 4-lane CSI-2 configuration (REQ-CAP-007); TC358743 bridge; HDMI sources: ATEM switcher outputs and cameras connected directly (REQ-CAP-008); Raspberry Pi OS Lite 64-bit for bring-up and the project's own product image (REQ-BLD-002), as decided in ADR-003 (ACCEPTED 2026-10-07) |
-| Verification | Procedures derived from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)). Nothing has been run on PACSCORDER hardware: no hardware exists as of 2026-10-06. |
+| Last updated | 2026-10-08 |
+| Applies to | PACSCORDER on every candidate platform (Pi 4 Model B, CM4, Pi 5, CM5), in both the 2-lane and the 4-lane CSI-2 configuration (REQ-CAP-007); TC358743 bridge; HDMI sources: ATEM switcher outputs and cameras connected directly (REQ-CAP-008); Raspberry Pi OS Lite 64-bit for bring-up and the project's own product image (REQ-BLD-002), as decided in ADR-003 (ACCEPTED 2026-10-07). *(Added 2026-10-08.)* Bring-up evaluates **CM4 and CM5 side by side** (owner, 2026-10-07; ADR-004 stays OPEN until measured); HDMI audio is required (REQ-CAP-006, DRAFT); video codecs are H.264 **and** H.265 (REQ-ENC-001; which outputs use H.265 is OQ-103); sources are any HDMI camera, with no model list, plus ATEM outputs (OQ-102 ANSWERED) |
+| Verification | Procedures derived from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and extended on 2026-10-08 with the source research of topic H (H.265 software encoding and transport) and topic I (HDMI audio path). Nothing has been run on PACSCORDER hardware: no hardware exists as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 9 (test documentation), Rule 10 (status words), Rule 12 (traceability), Rule 21 (no retroactive edits), Rule 22 (unknowns) |
 
 This document holds one procedure for each canonical test ID in [README.md](README.md), in the same order, written in the Rule 9 format. The requirement-to-test mapping is in [TRACEABILITY.md](TRACEABILITY.md). Failure signatures that a test may hit are in [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
@@ -33,7 +33,7 @@ This document holds one procedure for each canonical test ID in [README.md](READ
 | TEST-CAP-004 | Unsupported-mode rejection and supported-mode matrix | REQ-CAP-005, REQ-CAP-007, REQ-CAP-008 | BLOCKED — HARDWARE REQUIRED |
 | TEST-AUD-001 | HDMI audio capture over I2S | REQ-CAP-006 | BLOCKED — HARDWARE REQUIRED |
 | TEST-DMA-001 | DMABUF capture → encoder buffer sharing | REQ-DMA-001, REQ-ARCH-001 | BLOCKED — HARDWARE REQUIRED |
-| TEST-ENC-001 | Sustained real-time H.264 encode | REQ-ENC-001 | BLOCKED — HARDWARE REQUIRED |
+| TEST-ENC-001 | Sustained real-time H.264 / H.265 encode | REQ-ENC-001 | BLOCKED — HARDWARE REQUIRED |
 | TEST-REC-001 | Recording integrity and duration | REQ-REC-001 | BLOCKED — HARDWARE REQUIRED |
 | TEST-STR-001 | RTMP publish and playback | REQ-STR-001 | BLOCKED — HARDWARE REQUIRED |
 | TEST-STR-002 | WebRTC browser playback | REQ-STR-002 | BLOCKED — HARDWARE REQUIRED |
@@ -51,6 +51,7 @@ This document holds one procedure for each canonical test ID in [README.md](READ
   - Where a source attests the action but not the exact command-line option, the step says `NEEDS VERIFICATION` instead of guessing syntax. These steps are tracked together in OQ-101.
   - **`v4l2-ctl -d /dev/v4l-subdevN`**, that is, a sub-device path given to `-d`, is NEEDS VERIFICATION (OQ-101). The register attests `-d 11` [D-17] and running the EDID and timing steps on `/dev/v4l-subdevN` [C-33], but not that option form. The `--set-edid pad=<pad>[,…]` and `--clear-edid <pad>` forms are attested as `v4l2-ctl` help text [B-24]; the argument form `--clear-edid 0` is NEEDS VERIFICATION (OQ-101).
   - Generic read-only actions, such as reading the kernel log or listing device nodes, are written as actions ("inspect the kernel log for …"). No register fact attests a specific command for them. The command actually used must be written into the result log entry.
+  - *(Added 2026-10-08.)* **Audio and H.265 commands.** The register attests the ALSA device string `hw:CARD=tc358743,DEV=0` (and `plughw:` / `sysdefault:CARD=tc358743`) [I-15], and one `arecord` capture command from a 2019 forum thread (community source) [I-16]. It also attests element and property names (`x265enc` [H-11], [H-14]; `opusenc`, `avenc_aac`, `voaacenc` [I-47]) and the FFmpeg option names `rtmp_enhanced_codecs` [H-26] and `-ts abs` / `mono2abs` [I-38]. It attests no complete GStreamer or FFmpeg pipeline for H.265 or audio, no `arecord` listing option and no `v4l2-ctl` option for reading a control or waiting for a control event. Those steps are NEEDS VERIFICATION and are tracked in OQ-101.
 - **Device names are placeholders.** `/dev/v4l-subdevN`, `/dev/mediaN` (`media-ctl -d <N>`), `/dev/videoN`, `<bus>` and entity names such as `"tc358743 1x-000f"` vary by board and connector, and a Raspberry Pi engineer reported that they changed between kernel versions on Pi 5 [C-28]. On PACSCORDER they are `UNKNOWN — VERIFICATION REQUIRED` (HARDWARE TEST REQUIRED, OQ-043). Record the actual names in every result entry.
 - **Control model.** The procedures follow ADR-006, which is **PROPOSED, not accepted** (OQ-014): Media Controller mode on every platform, with EDID and DV timings issued on the TC358743 sub-device node.
   - On Pi 4/CM4 the stock overlay default is the legacy video-node mode instead [B-43], [C-10]. In that mode EDID and DV-timings ioctls go through `/dev/videoN` [B-25], and sub-device nodes are registered read-only [C-36].
@@ -64,13 +65,14 @@ This document holds one procedure for each canonical test ID in [README.md](READ
 
 | Item | Value |
 |---|---|
-| Platform | One of Pi 4 Model B, CM4, Pi 5, CM5. The product platform is **undecided** (ADR-004 OPEN, OQ-011). Run each test on every platform still under consideration. |
+| Platform | One of Pi 4 Model B, CM4, Pi 5, CM5. The product platform is **undecided** (ADR-004 OPEN, OQ-011). Run each test on every platform still under consideration. *(Added 2026-10-08.)* Owner, 2026-10-07: bring-up evaluates **CM4 and CM5 side by side**; ADR-004 stays OPEN until the TEST-CAP-002, TEST-CAP-004 and TEST-ENC-001 results exist. Run every hardware test on both CM4 and CM5 and record each board separately. Pi 4 Model B and Pi 5 are not removed from ADR-004 or OQ-011, so their columns stay in the platform reference below. |
 | Lane configuration | Both a 2-lane and a 4-lane CSI-2 configuration are required, each capturing every frame rate its link carries (REQ-CAP-007, DRAFT; owner, 2026-10-07). ADR-004 is now a choice per configuration (still OPEN). 2-lane: Pi 4 Model B [C-01], CM4 CAM0 [C-02], or a 2-lane bridge board on any port. 4-lane: CM4 CAM1 [C-02], Pi 5 [C-04], CM5 [C-05]. Whether one bridge board can serve both is UNKNOWN (OQ-021). Record the lane configuration in every result entry. |
 | Bridge board | UNKNOWN — VERIFICATION REQUIRED (VENDOR CONFIRMATION REQUIRED, OQ-018). The lane count, REFCLK oscillator, INT/RESETN wiring, CAM_GPIO use and I/O voltage are all unknown (OQ-019, OQ-020, OQ-021, OQ-022, OQ-024). |
-| HDMI source(s) | Source types: the HDMI output of Blackmagic ATEM switchers and cameras connected directly (REQ-CAP-008, DRAFT; owner, 2026-10-07). Which ATEM and camera models is OPEN — OWNER DECISION REQUIRED (OQ-102). The mode list and EDID are OWNER DECISION REQUIRED (OQ-002). |
+| HDMI source(s) | Source types: the HDMI output of Blackmagic ATEM switchers and cameras connected directly (REQ-CAP-008, DRAFT; owner, 2026-10-07). Which ATEM and camera models is OPEN — OWNER DECISION REQUIRED (OQ-102). *(Superseded 2026-10-08: OQ-102 was ANSWERED by the owner on 2026-10-07 — "Any HDMI camera (generic)", with no model list, plus ATEM switcher outputs. What is accepted is defined by the supported-mode matrix and the EDID (OQ-002). Representative cameras and an ATEM are still needed to run the tests; record the model, firmware and audio settings of every source used.)* The mode list and EDID are OWNER DECISION REQUIRED (OQ-002). |
 | Power | UNKNOWN — VERIFICATION REQUIRED (OQ-023). The rules' "12V power" is an example, not a PACSCORDER specification. |
 | OS image (bring-up) | Raspberry Pi OS Lite (64-bit) 2026-10-06 image, based on Debian 13 "trixie" [G-01], with Linux kernel 6.18.50 [G-04]. This follows ADR-003, which is ACCEPTED (owner, 2026-10-07; OQ-012 ANSWERED). The stock image is for bring-up only: the product runs the project's own built image (REQ-BLD-002, DRAFT), which TEST-BLD-001 builds and boots. Driver behaviour in the expected results comes from the source inspected in research, the `rpi-6.18.y` tip at 6.18.55 [E-37]; whether `tc358743.c` differs in the shipped 6.18.50 is OQ-097 (KERNEL SOURCE INSPECTION REQUIRED). |
 | Tools in that image | `v4l2-ctl` and `media-ctl` (v4l-utils) are installed [G-24]. `i2c-tools` is in the archive but **not installed** [G-25]. **No GStreamer packages are installed** [G-32]. |
+| Encode, audio and streaming packages *(added 2026-10-08)* | Taken from the archive, not from the Lite image. GStreamer: `x265enc` is in `gstreamer1.0-plugins-bad`, which Raspberry Pi rebuilds and still ships with it [H-11], [H-12] (CORRECTED); `voaacenc` is also in that package [I-44]; `opusenc` is in `gstreamer1.0-plugins-base` and `alsasrc` in `gstreamer1.0-alsa` [I-45]; `avenc_aac` is in Debian's `gstreamer1.0-libav` [I-46]. FFmpeg: the Raspberry Pi FFmpeg 7.1.5 links `libx265` [H-08], [H-09] and `libopus`, and has the native `aac` encoder but no `libfdk_aac` [I-39]. x265 is Debian's 4.1-2, not overridden by Raspberry Pi [H-01], [H-02]. Whether `ffmpeg` and the ALSA user tools (`arecord`) are installed in the Lite image is not in the source register: NEEDS VERIFICATION (BUILD TEST REQUIRED). Research noted that the FFmpeg encoder list was inferred from package dependencies and should be checked on the image itself (research gap, topic I — not a register fact; OQ-063). |
 | Boot configuration file | `/boot/firmware/config.txt` [G-11] |
 | Hardware revision | `—` (no PACSCORDER hardware revision exists; Rule 8 revision history is in [HARDWARE.md](HARDWARE.md)) |
 
@@ -85,6 +87,11 @@ This document holds one procedure for each canonical test ID in [README.md](READ
 | Camera I2C bus (bridge expected at 7-bit 0x0f [A-15]) | `i2c-10` on GPIO 44/45 [C-24] | CAM1 `i2c-10` (GPIO 44/45); CAM0 `i2c-0` (GPIO 0/1) [C-24], [C-25] | CAM/DISP0 `/dev/i2c-10`, CAM/DISP1 `/dev/i2c-11` [C-26]; a Raspberry Pi engineer reported other numbers on earlier kernels [C-28] | depends on the carrier board [C-27]. CM5 IO Board: CAM/DISP 1 is RP1 i2c0 on GPIO 0/1, CAM/DISP 0 is RP1 i2c6 on GPIO 38/39 [C-27], [B-44]; `/dev` number UNKNOWN (OQ-052) |
 | I2C jumpers on the official IO board | — | CAM0 needs both J6 jumpers [C-03] | — | CAM/DISP 1 needs two J6 jumpers [C-06]; a DT comment disagrees (research gap, topic C; OQ-052) |
 | Encoder | hardware `bcm2835-codec`, `/dev/video11` [D-06], [D-07] | as Pi 4 | software only [G-22], [D-31] | software only [D-31] |
+| H.265 encoder *(added 2026-10-08)* | software only: no HEVC encoder in `bcm2835-codec` [D-24] | as Pi 4 [D-24] | software only [D-31] | software only [D-31] |
+| x265 SIMD paths *(added 2026-10-08)* | reasoning: as CM4, because Pi 4 Model B is also BCM2711 [D-10], [H-05] | Cortex-A72: Neon only, no DotProd; I8MM, SVE, SVE2 not applicable [H-05] | reasoning: as CM5, because Pi 5 is also BCM2712 [D-30], [H-05] | Cortex-A76: Neon DotProd kernels can apply, enabled only if the kernel reports ASIMDDP [H-04], [H-05]; whether they are active is OQ-105 |
+| HDMI audio CPU DAI behind `i2s_clk_consumer` *(added 2026-10-08)* | not covered by the topic I research (CM4 and CM5 only) | single `bcm2835-i2s` on GPIO 18–21 (ALT0) [I-10]; capture exactly 2 channels, 8–384 kHz, S16_LE / S24_LE / S32_LE [I-13] | not covered by the topic I research (OQ-054) | RP1 I2S1 (`rp1_i2s1`, `snps,designware-i2s`) on GPIO 18–21 [I-07], [I-08]; the clock-consumer instance a codec-master link needs [I-09]; channel count and formats come from hardware registers [I-14]. **Operation unconfirmed** (OQ-054) |
+| TC358743 audio controls appear on *(added 2026-10-08)* | not covered by the topic I research | `/dev/videoN` with legacy Unicam (stock overlay, `media-controller` off) [I-23]; in Media Controller mode (ADR-006, PROPOSED) reasoning from [I-23]: the TC358743 sub-device node | not covered by the topic I research | only the TC358743 `/dev/v4l-subdevN` [I-23] |
+| Expected ALSA PCM name *(added 2026-10-08)* | not covered by the topic I research | `bcm2835-i2s-dir-hifi dir-hifi-0` [I-15]; card index varies, reported as card 0 and card 1 in the same 2019 thread (community source) [I-16] | not covered by the topic I research | reasoning from source: `1f000a4000.i2s-dir-hifi dir-hifi-0` [I-17]. Select the device by card id `tc358743` on both boards [I-15], [I-17] |
 
 ### Test order
 
@@ -93,6 +100,10 @@ Bring-up uses the stock image (ADR-003, ACCEPTED), so TEST-BLD-001 does not gate
 ```text
 TEST-HW-001 → TEST-DRV-001 → TEST-DRV-002 → TEST-PLT-001 → TEST-CAP-001 → TEST-CAP-002
 TEST-DRV-002 → TEST-AUD-001                       (only if audio is required, OQ-004)
+                                                  (superseded 2026-10-08: audio is required, OQ-004 ANSWERED 2026-10-07;
+                                                   run on CM4 and CM5 — on CM5 it gates the platform, ADR-004)
+TEST-CAP-002 (or a lower-rate capture) + TEST-AUD-001 steps 1–8 → TEST-AUD-001 step 9 (A/V offset)
+TEST-AUD-001 → TEST-REC-001, TEST-STR-001, TEST-STR-002   (audio in every output, REQ-CAP-006)
 TEST-CAP-002 → TEST-CAP-003
 TEST-CAP-002 → TEST-CAP-004                       (4-lane configuration)
 TEST-CAP-001 → TEST-CAP-004                       (2-lane configuration: TEST-CAP-002's 1080p60 run does not apply)
@@ -102,6 +113,8 @@ TEST-CAP-001, TEST-CAP-002 → TEST-ATEM-001 (HDMI capture of the ATEM output; t
 TEST-ENC-001 + the selected outputs → TEST-PERF-001
 TEST-BLD-001                                      (independent of bring-up)
 ```
+
+*(Added 2026-10-08.)* TEST-ENC-001 now contains H.264 and H.265 runs on CM4 and CM5 (REQ-ENC-001); its canonical title in [README.md](README.md) still says "H.264" and is unchanged here. TEST-REC-001, TEST-STR-001, TEST-STR-002 and TEST-PERF-001 take the H.265 runs as well as the H.264 runs, as far as the owner scopes H.265 to each output (OQ-103).
 
 ---
 
@@ -440,7 +453,7 @@ Confirm that, for every source mode PACSCORDER must accept, the DV timings are d
 ### Setup
 
 - As TEST-DRV-002, with the EDID loaded.
-- Sources (REQ-CAP-008): run with both source types the owner named on 2026-10-07 — an ATEM switcher's HDMI output and each camera connected directly. The ATEM and camera models are OPEN (OQ-102); record the model and firmware of every source in the result entry.
+- Sources (REQ-CAP-008): run with both source types the owner named on 2026-10-07 — an ATEM switcher's HDMI output and each camera connected directly. The ATEM and camera models are OPEN (OQ-102); record the model and firmware of every source in the result entry. *(Superseded 2026-10-08: OQ-102 ANSWERED 2026-10-07 — any HDMI camera, no model list. Use representative cameras and an ATEM; the accepted set is defined by the supported-mode matrix and the EDID (OQ-002), and unsupported modes are rejected per REQ-CAP-005.)*
   - ATEM Mini Pro: set its HDMI output to Program first; it defaults to multiview [F-25].
   - Cameras: their HDMI output modes are UNKNOWN — VERIFICATION REQUIRED per model (OQ-102).
 - Source modes: REQ-CAP-007 requires every frame rate the configured link carries; the exact list is UNKNOWN — OWNER DECISION REQUIRED (OQ-002). Candidates from sources:
@@ -520,7 +533,7 @@ Scope against the owner decision of 2026-10-07 (OQ-001 answered: "i need 2 lane 
   - CM4 CAM1 with a 4-lane board only: ADR-008 also proposes an evaluation run at `link-frequency=297000000` (594 Mbps per lane) [G-12]. Reasoning: at that rate the driver requests all 4 lanes for 1080p60 UYVY [C-47], [C-49], which avoids the 3-of-4-lane case. A driver comment says 594 Mbps is meant for 4-lane 1080p60 [C-44].
   - Not on Pi 5 / CM5. Reasoning: the CFE programs 999 Mbps for this bridge, which matches only the default rate [C-52].
 - Capture format: UYVY (`UYVY8_1X16`), following ADR-005 (PROPOSED; OQ-003).
-- 1080p60 HDMI source and an EDID that offers 1080p60 (TEST-DRV-002). Sources are ATEM outputs and cameras (REQ-CAP-008): run with each required model that outputs 1080p60 (models OQ-102). The ATEM Mini Pro lists 1080p60 among its output standards [F-23]; set its HDMI output to Program first [F-25].
+- 1080p60 HDMI source and an EDID that offers 1080p60 (TEST-DRV-002). Sources are ATEM outputs and cameras (REQ-CAP-008): run with each required model that outputs 1080p60 (models OQ-102). *(2026-10-08: OQ-102 ANSWERED — no model list; run with each representative camera and ATEM that outputs 1080p60.)* The ATEM Mini Pro lists 1080p60 among its output standards [F-23]; set its HDMI output to Program first [F-25].
 
 ### Test
 
@@ -677,7 +690,7 @@ Establish, for each platform and lane configuration, which input modes capture w
 The resulting supported-mode matrix is also the evidence for two DRAFT requirements from the owner decisions of 2026-10-07:
 
 - REQ-CAP-007: both the 2-lane and the 4-lane configuration capture every frame rate their link carries. The matrix must be completed for **both** configurations. Its acceptance criteria are the supported-mode matrix per lane count, which the owner has not yet defined (OQ-002).
-- REQ-CAP-008: HDMI sources are ATEM switcher outputs and cameras connected directly. The matrix must be completed for **both** source types, with every model the owner lists (OQ-102).
+- REQ-CAP-008: HDMI sources are ATEM switcher outputs and cameras connected directly. The matrix must be completed for **both** source types, with every model the owner lists (OQ-102). *(Superseded 2026-10-08: OQ-102 ANSWERED 2026-10-07 — "Any HDMI camera (generic)", no model list. The matrix is completed with representative cameras and an ATEM, and it, with the EDID (OQ-002), defines what PACSCORDER accepts.)*
 
 Unsupported modes include:
 
@@ -781,9 +794,9 @@ BLOCKED — HARDWARE REQUIRED — not run
 | | |
 |---|---|
 | Verifies | REQ-CAP-006 |
-| Related risks | RISK-014 |
-| Related open questions | OQ-004, OQ-024, OQ-025, OQ-033, OQ-054, OQ-063 |
-| Depends on | TEST-DRV-002; owner decision that audio is required (OQ-004) |
+| Related risks | RISK-014; added 2026-10-08: RISK-023 (sample-rate mismatch), RISK-024 (A/V synchronisation) |
+| Related open questions | OQ-004 (ANSWERED 2026-10-07), OQ-024, OQ-025, OQ-033, OQ-054, OQ-063; added 2026-10-08: OQ-052, OQ-101, OQ-110, OQ-111, OQ-112, OQ-114 |
+| Depends on | TEST-DRV-002; owner decision that audio is required (OQ-004). *(2026-10-08: that decision was made on 2026-10-07 — audio is required — so this dependency is met.)* Step 9 (A/V offset) also needs TEST-CAP-002, or a lower-rate capture on the 2-lane configuration, on the same board. |
 
 ### Objective
 
@@ -791,32 +804,140 @@ Capture the HDMI source's embedded audio from the TC358743 I2S output into an AL
 
 The silicon can also send audio over CSI-2 [A-05]. The Linux driver always configures 2-channel I2S output instead [A-13], so this test covers the I2S path only. Reasoning: the `tc358743-audio` overlay expects the I2S signals on Pi GPIO 18–20 [A-47], [G-14], not on the camera connector, so the bridge board needs separate audio wiring to the Pi (OQ-025).
 
+*(Added 2026-10-08.)* HDMI audio is required in recordings and streams (REQ-CAP-006, DRAFT; owner, 2026-10-07). The test is run on **both bring-up boards, CM4 and CM5** (ADR-004, OPEN). Besides capture itself, it establishes:
+
+- on CM5, whether the overlay binds and captures at all. No source shows audio captured through this path on CM5 (research gap, topic I; OQ-054); reasoning from ADR-004's analysis: this result gates CM5 as a product platform while audio is required;
+- that the source sample rate can be read from the driver and that a capture opened at the wrong rate is detected, because ALSA does not report it (RISK-023, OQ-111);
+- what the I2S output carries for compressed, multichannel and 24-bit sources (OQ-110);
+- the audio/video offset and drift (RISK-024, OQ-112).
+
 ### Setup
 
-- **Precondition:** OQ-004 answered "audio required". Otherwise this test does not apply; REQ-CAP-006 is PROPOSED.
+- **Precondition:** OQ-004 answered "audio required". Otherwise this test does not apply; REQ-CAP-006 is PROPOSED. *(Superseded 2026-10-08: OQ-004 was ANSWERED on 2026-10-07 — "Yes, audio required" — and REQ-CAP-006 is now DRAFT. The test applies on every board.)*
 - Wiring:
   - The bridge board must bring out the I2S pins. That is UNKNOWN (VENDOR CONFIRMATION REQUIRED, OQ-025). The audio pins are outputs in the VDDIO2 domain (1.8 V or 3.3 V) [A-12]; the board's VDDIO2 level is UNKNOWN (OQ-024).
   - Wiring expected by the `tc358743-audio` overlay: LRCK/WFS → GPIO 19, BCK/SCK → GPIO 18, DATA/SD → GPIO 20 [A-47], [G-14].
+  - *(Added 2026-10-08.)* The TC358743 has four audio pins, all outputs: A_SCK, A_WFS, A_SD and the oversampling clock A_OSCK, powered from VDDIO2, which is rated 1.8–3.3 V [I-27]. The CM4 and CM5 IO Boards have a selectable 1.8 V or 3.3 V GPIO voltage; VDDIO2 should match the selected voltage, or the audio lines need level shifting [I-29] (OQ-024). **Record the IO board's GPIO voltage setting and the bridge board's VDDIO2 level before power-up.** Whether A_OSCK must be connected is unknown (research open question, topic I; OQ-025).
+  - *(Added 2026-10-08.)* Clock roles: the public datasheet makes the TC358743 the I2S clock master only, with 32-bit time slots [I-25]. The overlay makes the codec link bit-clock and frame master and binds the Pi through `i2s_clk_consumer` [I-03]. Reasoning: the two agree, with 64 bit clocks per frame [I-28]. Reasoning from [I-03] and the overlay wiring [A-47]: the Pi therefore receives BCK and LRCK from the bridge, on GPIO 18 and 19.
 - `config.txt`: `dtoverlay=tc358743-audio` in addition to the `tc358743` line [C-37], [G-14].
-  - The overlay README refers to a `tc358743-fast` overlay that has no README entry [B-46].
-  - Behaviour on Pi 5 / CM5 is UNKNOWN (OQ-054).
+  - The overlay README refers to a `tc358743-fast` overlay that has no README entry [B-46]. *(2026-10-08: that is a stale name — only `tc358743`, `tc358743-audio` and `tc358743-pi5` are built [I-04]. Use the platform's `tc358743` line from TEST-DRV-001.)* A Raspberry Pi engineer reported that `tc358743-audio` requires `tc358743` to be loaded as well, because the bridge must be configured (community source) [I-16].
+  - Behaviour on Pi 5 / CM5 is UNKNOWN (OQ-054). *(2026-10-08: on CM5, `overlay_map` has no `tc358743-audio` entry, so `dtoverlay=tc358743` loads `tc358743-pi5` and `tc358743-audio` loads under its own name [I-05]; the firmware does not block it [I-06]; its labels resolve to RP1 I2S1 on GPIO 18–21 [I-07], [I-08]. Operation on CM5 is still unconfirmed, OQ-054.)*
+  - *(Added 2026-10-08.)* The kernel options this path needs are set in both arm64 defconfigs and in both packaged 6.18.50 kernels [I-12].
+- *(Added 2026-10-08.)* **GPIO 18–21 allocation (OQ-114).** With `tc358743-audio` enabled, the I2S pin group claims GPIO 18, 19, 20 and 21, although the audio path uses only 18–20 [I-30]. Remove or move any other overlay that uses these pins: `pwm` and `pwm-2chan` default to pin 18, `gpio-ir` defaults to GPIO 18, and `audremap` offers `pins_18_19` on BCM2711 [I-31]. Record every `dtoverlay` line in the result entry. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) §8.3.
+- *(Added 2026-10-08.)* **Platforms.** CM4 and CM5, side by side (owner, 2026-10-07; ADR-004 OPEN). For CM5, record the carrier board (OQ-052).
+- *(Added 2026-10-08.)* **Control node.** The TC358743 audio controls appear on `/dev/videoN` on CM4 with legacy Unicam (the stock overlay default), and only on the TC358743 sub-device node on CM5 [I-23]. In Media Controller mode on CM4 (ADR-006, PROPOSED), reasoning from [I-23]: they are expected on the sub-device node only; record where they appear.
 - An HDMI source sending 2-channel PCM audio at a known sample rate.
+- *(Added 2026-10-08.)* **Sources.** Representative cameras and an ATEM (OQ-102 ANSWERED: any HDMI camera, no model list, plus ATEM outputs). ATEM Mini Pro outputs its program audio embedded on HDMI (CORRECTED) [F-24]. What audio format and rate each source sends is UNKNOWN per model: record it. Needed:
+  - a 2-channel LPCM source at **48 kHz** and one at **44.1 kHz** (the driver's rate table decodes both [I-19]);
+  - a source that can change its audio sample rate, or switch programmes, while running;
+  - if available: a compressed (AC-3 or DTS bitstream) source, a multichannel LPCM source and a 24-bit LPCM source (OQ-110);
+  - for step 9: a source with a simultaneous visual and audible marker (clapper or flash-and-beep, as named in OQ-112).
+- *(Added 2026-10-08.)* **EDID audio.** The EDID's audio descriptors control what sources send; the EDID content is OQ-002. Research proposes advertising 2-channel LPCM only (research design risk, topic I — not a register fact; OQ-110). Record the EDID used.
+- *(Added 2026-10-08.)* **Software.** The ALSA capture tool and, for step 9, the media framework (ADR-007, OPEN). Packages: see the common setup. Whether `arecord` is in the Lite image is NEEDS VERIFICATION.
 
 ### Test
 
 **NOT YET RUN ON PACSCORDER HARDWARE.**
+
+*Original steps of 2026-10-06, kept for the record (Rule 21). Superseded on 2026-10-08 by the full procedure below, which covers them.*
 
 1. Boot. Confirm that an ALSA card is registered (command NEEDS VERIFICATION).
 2. Read the "Audio present" and "Audio sampling rate" controls on the TC358743 sub-device [B-16] (command NEEDS VERIFICATION).
 3. Record audio from the ALSA card (command NEEDS VERIFICATION). Compare with the source audio.
 4. Change the source sample rate and repeat step 2.
 
+**Full procedure (2026-10-08).** Run every step on CM4 and on CM5. Record the board, carrier board, kernel version, `config.txt` lines, GPIO voltage, VDDIO2 level, source model and source audio format in each result entry.
+
+1. **Boot and kernel log.** Boot with the platform's `tc358743` line plus `dtoverlay=tc358743-audio`. Inspect the kernel log for the sound card and for errors from the CPU DAI driver (`bcm2835-i2s` on CM4, `dwc-i2s` on CM5) and the sound card driver. Record the exact lines.
+2. **Card.** List the ALSA capture devices. Confirm a card with id `tc358743`, and record its card index and PCM name. Command NEEDS VERIFICATION (OQ-101); research suggested `arecord -l` (research open question, topic I — not a register fact).
+3. **Hardware parameters.** Dump the capture hardware parameters (channels, sample formats, rate range) of `hw:CARD=tc358743,DEV=0` [I-15]. Command NEEDS VERIFICATION (OQ-101); research suggested `arecord --dump-hw-params -D hw:CARD=tc358743` (research open question, topic I — not a register fact). On CM5 this records the RP1 I2S1 channel count and formats that source inspection could not determine (OQ-054).
+4. **Sample-rate and audio-present controls.** With the EDID written (TEST-DRV-002) and the source sending audio, read "Audio present" (ID 0x00981981) and "Audio sampling rate" (ID 0x00981980) [I-20] on the node that carries them (see Setup, control node). The `v4l2-ctl` option is NEEDS VERIFICATION (OQ-101). A 2019 forum thread showed them listed as `audio_sampling_rate 0x00981980` with value 48000 and `audio_present 0x00981981` with value 1 (community source) [I-16]. Repeat with the HDMI cable unplugged.
+5. **Capture at the source rate.** Capture 2 channels at the rate read in step 4, while the source plays a known reference (a steady tone of known frequency and a timed marker). A capture command was reported in the 2019 thread, on a Pi with `bcm2835-i2s` and a 2019 kernel (community source) [I-16]:
+   ```bash
+   arecord -vv -d 20 -r 48000 -c 2 -f dat -t wav -D sysdefault:CARD=tc358743 out.wav   # [I-16]
+   ```
+   - Replace `48000` with the rate read in step 4. The meaning of the other options is not in the source register: NEEDS VERIFICATION (OQ-101).
+   - Compare the recording's pitch, duration and content with the source.
+   - Repeat in a 32-bit sample format (CM4's `bcm2835-i2s` accepts S32_LE [I-13]; on CM5 `hw_params` accepts S32_LE, but the formats RP1 I2S1 offers come from its hardware registers, so use what step 3 reports [I-14]), to see where 16- to 24-bit HDMI samples sit in the 32-bit slots (OQ-110). Command NEEDS VERIFICATION (OQ-101).
+6. **Rate-mismatch check (RISK-023).** With the 44.1 kHz source, capture once with the device opened at 44100 Hz and once at 48000 Hz. With the 48 kHz source, capture once at 48000 Hz and once at 44100 Hz. For each recording, measure the tone frequency and the recording's duration against a reference clock, and record whether ALSA reported any error.
+7. **Rate change during capture (OQ-111).** Subscribe to `V4L2_EVENT_CTRL` for the sampling-rate control on the node from step 4 [I-21]; the `v4l2-ctl` event option is NEEDS VERIFICATION (OQ-101). While capturing, switch the source between 48 kHz and 44.1 kHz, and between programmes. Record:
+   - the time from the switch to the event and to the new control value;
+   - what the capture contains during the switch (silence, glitch, clean re-lock);
+   - whether "Audio present" changes.
+
+   The PACSCORDER application that reopens ALSA at the new rate is NOT STARTED. Until it exists, reopen the capture by hand and record the gap.
+8. **Formats and channels (OQ-110).** Where such sources are available, send (a) compressed audio (AC-3 or DTS bitstream), (b) multichannel LPCM and (c) 24-bit LPCM. Record the control values and what is captured in each case.
+9. **A/V offset (OQ-112, RISK-024).** With video captured as in TEST-CAP-002 (or a lower-rate capture on the 2-lane configuration) and audio captured in the same pipeline, use the marker source. Measure the audio/video offset at the start and after a long run, once with GStreamer and once with FFmpeg (ADR-007, OPEN). Record the clock settings used:
+   - GStreamer `alsasrc`: `provide-clock`, `use-driver-timestamps` and `slave-method` [I-35];
+   - FFmpeg V4L2 input: the timestamp option (default, `-ts abs` or `mono2abs`) [I-38].
+
+   Full pipelines are NEEDS VERIFICATION (OQ-101). The run length is UNDEFINED (OQ-010, OQ-112). The multi-hour drift check is part of TEST-PERF-001.
+
 ### Expected Result
 
 - An ALSA card named `tc358743` (the default `card-name`) [A-47], [G-14].
 - The driver always configures 2-channel I2S output [A-13], although the chip could also send audio over CSI-2 [A-05]. I2S on the TC358743 is controller (master) clock mode only, with 32-bit slots [A-11]. The overlay makes the Pi the clock consumer with two 32-bit slots [B-46].
 - "Audio present" reads 1 while the source sends audio. "Audio sampling rate" (read-only, 0–768000) reports the source rate [B-16].
-- Audio/video synchronisation tolerance: UNDEFINED (OQ-004).
+- Audio/video synchronisation tolerance: UNDEFINED (OQ-004). *(2026-10-08: OQ-004 is ANSWERED for "audio required" but the tolerance was not set; it is now tracked in OQ-112.)*
+
+*Added 2026-10-08 for the full procedure. These are source predictions, not acceptance criteria (OQ-017).*
+
+**Card and device (both boards; steps 1–3)**
+
+- The card id is `tc358743`, taken from the sound card name, so the device can be opened as `hw:CARD=tc358743,DEV=0` whatever card index is assigned [I-15]. The overlay names the card `tc358743`, makes the codec link bit-clock and frame master, and gives the CPU DAI two 32-bit slots [I-03].
+- The overlay's codec is a `linux,spdif-dir` stub, because the TC358743 has no ASoC codec driver of its own [I-02]. The stub is capture only, accepts 8–768 kHz and has no ALSA controls [I-11].
+
+**CM4**
+
+- PCM name `bcm2835-i2s-dir-hifi dir-hifi-0` [I-15]. The card index may differ between systems: the same 2019 forum thread reported it as card 0 and as card 1 (community source) [I-16].
+- Hardware parameters: exactly 2 channels; S16_LE, S24_LE or S32_LE; any rate from 8 to 384 kHz [I-13].
+- In this clock-consumer mode the rate the application requests never reaches the hardware; the rate on the wire is set by the TC358743 [I-13].
+
+**CM5 — bring-up gate**
+
+- The firmware does not block the overlay [I-05], [I-06]. Its labels resolve to RP1 I2S1 on GPIO 18–21 [I-07], [I-08].
+- `dwc-i2s` accepts the codec-master (BC_FC) format only when the hardware reports the instance as a clock consumer, and returns `-EINVAL` for mixed formats. The RP1 datasheet calls I2S1 the clock-consumer instance, and the overlay uses I2S1 [I-09].
+- If the card registers: reasoning from source, the PCM name is `1f000a4000.i2s-dir-hifi dir-hifi-0` [I-17]. `hw_params` accepts only 2, 4, 6 or 8 channels and S16/S24/S32_LE; the maximum channel count and the formats come from RP1 hardware registers, so record what step 3 reports [I-14].
+- Whether the card registers and captures at all is **UNKNOWN — HARDWARE TEST REQUIRED** (OQ-054). No official statement or test result shows audio captured through this path (research gap, topic I). Reasoning from ADR-004's analysis: a failure here blocks CM5 as the product platform while audio is required.
+
+**Controls (step 4)**
+
+- "Audio sampling rate" is ID 0x00981980, a read-only integer 0–768000; "Audio present" is ID 0x00981981, a read-only boolean [I-20].
+- The driver decodes the rate from register FS_SET through a fixed table that includes 32000, 44100, 48000, 88200, 96000, 176400 and 192000 Hz. It returns 0 when there is no TMDS signal, because FS_SET is not cleared on disconnect [I-19]. Reasoning: the rate therefore reads 0 with the cable unplugged.
+- The driver updates the rate control from its CBIT interrupt status, and those interrupts are unmasked only while +5V / cable is detected [I-21].
+
+**Capture and rate mismatch (steps 5 and 6; RISK-023)**
+
+- At the source rate: correct pitch and duration.
+- Reasoning from source [I-18]: no kernel path carries the HDMI rate into ALSA. Opening the card at 48000 Hz while the source sends 44100 Hz gives **no ALSA error**; the recording plays 48000/44100 = 1.0884 times too fast (+8.84 %, about +1.47 semitones), and its timeline is 0.919 of real time, so A/V drift accumulates.
+- Reasoning (Claude; the same arithmetic as [I-18], reversed): opening at 44100 Hz while the source sends 48000 Hz gives the opposite error — playback at 0.919 times speed, and a timeline 1.088 times real time.
+
+**Rate change (step 7; OQ-111)**
+
+- The control changes and a `V4L2_EVENT_CTRL` event is delivered; the driver accepts that subscription [I-21].
+- Without an `interrupts` property the driver polls every 1000 ms, and the packaged kernels have no TC358743 CEC support, so a rate change can take up to about 1 s, plus I2C time, to reach the control [I-22] (OQ-020).
+- The driver programs a 500 ms `BUFINIT_START` and a 100 ms `DIV_MODE` delay at probe [I-24]. What the I2S output does during a rate change is UNKNOWN (research open question, topic I; OQ-111).
+
+**Formats and channels (steps 5 and 8; OQ-110)**
+
+- Stereo only: the driver hard-codes 2-channel I2S at probe and never selects its TDM, CSI or 4/6/8-channel settings [I-24].
+- Datasheet: the I2S output is one stereo data lane carrying 16/18/20/24-bit data that "depend on HDMI input stream", in 32-bit time slots only [I-25].
+- What the I2S output carries for compressed or multichannel input, and where 24-bit samples sit in the 32-bit slots, is UNKNOWN (OQ-110).
+
+**A/V offset (step 9; OQ-112, RISK-024)**
+
+- Audio and video run on separate clocks. The TC358743's internal audio PLL tracks the source's N/CTS values, so the I2S clocks follow the source's audio clock [I-26]. Every Raspberry Pi CSI receiver driver in `rpi-6.18.y` stamps video buffers with `CLOCK_MONOTONIC` at frame start [I-33].
+- GStreamer 1.26.2: in a `v4l2src` + `alsasrc` pipeline, `alsasrc`'s audio clock normally becomes the pipeline clock, and ALSA driver timestamps are then not used [I-36], [I-35]. After a bad timestamp, `v4l2src` assumes a one-frame delay for the rest of the session [I-37].
+- FFmpeg 7.1: the ALSA input uses wall-clock time and the V4L2 input passes monotonic timestamps through by default. Without `-ts abs` or `mono2abs` the clock bases are mixed, and the CLI's default per-input start shift discards the real offset between the inputs [I-38]. Reasoning from [I-38]: a run without one of those options is expected to hide the start offset rather than measure it; record the option used.
+- Tolerance: UNDEFINED (OQ-112).
+
+**GPIO (Setup; OQ-114)**
+
+- With `tc358743-audio` enabled, GPIO 18–21 are claimed, including GPIO 21, which the audio path does not use [I-30]. Another overlay on those pins conflicts [I-31]; on CM5 the base Device Tree's power button and fan do not use header GPIO 18–21 [I-32].
+
+**For the output tests**
+
+- Encoder input rates differ: `opusenc` accepts only 48, 24, 16, 12 or 8 kHz, so a 44.1 kHz source needs `audioresample` first; `avenc_aac` and `voaacenc` accept 44.1 and 48 kHz [I-47]. See TEST-STR-002.
 
 ### Actual Result
 
@@ -860,6 +981,7 @@ Confirm that captured frames reach the encoder as DMABUF buffers without a CPU c
   - There is no hardware encoder [D-31], [G-22].
   - Reasoning: `/dev/video11` does not exist there [D-29].
   - The software H.264 encoders researched, GStreamer `x264enc` and FFmpeg `libx264`, do not accept packed UYVY [D-40], [D-43], so a conversion stage is needed (OQ-060).
+- *(Added 2026-10-08.)* **H.265 on CM4 and CM5.** H.265 is software-encoded on both boards [D-24], [D-31], and `x265enc` and `libx265` accept planar input only, not UYVY [H-13], [H-10] (CORRECTED). Reasoning: for H.265, zero-copy into a hardware encoder does not apply on CM4 either; record the conversion and copy path as on Pi 5/CM5 (OQ-060).
 
 ### Test
 
@@ -928,18 +1050,20 @@ BLOCKED — HARDWARE REQUIRED — not run
 
 ---
 
-## TEST-ENC-001 — Sustained real-time H.264 encode
+## TEST-ENC-001 — Sustained real-time H.264 / H.265 encode
 
 | | |
 |---|---|
 | Verifies | REQ-ENC-001 |
-| Related risks | RISK-002, RISK-003, RISK-015 |
-| Related open questions | OQ-001, OQ-005, OQ-011, OQ-015, OQ-041, OQ-048, OQ-056, OQ-057, OQ-059, OQ-060, OQ-096 |
+| Related risks | RISK-002, RISK-003, RISK-015; added 2026-10-08: RISK-022 (H.265 software-only) |
+| Related open questions | OQ-001, OQ-005, OQ-011, OQ-015, OQ-041, OQ-048, OQ-056, OQ-057, OQ-059, OQ-060, OQ-096; added 2026-10-08: OQ-103, OQ-104, OQ-105, OQ-101 |
 | Depends on | TEST-CAP-002 and TEST-DMA-001 (see Preconditions) |
 
 ### Objective
 
 Measure whether each platform can encode the captured video to H.264 in real time for a sustained period, at the frame rates PACSCORDER captures: 1080p60 on the 4-lane configuration (REQ-CAP-001), and every rate each lane configuration carries (REQ-CAP-007; OQ-001 answered by the owner on 2026-10-07).
+
+*(Scope extended 2026-10-08.)* REQ-ENC-001 requires H.264 **and** H.265 (owner, 2026-10-07; OQ-005). This procedure therefore also measures **software H.265 encoding on CM4 and CM5**, the two bring-up boards (ADR-004, OPEN). The canonical test title in [README.md](README.md) still says "H.264" and is not changed here. Which outputs must use H.265, and whether software-only H.265 is acceptable, is OQ-103; this test supplies the measurements for that decision and for OQ-104 and OQ-105.
 
 ### Setup
 
@@ -948,7 +1072,14 @@ Measure whether each platform can encode the captured video to H.264 in real tim
   - TEST-CAP-002 has a recorded result of TESTED — PASS for the mode under test. TEST-CAP-002 cannot run on a 2-lane connector; there, as for TEST-CAP-003, a passing lower-rate capture of the mode under test is needed instead.
   - TEST-DMA-001 has been run.
   - The encoder settings are recorded: profile, level (set from the mode; [VIDEO_ENCODER.md](VIDEO_ENCODER.md) §6), bitrate and mode, GOP, and the repeat-header setting.
-- Encoding parameters (codec, bitrate, latency target, number of simultaneous encodes): UNDEFINED — OWNER DECISION REQUIRED (OQ-005).
+- Encoding parameters (codec, bitrate, latency target, number of simultaneous encodes): UNDEFINED — OWNER DECISION REQUIRED (OQ-005). *(Partly superseded 2026-10-08: the codec is decided — H.264 and H.265, owner 2026-10-07. Bitrate, latency target and the number of simultaneous encodes are still OQ-005; the H.265 scope per output is OQ-103.)*
+- *(Added 2026-10-08.)* **H.265 encoders (CM4 and CM5).** No candidate platform has a hardware HEVC encoder [D-24], [D-31], so H.265 runs in software on both boards.
+  - x265: Debian's 4.1-2, unchanged in Raspberry Pi OS [H-01], [H-02]. One `libx265-215` provides Main, Main10 and Main12 [H-03].
+  - GStreamer: `x265enc` in `gstreamer1.0-plugins-bad` [H-11], [H-12] (CORRECTED). Properties: `speed-preset` (default `medium`), `tune` (default `ssim`), `bitrate` in kbit/s (default 2048), `key-int-max` and `option-string` [H-14].
+  - FFmpeg: `libx265` is built into the Raspberry Pi FFmpeg 7.1.5 [H-08], [H-09].
+  - **Input format.** Neither accepts the TC358743's packed UYVY. `x265enc` takes Y444, Y42B or I420 (plus 10/12-bit variants) [H-13]; `libx265` takes planar or gray formats only, including 10/12-bit with Debian's library (CORRECTED) [H-10]. A UYVY → planar conversion stage is needed, as for H.264 on Pi 5/CM5 (OQ-060). Reasoning: on the CPU at 1080p60 it reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43].
+  - **Low latency.** In x265 4.1, `tune=zerolatency` sets B-frames 0, lookahead 0, scenecut off and one frame thread, leaving only wavefront row parallelism [H-16]. FFmpeg's wrapper copies its thread count into x265's frame threads *after* applying preset and tune [H-10] (CORRECTED). Reasoning from [H-10] and [H-16]: set the FFmpeg thread count explicitly and record it, because it overrides zerolatency's single frame thread (research gap, topic H; OQ-104).
+  - The `ultrafast` preset's settings are listed in [H-17].
 - Pi 4 / CM4:
   - **2-lane connectors.** Pi 4 Model B and CM4 CAM0 have 2 lanes, so 1080p60 cannot be captured from the TC358743 there [C-01], [C-02], [C-48]. On those connectors, which are candidates for the 2-lane configuration of REQ-CAP-007, the highest encode run is 1080p50 UYVY (reasoning) [C-48]. The 1080p60 run applies to CM4 CAM1 only.
   - Do not use the cut-down firmware: `gpu_mem=16` selects `start4cd.elf`, which removes codec support [D-48].
@@ -974,6 +1105,20 @@ Measure whether each platform can encode the captured video to H.264 in real tim
 
 - Official documentation says to replace the encoder with `x264enc speed-preset=1 threads=1` [D-37].
 - Insert a UYVY → I420/NV12 conversion before it [D-40]. The element and its placement are NEEDS VERIFICATION.
+
+**H.265 runs — CM4 and CM5 (added 2026-10-08)**
+
+Run on both boards. Full pipelines and command lines are NEEDS VERIFICATION (OQ-101); the conversion element is NEEDS VERIFICATION (OQ-060).
+
+1. **x265 CPU features (OQ-105).** Record which SIMD paths x265 reports at start-up on each board. Reasoning from [H-04] and [H-05]: CM5 is expected to report Neon DotProd and CM4 baseline Neon only. Research suggested reading this from `x265 --version` or the encoder log, and checking that the CM5 kernel reports `asimddp` (research open question and gap, topic H — not register facts).
+2. **GStreamer.** Capture → UYVY-to-planar conversion → `x265enc` with `speed-preset`, `tune=zerolatency`, `bitrate` and `key-int-max` set [H-14] → `h265parse`, which the MP4 and Matroska muxers need after `x265enc` [H-37] → sink.
+3. **FFmpeg.** Capture → planar conversion → `-c:v libx265` with an explicit thread count (see Setup, low latency).
+4. **Run matrix.** For each framework:
+   - 1080p30 and 1080p60 on the 4-lane configuration; on the 2-lane configuration, the rates its link carries (at most 1080p50 UYVY; reasoning [C-48]);
+   - presets `ultrafast` and `superfast`;
+   - H.265 alone, then H.265 with a concurrent H.264 encode (CM4: hardware `v4l2h264enc`; CM5: `x264enc` or `libx264`), then both with audio encoding from TEST-AUD-001 (OQ-104).
+5. **Conversion cost.** Measure the UYVY → planar conversion alone (CPU load, frame rate), so that its share can be separated from the encoder's (OQ-060).
+6. **Sustained run.** On CM5, record whether the CPU throttles under sustained all-core load (OQ-104). Duration: UNDEFINED (OQ-010).
 
 **All platforms — measurements**
 
@@ -1013,6 +1158,17 @@ Measure whether each platform can encode the captured video to H.264 in real tim
 
 No candidate platform has a hardware HEVC encoder [D-24], [D-31]. Pass thresholds are UNDEFINED (OQ-005, OQ-010, OQ-017).
 
+**H.265 — CM4 and CM5 (added 2026-10-08)**
+
+- **No sourced throughput figure exists for either board.** Research found no raspberrypi.com figure in a site search [H-19].
+  - Raspberry Pi engineer 6by9 stated on the official forum (October 2024) that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19].
+  - Community benchmarks report `libx265` "Live" results of 10.00 FPS on Pi 5 and 4.33 FPS on a Raspberry Pi 400 (Cortex-A72 @ 1.8 GHz) [H-20], [H-21]. That test encodes vbench clips with `-threads 1` and a 2022 x265 snapshot, so it is not a 1080p60 live measurement (community source) [H-22].
+  - Reasoning: in that harness `libx265` was about 6.6 times slower than `libx264` on Pi 5. This is a relative cost only, not a prediction of PACSCORDER throughput [H-23].
+- Reasoning (as in RISK-022): real-time 1080p60 H.265 is therefore **unproven on both boards**, and more doubtful on CM4. Only CM5's Cortex-A76 can use x265's Neon DotProd kernels [H-04], [H-05], and trixie's x265 4.1-2 lacks the AArch64 speed-ups of 4.2 and 4.3 [H-07].
+- **Latency reporting.** GStreamer 1.26.2 `x265enc` reports a hard-coded latency of 5 frames, or 0 with `tune=zerolatency`, not one computed from its settings [H-15]. Measure encode latency; do not read it from the element.
+- **Output.** `x265enc` produces `video/x-h265`, `stream-format=byte-stream`, `alignment=au` [H-13].
+- Whether software-only H.265 at the measured rate is acceptable is an owner decision (OQ-103). Pass thresholds: UNDEFINED (OQ-005, OQ-010, OQ-017).
+
 ### Actual Result
 
 BLOCKED — HARDWARE REQUIRED — not run
@@ -1036,9 +1192,9 @@ BLOCKED — HARDWARE REQUIRED — not run
 | | |
 |---|---|
 | Verifies | REQ-REC-001 |
-| Related risks | None registered in [RISKS.md](RISKS.md) |
-| Related open questions | OQ-006, OQ-069 |
-| Depends on | TEST-ENC-001 |
+| Related risks | None registered in [RISKS.md](RISKS.md) *(superseded 2026-10-08: RISK-022, RISK-023 and RISK-024 now list REQ-REC-001)* |
+| Related open questions | OQ-006, OQ-069; added 2026-10-08: OQ-103, OQ-111, OQ-112, OQ-113 |
+| Depends on | TEST-ENC-001; added 2026-10-08: TEST-AUD-001 (audio is required in recordings, REQ-CAP-006) |
 
 ### Objective
 
@@ -1053,6 +1209,10 @@ Confirm that encoded video is written to local storage as a playable file of the
   - The raspi-config read-only option uses `overlayroot=tmpfs` [G-48]. If that option is used, recordings must go to a separate persistent partition.
   - `rpi-image-gen`'s `image-rota` layout provides a shared persistent data partition [G-40].
   - The partition layout is OQ-069.
+- *(Added 2026-10-08.)* **Codecs.** Record H.264 and, as far as the owner scopes it to recording (OQ-103), H.265, on CM4 and CM5.
+  - GStreamer 1.26.2 `qtmux` / `mp4mux` and `matroskamux` accept H.265; `h265parse` is needed after `x265enc`; `matroskamux` warns that the `hev1` form is not officially supported [H-37].
+  - FFmpeg 7.1.5's MP4 muxer tags HEVC as `hev1`, `hvc1` or `dvh1`, and its Matroska muxer handles HEVC [H-38].
+- *(Added 2026-10-08.)* **Audio** (REQ-CAP-006). AAC encoders available: FFmpeg's native `aac` (CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. Capture audio at the rate the source sends (TEST-AUD-001; RISK-023).
 
 ### Test
 
@@ -1061,11 +1221,13 @@ Confirm that encoded video is written to local storage as a playable file of the
 1. Record for the owner-defined duration.
 2. Stop recording normally and check the file plays, its duration and its frame count.
 3. If OQ-006 requires it, remove power during recording, reboot, and check what is recoverable.
+4. *(Added 2026-10-08.)* Repeat steps 1–2 with H.265 video (if scoped to recording, OQ-103) and with audio, using a 44.1 kHz and a 48 kHz source. Check the recorded audio's pitch and duration against the source, and the A/V offset at the start and end of the file (OQ-112).
 
 ### Expected Result
 
 - No source-derived expectation exists for PACSCORDER recording. Acceptance criteria are UNDEFINED (OQ-006, OQ-017).
 - For comparison only: ATEM switchers record H.264 + AAC in MP4 [F-07], [F-26].
+- *(Added 2026-10-08.)* HEVC in MP4 and Matroska is supported by both frameworks [H-37], [H-38]. FFmpeg's native `aac` encoder defaults to 128 kb/s for stereo when no bitrate is given, and an explicit bitrate selects CBR (CORRECTED) [I-40]. If the capture rate does not match the source rate, the recorded audio has the wrong speed and pitch with no error (reasoning) [I-18] (RISK-023).
 
 ### Actual Result
 
@@ -1090,13 +1252,13 @@ BLOCKED — HARDWARE REQUIRED — not run
 | | |
 |---|---|
 | Verifies | REQ-STR-001 |
-| Related risks | RISK-003 |
-| Related open questions | OQ-007, OQ-063, OQ-075 |
-| Depends on | TEST-ENC-001 |
+| Related risks | RISK-003; added 2026-10-08: RISK-022, RISK-023, RISK-024, RISK-025 |
+| Related open questions | OQ-007, OQ-063, OQ-075; added 2026-10-08: OQ-076, OQ-101, OQ-103, OQ-106, OQ-107, OQ-111, OQ-113 |
+| Depends on | TEST-ENC-001; added 2026-10-08: TEST-AUD-001 (audio) |
 
 ### Objective
 
-Publish the encoded stream (and audio, if required) to an RTMP server and confirm that it plays back.
+Publish the encoded stream (and audio, if required) to an RTMP server and confirm that it plays back. *(2026-10-08: audio is required — OQ-004 ANSWERED 2026-10-07 — so every run carries the HDMI audio. H.264 and, as far as the owner scopes it to RTMP (OQ-103), H.265 are published, on CM4 and CM5.)*
 
 ### Setup
 
@@ -1108,6 +1270,12 @@ Publish the encoded stream (and audio, if required) to an RTMP server and confir
 - Packages:
   - `rtmp2sink` is in `gstreamer1.0-plugins-bad` (`libgstrtmp2`) [G-27];
   - `flvmux` is in `gstreamer1.0-plugins-good` (`libgstflv`) [G-26].
+- *(Added 2026-10-08.)* **H.265 over RTMP.**
+  - GStreamer 1.26.2's `flvmux` has no H.265 on its video sink pad [H-27], and `eflvmux` first appears in the 1.28 branch (CORRECTED) [F-34]. **The distribution's GStreamer cannot publish H.265 over RTMP.** Which path PACSCORDER uses is OQ-107 (RISK-025).
+  - FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV for RTMP publishing, with FourCC `hvc1`. Its `rtmp_enhanced_codecs` option writes a `fourCcList` into the connect command and accepts only `hvc1`, `av01` and `vp09` [H-26]. The Enhanced RTMP specification defines `hvc1` for HEVC [H-24].
+  - Test servers: MediaMTX's documentation lists H265 among RTMP publish and read codecs [H-28]. YouTube Live lists H.264, H.265 and AV1 over RTMP/RTMPS, with AAC or MP3 audio [H-29]. Whether each required destination accepts FFmpeg's signalling is OQ-106.
+  - Alternative transport: the distribution stacks contain the components for HEVC over SRT in MPEG-TS [H-30]; whether SRT is required is OQ-076.
+- *(Added 2026-10-08.)* **Audio.** AAC encoders: FFmpeg's native `aac` (CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. FFmpeg 7.1.5's FLV muxer has no Opus [H-26]. `fdk-aac` is not shipped and would need `--enable-nonfree` in the GPL FFmpeg build, which makes it unredistributable [I-39], [I-42] (OQ-113). Use sources at 44.1 kHz and 48 kHz (TEST-AUD-001).
 
 ### Test
 
@@ -1125,13 +1293,25 @@ Publish the encoded stream (and audio, if required) to an RTMP server and confir
   ```
   The live-capture input options are NEEDS VERIFICATION.
 - Play the stream back from the server with a client. The client is UNDEFINED (OQ-007).
+- *(Added 2026-10-08.)* **H.265 run (CM4 and CM5).** Publish H.265 with FFmpeg: `libx265` video and AAC audio to `-f flv`, once without and once with `rtmp_enhanced_codecs` set to `hvc1` [H-26]. The option's command-line form is NEEDS VERIFICATION (OQ-101); whether a destination needs it is OQ-106. Publish to MediaMTX, then to each required destination (OQ-007), and play back. If the owner chooses another path under OQ-107 (backported `eflvmux`, newer GStreamer, or SRT), run that path instead and record it.
+- *(Added 2026-10-08.)* **Audio run.** In every run, include AAC audio captured from the `tc358743` card at the source's rate (TEST-AUD-001, step 4). Repeat with a 44.1 kHz and a 48 kHz source, and play back to check pitch, duration and A/V offset.
 
 ### Expected Result
 
 - The server accepts the publish connection. The default RTMP port is TCP 1935 [F-32].
-- The stream carries H.264 video (FLV CodecID 7) and, if audio is included, AAC audio [F-31]. `flvmux` needs raw AAC (CORRECTED) [F-34].
+- The stream carries H.264 video (FLV CodecID 7) and, if audio is included, AAC audio [F-31]. `flvmux` needs raw AAC (CORRECTED) [F-34]. *(2026-10-08: audio is required, so AAC audio is expected in every run.)*
 - Pi 4 / CM4: in-band SPS/PPS repetition is off by default on the encoder [D-15]. The official pipeline enables it with `repeat_sequence_header=1` [D-37].
 - Pass criteria (bitrate, latency, duration): UNDEFINED (OQ-007, OQ-017).
+- *(Added 2026-10-08.)* **H.265:**
+  - Legacy FLV carries only AVC video; HEVC needs Enhanced RTMP FourCC signalling [F-31]. FFmpeg 7.1.5 writes FourCC `hvc1` and enhanced video headers [H-26].
+  - Linking `x265enc` or `h265parse` to GStreamer 1.26.2 `flvmux` is expected to fail, because its sink pad has no H.265 [H-27] ([TROUBLESHOOTING.md](TROUBLESHOOTING.md) §6.7).
+  - Any `rtmp_enhanced_codecs` value other than `hvc1`, `av01` or `vp09` fails with `AVERROR_PATCHWELCOME` [H-26].
+  - YouTube Live, for reference: recommended 1080p60 bitrate 12 Mbps for H.265 versus 17 Mbps for H.264; 2 s keyframes recommended, not more than 4 s; CBR [H-29]. Whether YouTube accepts FFmpeg's signalling is UNKNOWN (OQ-106).
+  - Software H.265 throughput on CM4 and CM5 is unproven (TEST-ENC-001; RISK-022).
+- *(Added 2026-10-08.)* **Audio:**
+  - AAC only: FFmpeg's FLV muxer has no Opus [H-26]. Without an explicit bitrate, FFmpeg's native `aac` encodes stereo at 128 kb/s; an explicit bitrate selects CBR (CORRECTED) [I-40].
+  - Correct pitch and duration only when the capture rate equals the source rate; otherwise the audio is wrong with no error (reasoning) [I-18] (RISK-023).
+  - The A/V offset depends on the framework's clock handling [I-35], [I-38] (RISK-024). Tolerance UNDEFINED (OQ-112).
 
 ### Actual Result
 
@@ -1156,13 +1336,15 @@ BLOCKED — HARDWARE REQUIRED — not run
 | | |
 |---|---|
 | Verifies | REQ-STR-002 |
-| Related risks | RISK-019, RISK-003 |
-| Related open questions | OQ-008, OQ-063, OQ-073, OQ-074 |
-| Depends on | TEST-ENC-001 |
+| Related risks | RISK-019, RISK-003; added 2026-10-08: RISK-022, RISK-023, RISK-024 |
+| Related open questions | OQ-008, OQ-063, OQ-073, OQ-074; added 2026-10-08: OQ-103, OQ-108, OQ-111, OQ-112 |
+| Depends on | TEST-ENC-001; added 2026-10-08: TEST-AUD-001 (audio) |
 
 ### Objective
 
 Confirm that live PACSCORDER video plays in each target browser over WebRTC, and record the negotiated H.264 profile and level.
+
+*(Added 2026-10-08.)* Audio is required (OQ-004 ANSWERED 2026-10-07), so every session carries an Opus audio track. If the owner scopes H.265 to WebRTC (OQ-103), also record, per browser, whether an H.265 track is negotiated and decoded (OQ-108). Run on CM4 and CM5.
 
 ### Setup
 
@@ -1170,6 +1352,8 @@ Confirm that live PACSCORDER video plays in each target browser over WebRTC, and
 - Target browsers, viewer reach (LAN or internet), number of viewers and latency target: UNDEFINED — OWNER DECISION REQUIRED (OQ-008). RISK-019 names Chrome, Firefox and Safari.
 - Signalling and NAT traversal: UNDEFINED (OQ-074).
 - Packages: `webrtcbin` is in `gstreamer1.0-plugins-bad` (`libgstwebrtc`) [G-27] and needs `gstreamer1.0-nice` at runtime [G-28]. `webrtcbin` has no built-in signalling [F-42].
+- *(Added 2026-10-08.)* **Opus encoders.** GStreamer `opusenc` (in `gstreamer1.0-plugins-base`) [I-45] and FFmpeg's `libopus` wrapper [I-41]. Both accept only 48000, 24000, 16000, 12000 or 8000 Hz [I-41], [I-47], so a 44.1 kHz HDMI source needs `audioresample` before `opusenc` [I-47]. FFmpeg's native `opus` encoder is experimental, CELT-only and 48 kHz only; production encoding should use `libopus` [I-41].
+- *(Added 2026-10-08.)* **H.265 in WebRTC.** GStreamer's `rtph265pay` implements the RFC 7798 HEVC payload; profile, tier and level in its output caps arrived in 1.26.4, after the distribution's 1.26.2 [H-31]. MediaMTX's documentation lists H265 among WebRTC read codecs [H-28]. Viewer browsers and devices for an H.265 run: OQ-008, OQ-108.
 
 ### Test
 
@@ -1178,7 +1362,8 @@ Confirm that live PACSCORDER video plays in each target browser over WebRTC, and
 1. Start a WebRTC session from each target browser.
 2. Capture the SDP offer and answer. Record `profile-level-id`, `packetization-mode` and `level-asymmetry-allowed`.
 3. Play 1080p video for the owner-defined duration. Record whether it decodes, plus latency and stalls.
-4. If audio is required: confirm an Opus or G.711 audio track.
+4. If audio is required: confirm an Opus or G.711 audio track. *(Superseded 2026-10-08: audio is required. Confirm an Opus track in every session, once with a 48 kHz source and once with a 44.1 kHz source resampled to 48 kHz before the encoder. Check pitch, duration and A/V offset at playback.)*
+5. *(Added 2026-10-08.)* **H.265 run** (only if OQ-103 scopes H.265 to WebRTC). From each target browser, record whether H.265 appears in the SDP offer and answer, and whether it decodes. Keep the H.264 track in the same test, and record the CPU load with both encodes running (OQ-104, OQ-108).
 
 ### Expected Result
 
@@ -1193,6 +1378,17 @@ Confirm that live PACSCORDER video plays in each target browser over WebRTC, and
   - Browser behaviour in that case is UNKNOWN (OQ-073).
 - The MediaMTX project reports that browsers do not accept H.264 B-frames in WebRTC [F-45]. The Pi 4 / CM4 encoder produces none [D-14].
 - Audio: RFC 7874 requires WebRTC endpoints to implement Opus and G.711; AAC is not a required WebRTC codec, so AAC audio has to be transcoded, typically to Opus, for browser playback [F-41].
+- *(Added 2026-10-08.)* **Audio details:**
+  - `opusenc` does not accept 44.1 kHz input; a 44.1 kHz source needs `audioresample` before it [I-47] ([TROUBLESHOOTING.md](TROUBLESHOOTING.md) §6.8). `opusenc` defaults to 64000 bit/s, constrained VBR [I-47].
+  - Reasoning from [F-41] and [H-26]: if RTMP runs at the same time, the product needs two audio encodes, AAC for RTMP and Opus for WebRTC.
+  - Pitch and duration are correct only when the capture rate equals the source rate (reasoning) [I-18] (RISK-023). A/V tolerance: UNDEFINED (OQ-112).
+- *(Added 2026-10-08.)* **H.265, per browser:**
+  - RFC 7742 does not require H.265 in WebRTC [H-32].
+  - Chrome 136 and later: enabled by default only where the platform decodes H.265 in hardware, with no software fallback [H-33].
+  - Safari 18.0: supports the standard RFC HEVC RTP payload [H-34].
+  - Firefox: no evidence of support was found [H-35].
+  - Edge 147 on Windows 11: reported in a Microsoft Q&A answer by a moderator not to enable H.265 by default; the workaround given is the launch flags `--enable-features=WebRtcAllowH265Send,WebRtcAllowH265Receive` (community source) [H-36].
+  - Reasoning (as in RISK-019): an H.264 WebRTC track has to remain for browser reach; on CM5 that means two concurrent software video encodes (RISK-022, OQ-108).
 
 ### Actual Result
 
@@ -1229,11 +1425,11 @@ Scope is the owner's answer to OQ-009 of 2026-10-07: "it can be atem and direct 
 
 - In scope: (a) HDMI capture of the ATEM output. Cameras connected directly are the other source type of REQ-CAP-008; they are covered by TEST-CAP-001, TEST-CAP-002 and TEST-CAP-004, not here.
 - **Not in current scope:** (b) network tally, state and control over UDP 9910, and (c) receiving the ATEM's RTMP stream. Both were offered and not selected. Their procedures are kept below as reference only and are run only if the owner adds them to REQ-ATEM-001. Sending PACSCORDER video into an ATEM setup (OQ-081) and the ATEM USB-C webcam output (OQ-082) were not selected either.
-- Which ATEM models and firmware versions must be supported is OPEN (OQ-102).
+- Which ATEM models and firmware versions must be supported is OPEN (OQ-102). *(Superseded 2026-10-08: OQ-102 was ANSWERED on 2026-10-07 with no model list — any HDMI camera plus ATEM switcher outputs. The test uses whichever ATEM is available as the representative ATEM source.)*
 
 ### Setup
 
-- ATEM model and firmware version: UNKNOWN — OWNER DECISION REQUIRED (OQ-102). Record both in every result entry.
+- ATEM model and firmware version: UNKNOWN — OWNER DECISION REQUIRED (OQ-102). Record both in every result entry. *(2026-10-08: no owner decision is pending, since OQ-102 is ANSWERED with no model list; the model and firmware are still UNKNOWN until an ATEM is chosen for the test, and must still be recorded.)*
 - (a) **HDMI capture of the ATEM output** (in scope).
   - The ATEM Mini Pro HDMI output defaults to multiview, not program. It is changed with the front-panel VIDEO OUT buttons or in ATEM Software Control [F-25]. On ATEM Mini Extreme, HDMI out 1 defaults to program [F-25].
   - Whether PACSCORDER could switch it over the network is OQ-078. Network control is not in current scope, so this procedure has the operator set the output source.
@@ -1245,7 +1441,7 @@ Scope is the owner's answer to OQ-009 of 2026-10-07: "it can be atem and direct 
 
 **NOT YET RUN ON PACSCORDER HARDWARE.**
 
-- (a) Set the ATEM HDMI output to Program [F-25]. Run TEST-CAP-001 against it at each output standard of the ATEM model(s) listed in OQ-102. Run TEST-CAP-002 at 1080p60 on the 4-lane configuration, and complete the ATEM rows of the TEST-CAP-004 matrix on both lane configurations.
+- (a) Set the ATEM HDMI output to Program [F-25]. Run TEST-CAP-001 against it at each output standard of the ATEM model(s) listed in OQ-102 *(2026-10-08: of the ATEM used, since OQ-102 has no model list)*. Run TEST-CAP-002 at 1080p60 on the 4-lane configuration, and complete the ATEM rows of the TEST-CAP-004 matrix on both lane configurations.
 - (b) *Not in current scope — reference only.* Connect the chosen library. Change program/preview inputs, start and stop recording and streaming on the ATEM, and record the state PACSCORDER receives. Commands depend on OQ-084: NEEDS VERIFICATION.
 - (c) *Not in current scope — reference only.* Configure the ATEM to publish to the PACSCORDER server (method OQ-080), receive the stream, and analyse its parameters (OQ-079).
 
@@ -1256,7 +1452,7 @@ Scope is the owner's answer to OQ-009 of 2026-10-07: "it can be atem and direct 
 - Frames at the ATEM output standard. ATEM Mini Pro outputs 1080p23.98 to 1080p60 only, with no 1080i or 720p [F-23].
 - On the 2-lane configuration, only the standards the link carries are captured; the others are expected to fail at stream start as in TEST-CAP-004 [B-32], [C-48].
 - What arrives at the TC358743 is UNKNOWN (OQ-083): pixel encoding, quantisation range, and whether HDCP is asserted. The ATEM's own sampling is 4:2:2 YUV 10-bit Rec 709 [F-23].
-- Program audio is embedded on the HDMI output (CORRECTED) [F-24]. Capturing it needs TEST-AUD-001, which applies only if audio is required (OQ-004).
+- Program audio is embedded on the HDMI output (CORRECTED) [F-24]. Capturing it needs TEST-AUD-001, which applies only if audio is required (OQ-004). *(Superseded 2026-10-08: audio is required — OQ-004 ANSWERED 2026-10-07 — so TEST-AUD-001 is run with the ATEM as one of its sources. What audio format and rate the ATEM's HDMI output sends, and whether it honours the EDID's audio descriptors, is UNKNOWN: research open question, topic I; OQ-110, OQ-083.)*
 
 **(b) Network state** (not in current scope — reference only)
 
@@ -1273,7 +1469,7 @@ A stream with H.264 or H.265 video and AAC audio [F-06]. The exact parameters ar
 
 **All sub-tests**
 
-Pass criteria are UNDEFINED (OQ-017). The scope question OQ-009 is answered; the ATEM model list is OQ-102.
+Pass criteria are UNDEFINED (OQ-017). The scope question OQ-009 is answered; the ATEM model list is OQ-102. *(2026-10-08: OQ-102 is also answered — no model list.)*
 
 ### Actual Result
 
@@ -1338,7 +1534,8 @@ Confirm also that the product runs this project-built image of its own, not an u
    - the `tc358743` / `tc358743-pi5` / `tc358743-audio` overlays;
    - v4l-utils;
    - the chosen media framework;
-   - `i2c-tools`, if TEST-HW-001 is to be run on product images.
+   - `i2c-tools`, if TEST-HW-001 is to be run on product images;
+   - *(added 2026-10-08)* the H.265 encoder (`libx265-215` and `x265enc` or FFmpeg `libx265`) [H-01], [H-09], [H-11]; the chosen AAC and Opus encoders [I-39], [I-44], [I-45], [I-46] (OQ-063); the ALSA capture path for the `tc358743` card. List the encoders the image's FFmpeg actually has: research inferred them from package dependencies, not from the build configuration (research gap, topic I — not a register fact). The listing command is NEEDS VERIFICATION (OQ-101). If the product carries a package from outside the distribution (for example a newer x265 or GStreamer; OQ-105, OQ-107), record its version and source.
 
 ### Expected Result
 
@@ -1381,9 +1578,9 @@ NOT STARTED — no build configuration exists; not run
 | | |
 |---|---|
 | Verifies | REQ-PERF-001 |
-| Related risks | RISK-003, RISK-006, RISK-020 |
-| Related open questions | OQ-010, OQ-035, OQ-053, OQ-055, OQ-059, OQ-061, OQ-096 |
-| Depends on | TEST-ENC-001 and the selected outputs (TEST-REC-001, TEST-STR-001, TEST-STR-002) |
+| Related risks | RISK-003, RISK-006, RISK-020; added 2026-10-08: RISK-022 (H.265 soak), RISK-024 (A/V drift) |
+| Related open questions | OQ-010, OQ-035, OQ-053, OQ-055, OQ-059, OQ-061, OQ-096; added 2026-10-08: OQ-104, OQ-112 |
+| Depends on | TEST-ENC-001 and the selected outputs (TEST-REC-001, TEST-STR-001, TEST-STR-002); added 2026-10-08: TEST-AUD-001 |
 
 ### Objective
 
@@ -1405,6 +1602,8 @@ Run the full pipeline (capture, encode, and record and/or stream) continuously a
 4. Pi 4 / CM4: if the owner allows an overclocked configuration to be evaluated, soak it as well; whether an overclock is acceptable in the product is OQ-096.
 5. Repeat at the temperature extremes from OQ-010.
 6. Pi 5 / CM5: if both OS options are evaluated, repeat on both page sizes. Raspberry Pi OS's default bcm2712 kernel uses 16K pages; Buildroot's Pi 5/CM5 defconfigs force 4K pages [E-09], [G-60] (OQ-055).
+7. *(Added 2026-10-08.)* Run the soak on **CM4 and CM5**, with the HDMI audio path active (REQ-CAP-006) and with the H.265 encodes the owner scopes (OQ-103), alongside the H.264 encodes. Record per-core CPU load and throttling with the software H.265 encode running (OQ-104; RISK-022).
+8. *(Added 2026-10-08.)* **A/V drift (RISK-024, OQ-112).** At the start and end of the soak, and at regular intervals, measure the audio/video offset in the recorded and streamed outputs with the marker source from TEST-AUD-001 step 9. Record the framework and its clock settings [I-35], [I-38]. Commands are NEEDS VERIFICATION (OQ-101).
 
 ### Expected Result
 
@@ -1429,6 +1628,12 @@ The TC358743XBG is rated −30 to +70 °C ambient [A-41]. Pi thermal limits were
 **CPU**
 
 Pi 5 / CM5 encode is CPU-bound: about 30–40 % CPU for 1080p30 (official) [G-22] (OQ-059, RISK-003).
+
+*(Added 2026-10-08.)* H.265 is software-encoded on CM4 and CM5 [D-24], [D-31]; its sustained cost on either board is unmeasured (OQ-104). A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19].
+
+**A/V drift** *(added 2026-10-08)*
+
+Audio follows the HDMI source's clock through the TC358743's audio PLL [I-26], while video buffers are stamped with `CLOCK_MONOTONIC` [I-33]. Reasoning (as in RISK-024): the offset can therefore drift over a long run; the size of the drift is UNKNOWN until measured, and the tolerance is UNDEFINED (OQ-112). A sample-rate mismatch adds drift (reasoning) [I-18] (RISK-023).
 
 **Thresholds**
 
@@ -1484,15 +1689,17 @@ The procedures and expected results above rest on these entries of [REFERENCES.m
 | A — TC358743 hardware | A-04, A-05, A-08, A-11, A-12, A-13, A-15, A-16, A-17, A-18, A-19, A-20, A-22, A-23, A-24, A-30, A-31, A-33, A-35, A-41, A-43, A-45, A-46, A-47, A-50 |
 | B — tc358743 Linux driver | B-06, B-07, B-09, B-10, B-11, B-12, B-14, B-15, B-16, B-18, B-19, B-21, B-22, B-23, B-24, B-25, B-26, B-27, B-28, B-29, B-30, B-32, B-33, B-34, B-37, B-38, B-39, B-40, B-41, B-42, B-43, B-44, B-46, B-48, B-49 |
 | C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-08, C-09, C-10, C-11, C-12, C-15, C-16, C-17, C-18, C-19, C-20, C-23, C-24, C-25, C-26, C-27, C-28, C-29, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53 |
-| D — Encoders | D-06, D-07, D-08, D-10, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21, D-22, D-23, D-24, D-29, D-31, D-32, D-34, D-36, D-37, D-39, D-40, D-43, D-44, D-45, D-48, D-50, D-52, D-53, D-54 |
+| D — Encoders | D-06, D-07, D-08, D-10, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21, D-22, D-23, D-24, D-29, D-30, D-31, D-32, D-34, D-36, D-37, D-39, D-40, D-43, D-44, D-45, D-48, D-50, D-52, D-53, D-54 |
 | E — Buildroot and kernel configuration | E-06, E-09, E-15, E-32, E-37, E-39, E-40, E-43, E-44, E-47, E-48 |
 | F — ATEM and streaming | F-02, F-06, F-07, F-10, F-11, F-16, F-17, F-18, F-23, F-24, F-25, F-26, F-31, F-32, F-33, F-34, F-35, F-36, F-38, F-39, F-40, F-41, F-42, F-44, F-45, F-46 |
 | G — Raspberry Pi OS and image tooling | G-01, G-04, G-05, G-08, G-11, G-12, G-13, G-14, G-15, G-16, G-17, G-18, G-21, G-22, G-24, G-25, G-26, G-27, G-28, G-29, G-32, G-36, G-37, G-38, G-39, G-40, G-44, G-47, G-48, G-60, G-61, G-71 |
+| H — H.265 software encoding and transport (added 2026-10-08) | H-01, H-02, H-03, H-04, H-05, H-07, H-08, H-09, H-10, H-11, H-12, H-13, H-14, H-15, H-16, H-17, H-19, H-20, H-21, H-22, H-23, H-24, H-26, H-27, H-28, H-29, H-30, H-31, H-32, H-33, H-34, H-35, H-36, H-37, H-38, H-43 |
+| I — HDMI audio path (added 2026-10-08) | I-02, I-03, I-04, I-05, I-06, I-07, I-08, I-09, I-10, I-11, I-12, I-13, I-14, I-15, I-16, I-17, I-18, I-19, I-20, I-21, I-22, I-23, I-24, I-25, I-26, I-27, I-28, I-29, I-30, I-31, I-32, I-33, I-35, I-36, I-37, I-38, I-39, I-40, I-41, I-42, I-44, I-45, I-46, I-47 |
 
-- `CORRECTED` entries cited: A-22, B-11, B-21, B-25, B-44, C-28, C-36, C-39, C-53, E-40, E-47, F-24, F-34, G-11, G-36, G-71.
-- `community` entries cited, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43, C-45, D-17, D-18, D-50, D-54, F-11, F-16, F-17, F-18, F-44, F-45.
-- `reasoning` entries cited, labelled as reasoning: A-23, B-10, B-11, B-27, B-33, B-49, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, D-29, D-36, D-52, F-35, F-38, F-40, F-46, G-71.
-- Items marked *research gap* or *research open question* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). They are not register facts.
+- `CORRECTED` entries cited: A-22, B-11, B-21, B-25, B-44, C-28, C-36, C-39, C-53, E-40, E-47, F-24, F-34, G-11, G-36, G-71; added 2026-10-08: H-10, H-12, I-40.
+- `community` entries cited, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43, C-45, D-17, D-18, D-50, D-54, F-11, F-16, F-17, F-18, F-44, F-45; added 2026-10-08: H-19, H-20, H-21, H-22, H-36, I-16.
+- `reasoning` entries cited, labelled as reasoning: A-23, B-10, B-11, B-27, B-33, B-49, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, D-29, D-36, D-52, F-35, F-38, F-40, F-46, G-71; added 2026-10-08: H-23, H-43, I-17, I-18, I-28.
+- Items marked *research gap* or *research open question* come from [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json). They are not register facts. Items added on 2026-10-08 and marked *research gap*, *research open question* or *research design risk* with topic H or I come from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json); they are not register facts either. Steps derived from them (for example the suggested `arecord` listing options and the x265 CPU-feature check) are NEEDS VERIFICATION.
 - "Verified from sources" means only that the cited source says so. Under Rule 23, a hardware measurement overrides any of these facts.
 
 ### Verified on PACSCORDER hardware
@@ -1508,3 +1715,6 @@ Nothing (no hardware exists as of 2026-10-06). No procedure in this document has
 | 2026-10-06 | Cross-document consistency fixes: Actual Result of unrun hardware tests now `BLOCKED — HARDWARE REQUIRED — not run` (no "NOT RUN" status; TEST-BLD-001 `NOT STARTED`); `v4l2-ctl -d /dev/v4l-subdevN` and `--clear-edid 0` marked NEEDS VERIFICATION (OQ-101), other unattested command steps linked to OQ-101; bare/combined `config.txt` parameters marked per line (OQ-100); Pi 5 line names `tc358743-pi5` and CM5 split by carrier board with the OQ-052 caveat (no line on the CM4 IO Board), also in TEST-PLT-001; kernel 6.18.39 labelled as the kernel of the [C-33] report only, with 6.18.50 [G-04] / 6.18.55 [E-37] and OQ-097; TEST-CAP-002 notes CM4 CAM0 is 2-lane, that a 4-lane port is necessary but not shown sufficient (OQ-038), and the ADR-008 (PROPOSED; OQ-099) link-frequency proposal and CM4 CAM1 297 MHz evaluation run; TEST-CAP-004 link-frequency text and matrix aligned with ADR-008 and RISK-006; CSI-2 error-counter method linked to OQ-050/OQ-095; TEST-ENC-001 preconditions (TEST-CAP-002 and TEST-DMA-001) aligned with PERFORMANCE.md §10.3, 2-lane 1080p60 limit added [C-01], [C-02], [C-48], optional `gpu_freq=550` run (OQ-056) and overclock acceptability (OQ-096); [D-50] statements attributed to one engineer; TEST-AUD-001 notes audio over CSI-2 [A-05] versus the driver's I2S choice [A-13], with the camera-connector point labelled reasoning; WebRTC audio "typically to Opus" [F-41]; EDID trigger/reload linked to OQ-093; storage facts OQ-098; TEST-BLD-001 evidence list synced with BUILD_SYSTEM.md §6; related-OQ lists extended with OQ-093, OQ-095, OQ-096, OQ-099, OQ-100, OQ-101 per their Resolving-test fields. Final verification pass (same date): TEST-CAP-004 objective notes that the STREAMON lane check compares against the DT `data-lanes` value, not the wiring [B-32], [C-16] (matches REQ-CAP-005 note and CSI_PIPELINE.md §5). | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: "Verifies" (summary and test sections) matched to the README canonical table (TEST-CAP-001, -002, -004, TEST-ATEM-001, TEST-BLD-001 gain REQ-CAP-007/-008, REQ-BLD-002); common setup and test order cover the 2-lane and 4-lane configurations (REQ-CAP-007), ATEM and camera sources (REQ-CAP-008, OQ-102) and the own product image (REQ-BLD-002); TEST-CAP-002 scoped to the 4-lane configuration, 2-lane platforms kept as REQ-CAP-007 candidates; TEST-CAP-004 matrix extended to both configurations, both source types and the other required rates (reasoning [B-28], [B-33], [C-46], [C-47]; [C-17]); TEST-ENC-001 no longer frames OQ-001 as open; TEST-ATEM-001 scope = HDMI capture of the ATEM output (OQ-009 answered), network and RTMP parts marked not in current scope; C-17 and C-46 added to the verification table. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); "Applies to" header, common setup (OS image row), test order and TEST-BLD-001 setup and related open questions now say ADR-003 ACCEPTED and OQ-012 ANSWERED (Buildroot kept as the documented alternative; build configuration still NOT STARTED); TEST-ATEM-001 retitled "ATEM HDMI output capture (scope per OQ-009)" in the summary table and section heading, ID unchanged. | Claude (session 2026-10-07) |
+| 2026-10-08 | Second set of owner decisions of 2026-10-07 and research topics H (H.265) and I (HDMI audio) propagated; no test run, no status changed, no step deleted. Header "Applies to" and "Verification" rows: CM4 + CM5 side-by-side bring-up (ADR-004 OPEN), audio required (REQ-CAP-006 DRAFT), H.264 + H.265 (REQ-ENC-001, OQ-103), any HDMI camera plus ATEM (OQ-102 ANSWERED). Conventions: audio/H.265 command attestation note (OQ-101). Common setup: platform row (run on CM4 and CM5), HDMI-source row (OQ-102 statement marked superseded), new encode/audio/streaming package row. Platform reference: rows for H.265 encoder, x265 SIMD paths, HDMI audio CPU DAI, control location and expected PCM name. Test order: TEST-AUD-001 "only if audio is required" marked superseded; A/V-offset and audio-output dependencies added; TEST-ENC-001 H.265 scope note (README title unchanged). TEST-CAP-001/-002/-004 and TEST-ATEM-001: OQ-102 statements marked superseded; ATEM audio now via TEST-AUD-001. TEST-AUD-001: full procedure (card `tc358743`, hardware parameters, sampling-rate and audio-present controls, capture at the source rate, 44.1/48 kHz rate-mismatch check, rate change with `V4L2_EVENT_CTRL`, compressed/multichannel/24-bit sources, A/V offset) on CM4 and CM5; precondition marked superseded; original four steps kept; expected results per board, with CM5 as a bring-up gate (OQ-054); RISK-023, RISK-024, OQ-110 to OQ-112, OQ-114 linked. TEST-DMA-001: H.265 conversion note. TEST-ENC-001: H.265 setup, runs (x265 CPU features, GStreamer and FFmpeg, run matrix, conversion cost, sustained run) and expected results on CM4 and CM5; codec statement marked partly superseded; RISK-022, OQ-103 to OQ-105 linked. TEST-REC-001: HEVC containers and AAC audio; "none registered" risks marked superseded. TEST-STR-001: HEVC over RTMP (FFmpeg enhanced FLV, `flvmux` cannot carry H.265, OQ-106, OQ-107, RISK-025) and AAC audio expectations. TEST-STR-002: Opus rates and resampling, H.265 per-browser expectations (OQ-108); "if audio is required" step marked superseded. TEST-BLD-001: H.265 and audio encoder contents. TEST-PERF-001: H.265 soak and A/V drift steps. Verification table: topics H and I rows, D-30; CORRECTED H-10, H-12, I-40; community H-19 to H-22, H-36, I-16; reasoning H-23, H-43, I-17, I-18, I-28; 2026-10-08 research JSON items labelled. | Claude (session 2026-10-08) |
+| 2026-10-08 | Citation verification of the topic H and I additions: TEST-AUD-001 step 5 — "a 32-bit sample format, which both CPU DAIs accept [I-13], [I-14]" overstated CM5; reworded to CM4 accepting S32_LE [I-13] and CM5's RP1 I2S1 formats coming from hardware registers, so the run uses what step 3 reports [I-14]. All other [H-xx] and [I-xx] citations checked against the register; no change needed. No test run; no status changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |

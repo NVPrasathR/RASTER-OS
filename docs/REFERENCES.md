@@ -1,9 +1,9 @@
 # PACSCORDER Source Register (REFERENCES.md)
 | | |
 |---|---|
-| Document status | Active — generated 2026-10-06 from the source-research workflows |
+| Document status | Active — topics A–G generated 2026-10-06; topics H and I appended 2026-10-08 (existing entries unchanged) |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 22 (unknowns), Rule 23 (source priority) |
-| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) |
+| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I) |
 
 Every technical fact used in the PACSCORDER documentation is cited by an ID from this register, for example `[C-37]`.
 
@@ -33,6 +33,7 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 
 - **2026-10-06 — "Applies to" is the researcher's tag, not a verified support statement.** For example, [A-47] tags the `tc358743-audio` overlay "Pi4, CM4", while [G-14] tags the same overlay "Pi 4 Model B, CM4, Pi 5, CM5". Neither entry shows the overlay working on Pi 5/CM5; that remains open (OQ-054). Read each entry's **Fact** text, not its tag, to decide what it supports.
 - **2026-10-06 — Statements not in this register.** Some documents quote material from the research `open_questions` and `gaps` lists in the raw JSON. Those items are labelled *research gap* or *research open question*. They are leads, not verified facts.
+- **2026-10-08 — Topics H and I appended.** Researched after the owner decisions of 2026-10-07 (H.264 + H.265 required; HDMI audio required). Two earlier attempts on 2026-10-07/08 failed (network loss, then host sleep) and produced no results.
 
 ## Source tiers
 
@@ -57,7 +58,9 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 | [E — Buildroot and kernel configuration](#topic-e) | 53 | 50 | 3 | 0 | 0 |
 | [F — Blackmagic ATEM integration and streaming protocols](#topic-f) | 46 | 40 | 6 | 0 | 0 |
 | [G — Raspberry Pi OS and official image tooling](#topic-g) | 71 | 63 | 8 | 0 | 0 |
-| **Total** | 377 | 348 | 29 | 0 | 0 |
+| [H — H.265/HEVC software encoding and transport (research of 2026-10-08)](#topic-h) | 43 | 40 | 3 | 0 | 0 |
+| [I — HDMI audio capture path: TC358743 → I2S → ALSA → AAC/Opus (research of 2026-10-08)](#topic-i) | 47 | 46 | 1 | 0 | 0 |
+| **Total** | 467 | 434 | 33 | 0 | 0 |
 
 Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); the raw lists are kept in the JSON file linked above.
 
@@ -3598,3 +3601,837 @@ Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIO
 - **Evidence:** Buildroot raspberrypi4_64_defconfig builds 'broadcom/bcm2711-rpi-4-b ... broadcom/bcm2711-rpi-cm4' from bcm2711_defconfig. The cm5io defconfig uses bcm2712 with 'bcm2712-rpi-cm5-cm5io'. The Lite image ships both rpi-v8 and rpi-2712 kernels.
 - **Original claim (before verification):** Reasoning: the Pi 4 and CM4 run the same arm64 bcm2711 kernel (linux-image-rpi-v8), and the Pi 5 and CM5 run the same bcm2712 kernel (linux-image-rpi-2712), so a single Raspberry Pi OS image covers all four candidate targets. Only config.txt overlays (tc358743 vs tc358743-pi5, cam0/4lane) and storage layout (SD vs eMMC) change between them.
 - **Verifier note:** The SBOM lists bcm2711-rpi-cm4*.dtb and bcm2712-rpi-cm5*/cm5l*.dtb and both module trees. boot.adoc line 24 covers the kernel fallback, csi-2-usage.adoc the TC358743 lane limits, and conditional.adoc lines 31-61 the filters. The original 'only overlays and storage change' understated the differences.
+
+---
+
+## Topic H
+
+**H.265/HEVC software encoding and transport (research of 2026-10-08)** — <a id="topic-h"></a>43 claims. Added 2026-10-08 (workflow wf_94a0b1b4-f2b; same method: researcher + independent adversarial verifier).
+
+### H-01
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5, Raspberry Pi OS trixie
+- **Fact:** Debian 13 trixie ships x265 version 4.1-2 (CLI package 'x265', shared library package libx265-215), built for arm64 as well as amd64, armel, armhf, i386, ppc64el, riscv64 and s390x.
+- **Source:** Debian trixie package: x265 — <https://packages.debian.org/trixie/x265>
+- **Evidence:** packages.debian.org/trixie/x265: Version 4.1-2, 'H.265/HEVC video stream encoder', library libx265-215, architectures include arm64.
+
+### H-02
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5, Raspberry Pi OS trixie
+- **Fact:** archive.raspberrypi.com does not override x265. Its pool/main/x/ directory has no x265 source package (the only video-encoder entry is x264/, dated 2019-06-17), and the trixie arm64 Packages indices for the 'main' and 'beta' components contain no x265 or libx265 package. Raspberry Pi OS therefore uses Debian's x265 4.1-2 / libx265-215 unchanged.
+- **Source:** Raspberry Pi APT archive pool listing /debian/pool/main/x/ — <https://archive.raspberrypi.com/debian/pool/main/x/>
+- **Evidence:** The directory listing fetched on 2026-10-08 shows x11-xserver-utils, x264 (2019-06-17), xarchiver, ... xwayland. There is no x265/ entry.
+
+### H-03
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5, Raspberry Pi OS trixie
+- **Fact:** Debian's x265 4.1-2 build enables assembly on arm64 (-DENABLE_ASSEMBLY=ON for amd64 and arm64). It also builds separate 10-bit and 12-bit static libraries and links them into the single 8-bit libx265 shared library (-DEXTRA_LIB="x265_main10.a;x265_main12.a" -DLINKED_10BIT=ON -DLINKED_12BIT=ON), so one libx265-215 provides Main, Main10 and Main12.
+- **Source:** Debian x265 4.1-2 debian/rules (salsa) — <https://salsa.debian.org/multimedia-team/x265/-/raw/debian/4.1-2/debian/rules>
+- **Evidence:** Quote: '# enable assembly builds on amd64 and arm64 / ifneq (,$(filter $(DEB_HOST_ARCH),amd64 arm64)) FLAGS += -DENABLE_ASSEMBLY=ON'. Also '-DEXTRA_LIB="x265_main10.a;x265_main12.a" -DLINKED_10BIT=ON -DLINKED_12BIT=ON'.
+
+### H-04
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** x265 4.1 on Linux/AArch64 enables runtime CPU feature detection by default (AARCH64_RUNTIME_CPU_DETECT ON; ENABLE_NEON_DOTPROD, ENABLE_NEON_I8MM, ENABLE_SVE and ENABLE_SVE2 all default ON). It turns on the Neon DotProd kernels only when getauxval(AT_HWCAP) reports ASIMDDP (bit 20) and SVE only from AT_HWCAP bit 22. I8MM and SVE2 come from AT_HWCAP2. aarch64_cpu_detect() also masks I8MM/SVE off when DotProd is absent, and SVE2 off when SVE is absent.
+- **Source:** x265 4.1 source/CMakeLists.txt and source/common/aarch64/cpu.h — <https://bitbucket.org/multicoreware/x265_git/raw/4.1/source/common/aarch64/cpu.h>
+- **Evidence:** CMakeLists.txt: option(AARCH64_RUNTIME_CPU_DETECT ... ON); option(ENABLE_NEON_DOTPROD ... ON) ... cpu.h: '#define X265_AARCH64_HWCAP_ASIMDDP (1 << 20)' ... 'if (hwcap & X265_AARCH64_HWCAP_ASIMDDP) flags |= X265_CPU_NEON_DOTPROD;'
+
+### H-05
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** GCC 14 defines cortex-a72 (the BCM2711 core) as Armv8-A + CRC. It defines cortex-a76 (the BCM2712 core) as Armv8.2-A + F16, RCPC and DOTPROD. So x265's Neon DotProd paths can apply only on CM5; I8MM, SVE and SVE2 paths apply on neither board.
+- **Source:** GCC 14 gcc/config/aarch64/aarch64-cores.def — <https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-14/gcc/config/aarch64/aarch64-cores.def>
+- **Evidence:** AARCH64_CORE("cortex-a72", cortexa72, cortexa57, V8A, (CRC), ...); AARCH64_CORE("cortex-a76", cortexa76, cortexa57, V8_2A, (F16, RCPC, DOTPROD), neoversen1, ...)
+
+### H-06
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** x265's AArch64 SIMD work across recent releases: 3.6 (4 April 2024) added ARM64 NEON optimisations ('overall performance increased by around 20%') and SVE/SVE2. 4.0 (13 September 2024) added Arm SIMD that gives 'up to 57% faster encoding compared to release 3.6', using Armv8.4 DotProd, Armv8.6 I8MM and Armv9 SVE2. 4.1 (22 November 2024) lists no new Arm SIMD work; its Optimizations are lowresMC pointer copies and MCSTF.
+- **Source:** x265 Release Notes — <https://x265.readthedocs.io/en/master/releasenotes.html>
+- **Evidence:** Version 4.0 Optimizations: 'Arm SIMD optimizations ... up to 57% faster encoding compared to release 3.6. Arm SIMD optimizations include use of Armv8.4 DotProd, Armv8.6 I8MM, and Armv9 SVE2 ...'. Version 3.6: 'ARM64 NEON optimizations ... around 20%'. Version 4.1 Optimizations list only lowresMC and MCSTF items.
+
+### H-07
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** Newer x265 releases have further AArch64 speed-ups that trixie's 4.1-2 lacks. 4.2 (19 April 2026) adds NEON/SVE optimisations giving '8% faster encoding speed compared to v4.1'. 4.3 (31 July 2026) improves the Neon and SVE DCT16/DCT32, adds new SVE2 psyCost/sa8d/satd, and makes the Neon sa8d, satd and psyCost faster. Only the Neon parts can help Cortex-A72/A76.
+- **Source:** x265 Release Notes — <https://x265.readthedocs.io/en/master/releasenotes.html>
+- **Evidence:** Version 4.2: 'ARM SIMD optimizations including the use of NEON and SVE ... resulting in 8% faster encoding speed compared to v4.1'. Version 4.3 (Release date - 31st July 2026): 'AArch64 SIMD optimizations: improved Neon and SVE DCT16/DCT32 ... faster Neon sa8d, satd and psyCost'.
+
+### H-08
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5, FFmpeg 7.1.5 (RPi build)
+- **Fact:** The Raspberry Pi FFmpeg source package 8:7.1.5-0+deb13u1+rpt2 (changelog entry 'HW accel patch 30', Serge Schneider, 27 August 2026) is configured with --enable-libx265 in the common CONFIG shared by every flavour (standard, static, extra). The full (non-stage1) build also has --enable-libx264 and --enable-libsrt.
+- **Source:** Raspberry Pi archive: ffmpeg_7.1.5-0+deb13u1+rpt2.debian.tar.xz (debian/rules, debian/changelog) — <https://archive.raspberrypi.com/debian/pool/main/f/ffmpeg/ffmpeg_7.1.5-0+deb13u1+rpt2.debian.tar.xz>
+- **Evidence:** debian/rules line 66: '--enable-libx265 \' inside 'CONFIG := ... --enable-gpl ...'. Lines 216 and 219: '--enable-libsrt', '--enable-libx264' in the non-stage1 branch. debian/control: '# --enable-libx265 / libx265-dev (>= 1.8)'.
+
+### H-09
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5, FFmpeg 7.1.5 (RPi build)
+- **Fact:** The Raspberry Pi arm64 binary libavcodec61 8:7.1.5-0+deb13u1+rpt2 declares Depends on libx265-215 (>= 4.1) and libx264-164 (>= 2:0.164.3108+git31e19f9). Its libavcodec.so.61.19.101 contains the encoder long name 'libx265 H.265 / HEVC', the symbol reference x265_api_get_215 and the configure string --enable-libx265, so the libx265 encoder is built into the distro FFmpeg.
+- **Source:** Raspberry Pi archive: libavcodec61_7.1.5-0+deb13u1+rpt2_arm64.deb control file — <https://archive.raspberrypi.com/debian/pool/main/f/ffmpeg/libavcodec61_7.1.5-0+deb13u1+rpt2_arm64.deb>
+- **Evidence:** control: 'Package: libavcodec61 / Version: 8:7.1.5-0+deb13u1+rpt2 / Depends: ... libx264-164 (>= 2:0.164.3108+git31e19f9), libx265-215 (>= 4.1) ...'
+
+### H-10
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg 7.1.5
+- **Fact:** FFmpeg 7.1.5's libx265 wrapper accepts only planar (or gray) inputs, never packed uyvy422, yuyv422 or nv12. Which list it advertises depends on the linked libx265: x265_csp_eight (yuv420p, yuvj420p, yuv422p, yuvj422p, yuv444p, yuvj444p, gbrp, gray8) when only 8-bit is available. With Debian's multi-depth libx265-215 (H-03), x265_api_get(12) succeeds, so the twelve-bit list is used, which adds yuv420p10/12, yuv422p10/12, yuv444p10/12, gbrp10/12 and gray10/12. The wrapper copies avctx->thread_count into x265's frameNumThreads after applying preset/tune.
+- **Source:** FFmpeg n7.1.5 libavcodec/libx265.c — <https://raw.githubusercontent.com/FFmpeg/FFmpeg/n7.1.5/libavcodec/libx265.c>
+- **Evidence:** static const enum AVPixelFormat x265_csp_eight[] = { AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUV444P, AV_PIX_FMT_YUVJ444P, AV_PIX_FMT_GBRP, AV_PIX_FMT_GRAY8, ...}. Line 281: 'ctx->params->frameNumThreads = avctx->thread_count;'
+- **Original claim (before verification):** FFmpeg 7.1.5's libx265 wrapper accepts only planar 8-bit inputs: yuv420p, yuvj420p, yuv422p, yuvj422p, yuv444p, yuvj444p, gbrp and gray8. It does not accept packed uyvy422. It also copies avctx->thread_count (-threads) into x265's frameNumThreads.
+- **Verifier note:** libx265_get_supported_config() (lines ~959-968) picks x265_csp_twelve when x265_api_get(12) is non-NULL. 'Only planar 8-bit' is wrong for the Debian/RPi build. The frameNumThreads assignment (line 281) runs after param_default_preset(), so -tune zerolatency's frameNumThreads=1 is overwritten by -threads. The ffmpeg CLI defaults to threads=auto (0), which re-enables x265 auto frame threading.
+
+### H-11
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5, GStreamer 1.26.2
+- **Fact:** GStreamer's x265enc element lives in the 'x265' plugin of gst-plugins-bad ('GStreamer Bad Plug-ins'). Debian trixie's gstreamer1.0-plugins-bad 1.26.2-3+deb13u3 (arm64) ships it as /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstx265.so.
+- **Source:** Debian trixie arm64 gstreamer1.0-plugins-bad file list; GStreamer x265 plugin docs — <https://packages.debian.org/trixie/arm64/gstreamer1.0-plugins-bad/filelist>
+- **Evidence:** File list contains /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstx265.so. The GStreamer docs page for x265enc names the package as 'GStreamer Bad Plug-ins'.
+
+### H-12
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5, GStreamer 1.26.2
+- **Fact:** Raspberry Pi's archive overrides gst-plugins-bad1.0 with 1.26.2-3+rpt4+deb13u3 (Serge Schneider, 25 Sep 2026). The rpt changelog entries are v4l2codecs patches, a wayland dmabuf column-mode stride patch, and 'armhf: remove libonnxruntime-dev dependency'. The package still Build-Depends on libx265-dev and still installs usr/lib/*/gstreamer-1.0/libgstx265.so in gstreamer1.0-plugins-bad.
+- **Source:** Raspberry Pi archive: gst-plugins-bad1.0_1.26.2-3+rpt4+deb13u3.debian.tar.xz — <https://archive.raspberrypi.com/debian/pool/main/g/gst-plugins-bad1.0/gst-plugins-bad1.0_1.26.2-3+rpt4+deb13u3.debian.tar.xz>
+- **Evidence:** changelog top entry is 1.26.2-3+rpt4+deb13u3 (Serge Schneider, 25 Sep 2026) with v4l2codecs changes. debian/control line 95: 'libx265-dev,'. debian/gstreamer1.0-plugins-bad.install line 117: 'usr/lib/*/gstreamer-1.0/libgstx265.so'.
+- **Original claim (before verification):** Raspberry Pi's archive overrides gst-plugins-bad1.0 with 1.26.2-3+rpt4+deb13u3. The rpt changes are v4l2codecs and wayland dmabuf patches. The package still Build-Depends on libx265-dev and still installs libgstx265.so in gstreamer1.0-plugins-bad.
+- **Verifier note:** Small correction: the rpt changes also include the armhf onnxruntime build-dependency removal. Checked debian/control line 95 'libx265-dev,' and .install line 117. None of the patches touch ext/x265, so the hard-coded latency in H-15 is unchanged. debian/rules sets -Dsvthevcenc=disabled. The RPi trixie arm64 Packages index lists gstreamer1.0-plugins-bad 1.26.2-3+rpt4+deb13u3.
+
+### H-13
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5, GStreamer 1.26.2
+- **Fact:** GStreamer 1.26.2 x265enc accepts only planar formats on its sink pad: Y444, Y42B and I420 at 8-bit, plus Y444/I422/I420 at 10-bit and 12-bit LE when the linked libx265 provides those depths (Debian's does, see H-03). It does not accept packed UYVY, YUY2 or NV12. Its source caps are video/x-h265, stream-format=byte-stream, alignment=au.
+- **Source:** GStreamer 1.26.2 gst-plugins-bad ext/x265/gstx265enc.c; x265enc documentation — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26.2/subprojects/gst-plugins-bad/ext/x265/gstx265enc.c>
+- **Evidence:** gst_x265_enc_add_x265_chroma_format() appends only "Y444","Y42B","I420","Y444_10LE","I422_10LE","I420_10LE","Y444_12LE","I422_12LE","I420_12LE" (BE on big-endian). Src: 'stream-format = (string) byte-stream, alignment = (string) au'. The docs page lists the same sink formats.
+
+### H-14
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** x265enc's tuning properties are: speed-preset (ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placebo, plus a 0 'No preset' value; default medium); tune (psnr, ssim, grain, zerolatency, fastdecode, animation, plus a 0 'No tunning' value; default ssim); bitrate in kbit/s (default 2048, max 102400); key-int-max (default 0 = x265 default); and option-string for raw x265 'key=value:...' options.
+- **Source:** GStreamer x265enc docs; x265 4.1 source/x265.h — <https://gstreamer.freedesktop.org/documentation/x265/index.html>
+- **Evidence:** x265.h: 'x265_preset_names[] = { "ultrafast", ... "placebo", 0 }', 'x265_tune_names[] = { "psnr", "ssim", "grain", "zerolatency", "fastdecode", "animation", 0 }'. gstx265enc.c: PROP_SPEED_PRESET_DEFAULT 6 /* Medium */, PROP_TUNE_DEFAULT 2 /* SSIM */.
+
+### H-15
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** In GStreamer 1.26.2, x265enc reports a hard-coded latency of 5 frames unless tune=zerolatency, in which case it reports 0 frames (it assumes 25 fps if the framerate is unknown). Computing latency from the actual encoder parameters only arrived in 1.26.8, after Debian's 1.26.2, and neither Debian's nor Raspberry Pi's patches backport it.
+- **Source:** gstx265enc.c (1.26.2) gst_x265_enc_set_latency; GStreamer 1.26 release notes — <https://gstreamer.freedesktop.org/releases/1.26/>
+- **Evidence:** 1.26.2 source: '/* FIXME get a real value from the encoder ... */ if (... "zerolatency") max_delayed_frames = 0; else max_delayed_frames = 5;'. Release notes, 'Highlighted bugfixes in 1.26.8' section: 'x265enc: advertise latency based on encoder parameters instead of hard-coding it to 5 frames'.
+
+### H-16
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** In x265 4.1, tune=zerolatency sets bframes=0, b-adapt off, lookahead depth 0, scenecut off, histogram scenecut off, cuTree off and frameNumThreads=1. Wavefront (WPP) row parallelism stays at its default (on), so frame-level parallelism is disabled and only WPP/pool threading remains.
+- **Source:** x265 4.1 source/common/param.cpp — <https://bitbucket.org/multicoreware/x265_git/raw/4.1/source/common/param.cpp>
+- **Evidence:** 'else if (!strcmp(tune, "zerolatency") ...) { param->bFrameAdaptive = 0; param->bframes = 0; param->lookaheadDepth = 0; param->scenecutThreshold = 0; param->bHistBasedSceneCut = 0; param->rc.cuTree = 0; param->frameNumThreads = 1; }'. Defaults: 'param->bEnableWavefront = 1; param->frameNumThreads = 0;'
+
+### H-17
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** x265 4.1's ultrafast preset sets: max CU 32 and min CU 16, 3 B-frames (b-adapt off), lookahead 5, scenecut off, rdLevel 2, 1 reference, DIA motion search, subme 0, SAO off, sign hiding off, weighted prediction off, and AQ off.
+- **Source:** x265 4.1 source/common/param.cpp — <https://bitbucket.org/multicoreware/x265_git/raw/4.1/source/common/param.cpp>
+- **Evidence:** if (!strcmp(preset, "ultrafast")) { ... lookaheadDepth = 5; ... maxCUSize = 32; minCUSize = 16; bframes = 3; ... subpelRefine = 0; searchMethod = X265_DIA_SEARCH; bEnableSAO = 0; ... rdLevel = 2; maxNumReferences = 1; ... aqMode = X265_AQ_NONE; ...}
+
+### H-18
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5, Raspberry Pi OS trixie
+- **Fact:** Besides x265, trixie packages two other HEVC software encoders: kvazaar 2.3.1-2 (with libkvazaar7, arm64 included) and the HM reference software 'hm' / 'hm-highbitdepth' 18.0-2 (18.0-2+b1 on arm64), which provides TAppEncoderStatic. HM is a reference encoder and is not suitable for real-time use. Neither is wired into the distro media stacks: the RPi FFmpeg rpt2 rules/control have no --enable-libkvazaar, the RPi gst-plugins-bad control has no kvazaar, and gst-plugins-bad is built with -Dsvthevcenc=disabled. SVT-HEVC is not packaged in trixie (svt-hevc / libsvthevc1: 'No such package').
+- **Source:** Debian trixie packages: kvazaar, svt-hevc — <https://packages.debian.org/trixie/kvazaar>
+- **Verifier's best source:** <https://packages.debian.org/search?keywords=hevc&searchon=descriptions&suite=trixie&section=all>
+- **Evidence:** packages.debian.org/trixie/kvazaar: 'Package: kvazaar (2.3.1-2) ... HEVC encoder - application', arm64 present. packages.debian.org/trixie/svt-hevc and /libsvthevc1: 'No such package'. grep -c kvazaar finds 0 matches in the RPi ffmpeg rpt2 debian/rules and the RPi gst-plugins-bad debian/control.
+- **Original claim (before verification):** The only other HEVC software encoder packaged in trixie is kvazaar 2.3.1-2 (with libkvazaar7). It is not wired into the distro media stacks: the RPi FFmpeg rules have no --enable-libkvazaar, and the RPi gst-plugins-bad control file does not reference kvazaar. SVT-HEVC is not packaged in trixie.
+- **Verifier note:** 'The only other HEVC software encoder is kvazaar' is wrong: packages.debian.org lists hm 18.0-2 ('Reference software for HEVC'), and its arm64 file list includes /usr/bin/TAppEncoderStatic. The kvazaar facts and the grep count of 0 were re-checked.
+
+### H-19
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM5
+- **Fact:** No raspberrypi.com documentation or product brief found gives a figure for HEVC software encode cost (based on a site search; absence cannot be proven exhaustively). The nearest statement comes from Raspberry Pi engineer 6by9 on the official forum (24 October 2024): 'Software H265 (HEVC) encode is too intensive an operation to perform at any significant resolution.'
+- **Source:** Raspberry Pi Forums: 'RPI5 h264/h265 video encoding' — <https://forums.raspberrypi.com/viewtopic.php?t=378329>
+- **Evidence:** 6by9 (Raspberry Pi Engineer & Forum Moderator), 24 Oct 2024: 'Software H265 (HEVC) encode is too intensive an operation to perform at any significant resolution.' The original poster reported that libx265 made the Pi 5 'unresponsive' and the video 'laggy'.
+
+### H-20
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM5
+- **Fact:** Community benchmark (Phoronix/OpenBenchmarking result 2309281-NE-RASPBERRY47, 28 September 2023; Pi 5, Cortex-A76 @ 2.40 GHz, Debian 12, kernel 6.1.0-rpi3-rpi-2712, GCC 12.2.0; PTS ffmpeg-6.0.0 profile built with an x265 git snapshot from 2022-10-28). Results: libx265 Live 10.00 FPS, Upload 1.68 FPS, Platform 3.26 FPS, Video On Demand 3.27 FPS. For comparison, libx264 Live was 66.17 FPS.
+- **Source:** OpenBenchmarking.org: Raspberry Pi 5 Benchmarks (2309281-NE-RASPBERRY47) — <https://openbenchmarking.org/result/2309281-NE-RASPBERRY47>
+- **Evidence:** FFmpeg 6.0 'Encoder: libx265 - Scenario: Live' 10.00 FPS; 'libx264 - Live' 66.17 FPS; 'libx265 - Upload' 1.68; 'libx265 - Platform' 3.26; 'libx265 - Video On Demand' 3.27. Read via the mail.openbenchmarking.org mirror.
+
+### H-21
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM4, CM5
+- **Fact:** Community benchmark (OpenBenchmarking 2309273-NE-2303239NE28, same FFmpeg 6.0 libx265 'Live' test). The 'Raspberry Pi 4' entry is actually a Raspberry Pi 400 (BCM2711, Cortex-A72 @ 1.80 GHz, Debian 11, kernel 5.15.84-v8+): 4.33 FPS. Orange Pi 5 (RK3588, 'Cortex-A76 @ 1.80GHz (4 Cores / 8 Threads)', Ubuntu 22.04): 8.87 FPS. Raspberry Pi 5: 9.99 FPS.
+- **Source:** OpenBenchmarking.org: Raspberry Pi 5 Benchmarks (2309273-NE-2303239NE28) — <https://openbenchmarking.org/result/2309273-NE-2303239NE28>
+- **Evidence:** 'FFmpeg 6.0 Encoder: libx265 - Scenario: Live' FPS: Raspberry Pi 4 4.33, Orange Pi 5 8.87, Raspberry Pi 5 9.99. The system table shows 'ARMv8 Cortex-A72 @ 1.80GHz (4 Cores), BCM2835 Raspberry Pi 400 Rev 1.0, Broadcom BCM2711', Debian 11, kernel 5.15.84-v8+.
+
+### H-22
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM4, CM5
+- **Fact:** The PTS FFmpeg 6.0 test behind H-20 and H-21 is not a 1080p60 live measurement. It runs vbench clips (from videos/crf18), calls ffmpeg with '-threads 1' (which libx265 turns into frameNumThreads=1; x265's WPP thread pool is still used), and its Live scenario uses a fixed bits-per-pixel target bitrate with '-preset veryfast -tune zerolatency' in the visible branch (the other branch is not visible in the patch). It builds x265 from a 2022-10-28 git snapshot, which predates x265 4.0's Arm optimisations.
+- **Source:** phoronix-test-suite test-profiles pts/ffmpeg-6.0.0 install.sh — <https://github.com/phoronix-test-suite/test-profiles/blob/master/pts/ffmpeg-6.0.0/install.sh>
+- **Evidence:** install.sh: 'tar -xf x265-20221028.tar.xz'. Patched vbench: 'cmd = [ffmpeg,"-i",video,"-c:v",encoder,"-threads",str(1)]+settings'. Live: 'settings += [ "-preset","veryfast","-tune","zerolatency" ]'. Videos come from 'videos/crf18'.
+
+### H-23
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM5
+- **Fact:** Reasoning: in the same PTS/vbench Live harness on Pi 5, libx265 was about 6.6 times slower than libx264 (66.17 / 10.00 = 6.62). This only gives a relative cost; it is not a prediction of PACSCORDER's 1080p30/60 throughput.
+- **Source:** Calculation from H-20 — <https://openbenchmarking.org/result/2309281-NE-RASPBERRY47>
+- **Evidence:** Inputs: libx264 Live 66.17 FPS and libx265 Live 10.00 FPS on Pi 5. 66.17 / 10.00 = 6.6.
+
+### H-24
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** RTMP streaming
+- **Fact:** The Enhanced RTMP specification (Veovera, enhanced-rtmp-v2.md on main) is at document version v2-2026-01-31-r2, marked as a Release Version. It defines the HEVC video FourCC as 'hvc1' (VideoFourCc.Hevc = makeFourCc("hvc1")) and lists 'hvc1' among the fourCcList connect-command values.
+- **Source:** veovera/enhanced-rtmp: enhanced-rtmp-v2.md — <https://github.com/veovera/enhanced-rtmp/blob/main/docs/enhanced/enhanced-rtmp-v2.md>
+- **Evidence:** '**Document Version:** **v2-2026-01-31-r2**'; 'This document represents a **Release Version** ...'; 'enum VideoFourCc { ... Hevc = makeFourCc("hvc1"), ...'; the fourCcList example includes "av01", "vp09", "vp08", "hvc1".
+
+### H-25
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg 7.1.5, RTMP streaming
+- **Fact:** FFmpeg 6.1 was the first release to mux HEVC into FLV and signal it over RTMP: its changelog has 'Support HEVC,VP9,AV1 codec in enhanced flv format' and 'Support HEVC,VP9,AV1 codec fourcclist in enhanced rtmp protocol'. Enhanced FLV v2 (multitrack audio/video, more codecs) arrived later, in FFmpeg 8.0.
+- **Source:** FFmpeg Changelog (master) — <https://raw.githubusercontent.com/FFmpeg/FFmpeg/master/Changelog>
+- **Evidence:** version 6.1: '- Support HEVC,VP9,AV1 codec in enhanced flv format' ... '- Support HEVC,VP9,AV1 codec fourcclist in enhanced rtmp protocol'. version 8.0: '- Enhanced FLV v2: Multitrack audio/video, modern codec support'.
+
+### H-26
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg 7.1.5, RTMP streaming
+- **Fact:** FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV for RTMP publishing. Its FLV muxer maps AV_CODEC_ID_HEVC to FourCC 'hvc1' and writes enhanced video headers. The rtmp_enhanced_codecs option writes a fourCcList in the connect command but accepts only hvc1, av01 and vp09; any other FourCC fails with AVERROR_PATCHWELCOME. The 7.1 FLV audio table has no Opus; its entries are MP3, PCM (U8/S16BE/S16LE), ADPCM_SWF, AAC, Nellymoser, G.711 mu-law/A-law and Speex.
+- **Source:** FFmpeg n7.1.5 libavformat/flvenc.c and rtmpproto.c — <https://raw.githubusercontent.com/FFmpeg/FFmpeg/n7.1.5/libavformat/flvenc.c>
+- **Evidence:** flvenc.c: '{ AV_CODEC_ID_HEVC, MKBETAG('h', 'v', 'c', '1') }'; flv_audio_codec_ids has no OPUS. rtmpproto.c: 'ff_amf_write_field_name(&p, "fourCcList")', 'if (!strncmp(fourcc_data, "hvc1", 4) || ... "av01" ... "vp09")', option 'rtmp_enhanced_codecs'.
+
+### H-27
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2, RTMP streaming
+- **Fact:** GStreamer 1.26.2's flvmux has no H.265 on its video sink pad (only video/x-flash-video, video/x-flash-screen, video/x-vp6-flash, video/x-vp6-alpha and video/x-h264 stream-format=avc). The 1.26 distro GStreamer therefore cannot put HEVC into FLV/RTMP; see [F-34] for eflvmux arriving in 1.28.
+- **Source:** GStreamer 1.26.2 gst-plugins-good gst/flv/gstflvmux.c — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26.2/subprojects/gst-plugins-good/gst/flv/gstflvmux.c>
+- **Evidence:** GST_STATIC_CAPS ("video/x-flash-video; video/x-flash-screen; video/x-vp6-flash; video/x-vp6-alpha; video/x-h264, stream-format=avc;"). grep -i 'h265|hevc|hvc1' finds 0 matches in the file.
+
+### H-28
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** RTMP streaming, SRT, WebRTC
+- **Fact:** MediaMTX's docs (main branch; latest release v1.21.1, published 2026-09-20) list these codecs. RTMP publish/read video: AV1, VP9, H265, H264; audio: Opus, FLAC, AAC, MP3, AC-3, G711, LPCM. RTMP is described as 'expanded to support modern codecs (Enhanced RTMP)'. SRT publish video: H265, H264, MPEG-4 Video, MPEG-1/2 Video. WebRTC read video: AV1, VP9, VP8, H265, H264.
+- **Source:** MediaMTX docs: RTMP clients / SRT clients / WebRTC read — <https://github.com/bluenviron/mediamtx/blob/main/docs/3-publish/09-rtmp-clients.md>
+- **Evidence:** 09-rtmp-clients.md: '| **video** | AV1, VP9, H265, H264 |' and 'It has been expanded to support modern codecs (Enhanced RTMP)'. 03-srt-clients.md: '| **video** | H265, H264, MPEG-4 Video ...'. 4-read/03-webrtc.md: '| **video** | AV1, VP9, VP8, H265, H264 |'. GitHub API: tag v1.21.1, published 2026-09-20.
+
+### H-29
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** RTMP streaming
+- **Fact:** YouTube Live's official encoder settings page lists RTMP/RTMPS with video codecs H.264, H.265 (HEVC) and AV1, and audio AAC or MP3. Other settings: up to 60 fps, 2 s keyframes recommended (do not exceed 4 s), CBR, and HEVC for HDR ('we recommend using H.265 over RTMP(S)'). Recommended 1080p60 bitrate is 4 Mbps minimum / 12 Mbps recommended for AV1 and H.265, versus 6 / 17 Mbps for H.264. The page does not use the term 'Enhanced RTMP'.
+- **Source:** YouTube Help: Choose live encoder settings, bitrates, and resolutions — <https://support.google.com/youtube/answer/2853702?hl=en>
+- **Evidence:** 'Protocol: RTMP/RTMPS Streaming / Video codec: H.264 / H.265 (HEVC) / AV1 / Frame rate: up to 60 fps / Keyframe frequency: Recommended 2 seconds, Do not exceed 4 seconds / Audio codec: AAC or MP3'. Table row '1080p @60fps: 4 Mbps, 12 Mbps, 6 Mbps, 17 Mbps'. Also: 'If you want to stream in HDR, we recommend using H.265 over RTMP(S).'
+
+### H-30
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** SRT, GStreamer 1.26.2, FFmpeg 7.1.5 (RPi build)
+- **Fact:** The distro stacks have the components for HEVC over SRT in MPEG-TS. GStreamer 1.26.2 mpegtsmux accepts video/x-h265 stream-format=byte-stream (alignment au or nal), and trixie's gstreamer1.0-plugins-bad ships libgstsrt.so and libgstmpegtsmux.so. The RPi FFmpeg build has --enable-libsrt.
+- **Source:** GStreamer 1.26.2 gstmpegtsmux.c; Debian trixie plugins-bad file list — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26.2/subprojects/gst-plugins-bad/gst/mpegtsmux/gstmpegtsmux.c>
+- **Evidence:** gstmpegtsmux.c line 109: '"video/x-h265,stream-format=(string)byte-stream,"'. The trixie arm64 file list contains libgstsrt.so and libgstmpegtsmux.so. RPi ffmpeg rules: '--enable-libsrt'.
+
+### H-31
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC, GStreamer 1.26.2
+- **Fact:** RFC 7798 (March 2016, Standards Track) defines the RTP payload format for HEVC. GStreamer's rtph265pay implements it ('Payload-encode H265 video into RTP packets (RFC 7798)'). Adding profile-id, tier-flag and level-id to rtph265pay output caps came in 1.26.4, so the distro's 1.26.2 does not have it.
+- **Source:** RFC 7798; GStreamer 1.26.2 gstrtph265pay.c; GStreamer 1.26 release notes — <https://www.rfc-editor.org/rfc/rfc7798>
+- **Evidence:** RFC 7798 header: 'Request for Comments: 7798, Category: Standards Track, March 2016, RTP Payload Format for High Efficiency Video Coding (HEVC)'. rtph265pay.c line 229: 'Payload-encode H265 video into RTP packets (RFC 7798)'. Release notes, 'Highlighted bugfixes in 1.26.4': 'rtph265pay: add profile-id, tier-flag, and level-id to output rtp caps'.
+
+### H-32
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC
+- **Fact:** RFC 7742 requires WebRTC browsers to implement VP8 and H.264 Constrained Baseline. It mentions H.265 only as a reference for SEI 'Display Orientation' messages in the CVO discussion, not as a required codec.
+- **Source:** RFC 7742: WebRTC Video Processing and Codec Requirements — <https://www.rfc-editor.org/rfc/rfc7742>
+- **Evidence:** 'WebRTC Browsers MUST implement the VP8 video codec ... and H.264 Constrained Baseline'. The only H.265 mention: 'the SEI "Display Orientation" messages in H.264 and H.265 [H265]' and the [H265] reference entry.
+
+### H-33
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC
+- **Fact:** Chrome turned on H.265 in WebRTC by default in Chrome 136 on desktop, Android and WebView, but only where the platform provides it in hardware; Chrome has no software fallback. Chromestatus records Safari as 'Shipped/Shipping' and Firefox as 'No signal'.
+- **Source:** Chrome Platform Status: H265 (HEVC) codec support in WebRTC (feature 5153479456456704) — <https://chromestatus.com/feature/5153479456456704>
+- **Evidence:** API JSON: status 'Enabled by default', milestone '136', desktop 136, android 136, webview 136. Summary: 'we should support it in WebRTC when provided by the platform, i.e., if it is available in hardware (we will not provide a software implementation)'. safari: 'Shipped/Shipping'; ff: 'No signal'. Feature notes: '--enable-features=WebRtcAllowH265Send,WebRtcAllowH265Receive'.
+
+### H-34
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC
+- **Fact:** WebKit's Safari 18.0 post says Safari 18.0 added the standard RFC HEVC RTP payload format for WebRTC, replacing the earlier generic packetization. The post's text writes 'RFC 7789', but the HEVC RTP payload RFC is 7798.
+- **Source:** WebKit Features in Safari 18.0 — <https://webkit.org/blog/15865/webkit-features-in-safari-18-0/>
+- **Evidence:** 'WebKit for Safari 18.0 adds support for the WebRTC HEVC RFC 7789 RTP Payload Format. Previously, the WebRTC HEVC used generic packetization instead of RFC 7789 packetization.'
+
+### H-35
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC
+- **Fact:** No evidence was found that Firefox supports H.265 in WebRTC. Mozilla's standards-positions issue #1188 ('H265 (HEVC) codec support in WebRTC', opened 3 March 2025) is still open with only 'venue: W3C' and 'topic: API' labels and no position. Chromestatus records Firefox as 'No signal'.
+- **Source:** mozilla/standards-positions issue #1188 — <https://github.com/mozilla/standards-positions/issues/1188>
+- **Evidence:** GitHub API: state 'open', created 2025-03-03, labels ['venue: W3C','topic: API'], no position label. A user comment from 2025-08-30 says Firefox supports HEVC outside WebRTC 'however through webrtc it does not'.
+
+### H-36
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** WebRTC
+- **Fact:** Microsoft Edge 147 (Windows 11) had not enabled H.265 in WebRTC by default as of May 2026, even though it is Chromium-based. This comes from a Microsoft Q&A answer (Thomas4-N, 'Microsoft External Staff • Moderator', 2026-05-05): Edge 'hasn't enabled those flags by default yet, so H.265 simply isn't advertised in the SDP offer'. The workaround given is to launch with --enable-features=WebRtcAllowH265Send,WebRtcAllowH265Receive.
+- **Source:** Microsoft Q&A: H.265 (HEVC) not published/sent via WebRTC - Chrome supports it, Edge does not — <https://learn.microsoft.com/en-in/answers/questions/5880331/h-265-hevc-not-published-sent-via-webrtc-chrome-su>
+- **Evidence:** Answer of 2026-05-05: Edge 'has NOT enabled these flags [WebRtcAllowH265Send/Receive] by default yet ... H.265 is not advertised in SDP offers'. It points to tracking issue MicrosoftEdge/MSEdgeExplainers #1273.
+
+### H-37
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Recording, GStreamer 1.26.2
+- **Fact:** GStreamer 1.26.2 can record HEVC to MP4 or Matroska. qtmux and mp4mux accept video/x-h265 stream-format {hvc1, hev1}, alignment=au, and write an hvc1 or hev1 sample entry with an hvcC box. matroskamux accepts video/x-h265 {hvc1, hev1} but warns that hev1 'is not officially supported, only use this format for smart encoding'. x265enc outputs byte-stream, so h265parse is needed before these muxers.
+- **Source:** GStreamer 1.26.2 gst-plugins-good isomp4/gstqtmuxmap.c, isomp4/gstqtmux.c, matroska/matroska-mux.c — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26.2/subprojects/gst-plugins-good/gst/isomp4/gstqtmuxmap.c>
+- **Evidence:** gstqtmuxmap.c: '#define H265_CAPS "video/x-h265, stream-format = (string) { hvc1, hev1 }, alignment = (string) au, "', used in both the qtmux and mp4mux templates. gstqtmux.c: 'entry.fourcc = FOURCC_hvc1' / 'FOURCC_hev1', build_codec_data_extension(FOURCC_hvcC, ...). matroska-mux.c line 121: 'video/x-h265, stream-format = (string) { hvc1, hev1 }, alignment=au'; line 1354 warning text.
+
+### H-38
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Recording, FFmpeg 7.1.5
+- **Fact:** FFmpeg 7.1.5's MP4 muxer tag table lists HEVC as 'hev1', 'hvc1' and 'dvh1'. isom_tags.c notes that 'hev1' means parameter sets may be in the elementary stream and 'hvc1' means they shall not be. FFmpeg's Matroska muxer also handles AV_CODEC_ID_HEVC (hvcC CodecPrivate via ff_isom_write_hvcc).
+- **Source:** FFmpeg n7.1.5 libavformat/movenc.c, isom_tags.c, matroskaenc.c — <https://raw.githubusercontent.com/FFmpeg/FFmpeg/n7.1.5/libavformat/movenc.c>
+- **Evidence:** movenc.c codec_mp4_tags: '{ AV_CODEC_ID_HEVC, MKTAG('h','e','v','1') }, { AV_CODEC_ID_HEVC, MKTAG('h','v','c','1') }, { AV_CODEC_ID_HEVC, MKTAG('d','v','h','1') }'. isom_tags.c: 'hev1 ... /* HEVC/H.265 which indicates parameter sets may be in ES */', 'hvc1 ... /* ... parameter sets shall not be in ES */'. matroskaenc.c references AV_CODEC_ID_HEVC at lines 1141 and 3443.
+
+### H-39
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Licensing
+- **Fact:** x265 is copyright MulticoreWare. It is licensed under GPL version 2 'or (at your option) any later version', and also under a commercial proprietary licence (contact license @ x265.com). The x265 docs state that neither the GPL nor the commercial licence covers HEVC patents.
+- **Source:** x265 4.1 source/x265.h header; doc/reST/introduction.rst — <https://bitbucket.org/multicoreware/x265_git/raw/4.1/doc/reST/introduction.rst>
+- **Evidence:** x265.h: 'either version 2 of the License, or (at your option) any later version ... This program is also available under a commercial proprietary license. For more information, contact us at license @ x265.com.' introduction.rst: 'The GNU GPL v2 license or the x265 commercial license agreement govern your rights to access the copyrighted x265 software source code, but do not cover any patents that may be applicable ... You are responsible for ... licensing all applicable patent rights'.
+
+### H-40
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Licensing
+- **Fact:** Access Advance acquired the former Via LA HEVC/VVC program as of 15 December 2025; the page is now managed by Video Codec Licensing LLC, an Access Advance subsidiary (contact VCL Advance). Listed rates (per unit, annual reset): units 1–100,000 cost $0.00 (available to one Legal Entity in an affiliated group); from unit 100,001, $0.30 each in R1 and $0.20 each in R2. The maximum annual royalty per Enterprise (Legal Entity and Affiliates) is $30,000,000. Coverage and royalties apply from 1 May 2013, and the licence 'extends to devices implementing the technology'.
+- **Source:** VCL Advance (formerly Via LA) HEVC/VVC licensing program page — <https://www.via-la.com/licensing-programs/hevc-vvc/>
+- **Evidence:** 'Please note that as of December 15, 2025, Access Advance has acquired this HEVC/VVC program ... managed by Video Codec Licensing LLC, a subsidiary of Access Advance'. 'For the first 1 to 100,000 units $0.00* ... For units 100,001 and more $ 0.30 ea. for sales in R1** $0.20 ea. for sales in R2** ... Maximum annual royalty payable by an Enterprise ...: $30,000,000 ... * available to one Legal Entity in an affiliated group'.
+
+### H-41
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Licensing
+- **Fact:** Access Advance (HEVC Advance pool) says a licence is 'most likely' needed for any product that can encode and/or decode HEVC. The royalty falls due when a Consumer HEVC Product (or HEVC content on digital media storage) is sold to an End User, if an HEVC Essential Patent on its list is in force in the country of manufacture or of sale/distribution. Software that users download for free 'in general' needs a licence too, with case-by-case exceptions.
+- **Source:** Access Advance FAQ; 'Where and When is a Royalty Due?' — <https://accessadvance.com/faq/>
+- **Evidence:** FAQ: 'You most likely need a license if you sell any products that have HEVC/H.265 encoding and/or decoding capability/functionality.' 'In general, HEVC software downloaded by users requires a license. However, there are some situations wherein a license is not needed.' Royalty page: 'A royalty is due upon the Sale of a Consumer HEVC Product ... for which an HEVC Standard Essential Patent ... is in force in either the country/territory of Manufacture or the country/territory of Sale.'
+
+### H-42
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Licensing
+- **Fact:** Access Advance's published HEVC Advance rate table (page header 'For Licensees Having a PPL With Effective Date On or After July 1, 2026') lists 'Connected Home & Other Devices', with examples including surveillance cameras, conferencing products, digital signage and HEVC software. For Devices >$80 and All HEVC Software, the in-compliance rate without trademark discount is $1.111 (Region 1) / $0.555 (Region 2) per unit, with a $30MM category cap, $60M annual enterprise cap and $25,000 annual enterprise credit. With the trademark discount the rate is $1.00 / $0.50. The standard (non-compliant) rate is $1.333 / $0.667 with no caps or credit.
+- **Source:** Access Advance: HEVC Advance Patent Pool detailed royalty rates (rate-table images) — <https://accessadvance.com/hevc-advance-patent-pool-detailed-royalty-rates/>
+- **Evidence:** Image 'HEVC-Advance-Rates-Only-without-trademark-discount-on-or-after-1.1.26-Nov-2025': 'Devices >$80.00 / All HEVC Software: $1.111/$0.555'; category cap $30MM; 'Annual Enterprise Cap $60 million / Annual Enterprise Credit $25,000'. Standard-rate image: '$1.333/$0.667', 'No Cap Applies'. The page header reads 'For Licensees Having a PPL With Effective Date On or After July 1, 2026'.
+
+### H-43
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM5
+- **Fact:** Reasoning: if x265 is fed from the TC358743's UYVY output, each 1080p60 frame must first be converted to planar I420 (or Y42B). Done on the CPU at 1080p60, that conversion reads about 249 MB/s and writes about 187 MB/s, before x265 starts.
+- **Source:** Calculation from H-10, H-13 — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26.2/subprojects/gst-plugins-bad/ext/x265/gstx265enc.c>
+- **Evidence:** UYVY 1920x1080x2 B = 4,147,200 B/frame x 60 = 248.8 MB/s read. I420 1920x1080x1.5 B = 3,110,400 B/frame x 60 = 186.6 MB/s written. Neither x265enc (H-13) nor FFmpeg libx265 (H-10) accepts UYVY.
+
+---
+
+## Topic I
+
+**HDMI audio capture path: TC358743 → I2S → ALSA → AAC/Opus (research of 2026-10-08)** — <a id="topic-i"></a>47 claims. Added 2026-10-08 (workflow wf_94a0b1b4-f2b; same method: researcher + independent adversarial verifier).
+
+### I-01
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** In rpi-6.18.y, tc358743-audio-overlay.dts declares compatible = "brcm,bcm2835". Its fragment@0 targets <&i2s_clk_consumer> and only sets status = "okay". The overlay never references the plain <&i2s> label.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/overlays/tc358743-audio-overlay.dts — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/tc358743-audio-overlay.dts>
+- **Evidence:** Verbatim: 'compatible = "brcm,bcm2835"; fragment@0 { target = <&i2s_clk_consumer>; __overlay__ { status = "okay"; }; };'
+
+### I-02
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** tc358743-audio fragment@1 (target-path "/") adds the node tc358743_codec: tc358743-codec with #sound-dai-cells = <0>, compatible = "linux,spdif-dir" and status = "okay". TC358743 has no ASoC codec driver of its own.
+- **Source:** raspberrypi/linux rpi-6.18.y tc358743-audio-overlay.dts — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/tc358743-audio-overlay.dts>
+- **Evidence:** 'tc358743_codec: tc358743-codec { #sound-dai-cells = <0>; compatible = "linux,spdif-dir"; status = "okay"; };'
+
+### I-03
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** tc358743-audio fragment@2 makes <&sound> a simple-audio-card with format "i2s" and name "tc358743". Both bitclock-master and frame-master point at the codec subnode (dailink0_master), so TC358743 drives BCK and LRCK. The CPU DAI is <&i2s_clk_consumer> with dai-tdm-slot-num = <2> and dai-tdm-slot-width = <32>. The only override is card-name.
+- **Source:** raspberrypi/linux rpi-6.18.y tc358743-audio-overlay.dts — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/tc358743-audio-overlay.dts>
+- **Evidence:** 'simple-audio-card,format = "i2s"; simple-audio-card,name = "tc358743"; simple-audio-card,bitclock-master = <&dailink0_master>; simple-audio-card,frame-master = <&dailink0_master>; ... simple-audio-card,cpu { sound-dai = <&i2s_clk_consumer>; dai-tdm-slot-num = <2>; dai-tdm-slot-width = <32>; }; dailink0_master: simple-audio-card,codec { sound-dai = <&tc358743_codec>; }; __overrides__ { card-name = <&sound_overlay>,"simple-audio-card,name"; }'
+
+### I-04
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** The overlays README entry for tc358743-audio (lines 5609-5615) reads: 'Used in combination with the tc358743-fast overlay to route the audio from the TC358743 over I2S to the Pi. Wiring is LRCK/WFS to GPIO 19, BCK/SCK to GPIO 18, and DATA/SD to GPIO 20.' Its only parameter is card-name (default "tc358743"). 'tc358743-fast' is a stale name: the overlays Makefile (lines 326-328) builds only tc358743.dtbo, tc358743-audio.dtbo and tc358743-pi5.dtbo, and the directory has only those overlays plus tc358743.dtsi.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/overlays/README and Makefile — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/README>
+- **Evidence:** README lines 5609-5615: 'Name: tc358743-audio / Info: Used in combination with the tc358743-fast overlay ... / Load: dtoverlay=tc358743-audio,<param>=<val> / Params: card-name Override the default, "tc358743", card name.' Makefile lines 326-328 list only tc358743.dtbo, tc358743-audio.dtbo, tc358743-pi5.dtbo.
+
+### I-05
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** overlay_map.dts in rpi-6.18.y has no tc358743-audio node. Its only tc358743 node (lines 457-461) is 'tc358743 { bcm2835; bcm2711; bcm2712 = "tc358743-pi5"; };'. On CM5, dtoverlay=tc358743 therefore loads tc358743-pi5, and tc358743-audio loads under its own name.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/overlays/overlay_map.dts — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/overlay_map.dts>
+- **Evidence:** grep -i tc358 finds only 'tc358743 { bcm2835; bcm2711; bcm2712 = "tc358743-pi5"; };' (lines 457-461). There is no tc358743-audio node.
+
+### I-06
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** Raspberry Pi documentation says: 'Any overlay not mentioned in the map is assumed to be compatible with all platforms', where bcm2712 covers Raspberry Pi 5, CM5, 500 and 500+. The firmware therefore does not block tc358743-audio on CM5. Whether it works depends on its labels (i2s_clk_consumer, sound) resolving in the bcm2712 base DT.
+- **Source:** Raspberry Pi documentation, configuration/reference.adoc 'The overlay map file' — <https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/configuration/reference.adoc>
+- **Evidence:** 'Any platform not included in an overlay's node is not compatible with that overlay. Any overlay not mentioned in the map is assumed to be compatible with all platforms.' and 'bcm2712 for Raspberry Pi 5, CM5, 500, and 500+'
+
+### I-07
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5
+- **Fact:** bcm2712-rpi.dtsi defines 'i2s: &rp1_i2s0', 'i2s_clk_producer: &rp1_i2s0' and 'i2s_clk_consumer: &rp1_i2s1' (lines 385-387). It gives &i2s_clk_consumer pinctrl-0 = <&rp1_i2s1_18_21> (lines 451-454) and defines 'sound: sound { status = "disabled"; }' (line 373). bcm2712-rpi-cm5.dtsi includes bcm2712-rpi.dtsi (line 196), so both labels the overlay needs exist on CM5.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm64/boot/dts/broadcom/bcm2712-rpi.dtsi — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm64/boot/dts/broadcom/bcm2712-rpi.dtsi>
+- **Evidence:** Lines 385-387: 'i2s: &rp1_i2s0 { }; i2s_clk_producer: &rp1_i2s0 { }; i2s_clk_consumer: &rp1_i2s1 { };'. Lines 451-454: '&i2s_clk_consumer { pinctrl-names = "default"; pinctrl-0 = <&rp1_i2s1_18_21>; };'. Line 373: 'sound: sound { status = "disabled"; };'. CM5 dtsi line 196: '#include "bcm2712-rpi.dtsi"'.
+
+### I-08
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5
+- **Fact:** In rp1.dtsi, rp1_i2s1 is node i2s@a4000 (reg <0xc0 0x400a4000 0x0 0x1000>). It has compatible "snps,designware-i2s", DMA channels RP1_DMA_I2S1_TX/RX, dma-maxburst = <4> and status "disabled", and its interrupt is commented out ('Providing an interrupt disables DMA'). Pin group rp1_i2s1_18_21 uses function "i2s1" on gpio18, gpio19, gpio20 and gpio21 with bias-disable.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm64/boot/dts/broadcom/rp1.dtsi — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm64/boot/dts/broadcom/rp1.dtsi>
+- **Evidence:** 'rp1_i2s1: i2s@a4000 { reg = <0xc0 0x400a4000 0x0 0x1000>; compatible = "snps,designware-i2s"; ... dmas = <&rp1_dma RP1_DMA_I2S1_TX>,<&rp1_dma RP1_DMA_I2S1_RX>; ... status = "disabled"; }' and 'rp1_i2s1_18_21: rp1_i2s1_18_21 { function = "i2s1"; pins = "gpio18", "gpio19", "gpio20", "gpio21"; bias-disable; };'
+
+### I-09
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5
+- **Fact:** For DT-probed instances, dwc-i2s.c sets DW_I2S_MASTER or DW_I2S_SLAVE from the hardware COMP_PARAM_1 MODE_EN bit (bit 4). dw_i2s_set_fmt() accepts SND_SOC_DAIFMT_BC_FC only if DW_I2S_SLAVE is set, accepts BP_FP only if DW_I2S_MASTER is set, and always rejects BC_FP and BP_FC with -EINVAL. The RP1 datasheet says I2S0 is a clock producer (master) and I2S1 a clock consumer (slave). A codec-master link such as tc358743-audio therefore has to use rp1_i2s1, which is what the i2s_clk_consumer label points to.
+- **Source:** raspberrypi/linux rpi-6.18.y sound/soc/dwc/dwc-i2s.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/dwc/dwc-i2s.c>
+- **Evidence:** dw_configure_dai(): 'if (COMP1_MODE_EN(comp1)) { ... dev->capability |= DW_I2S_MASTER; } else { ... dev->capability |= DW_I2S_SLAVE; }'. dw_i2s_set_fmt(): 'case SND_SOC_DAIFMT_BC_FC: if (dev->capability & DW_I2S_SLAVE) ret = 0; else ret = -EINVAL; ... case SND_SOC_DAIFMT_BC_FP: case SND_SOC_DAIFMT_BP_FC: ret = -EINVAL;'
+
+### I-10
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4
+- **Fact:** On BCM2711 (CM4), bcm270x-rpi.dtsi (lines 151-152) points both i2s_clk_producer and i2s_clk_consumer at the single &i2s node (i2s@7e203000, compatible "brcm,bcm2835-i2s", status disabled in bcm283x.dtsi). bcm2711-rpi-cm4.dts sets &i2s pinctrl-0 = <&i2s_pins>, and bcm2711-rpi-ds.dtsi defines i2s_pins as brcm,pins = <18 19 20 21> in BCM2835_FSEL_ALT0 (bcm2711-rpi-ds.dtsi also includes bcm270x-rpi.dtsi). Setting status=okay on i2s_clk_consumer flips the same node as dtparam=i2s=on ('i2s = <&i2s>,"status"'), which defaults to off.
+- **Source:** raspberrypi/linux rpi-6.18.y bcm270x-rpi.dtsi, bcm283x.dtsi, bcm2711-rpi-cm4.dts, bcm2711-rpi-ds.dtsi, overlays README — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/broadcom/bcm270x-rpi.dtsi>
+- **Evidence:** bcm270x-rpi.dtsi lines 151-152: 'i2s_clk_producer: &i2s {}; i2s_clk_consumer: &i2s {};'. bcm283x.dtsi: 'i2s: i2s@7e203000 { compatible = "brcm,bcm2835-i2s";'. bcm2711-rpi-cm4.dts: '&i2s { pinctrl-names = "default"; pinctrl-0 = <&i2s_pins>; };'. bcm2711-rpi-ds.dtsi: 'i2s_pins: i2s { brcm,pins = <18 19 20 21>; brcm,function = <BCM2835_FSEL_ALT0>; };'. README: 'i2s Set to "on" to enable the i2s interface (default "off")'.
+
+### I-11
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The 'linux,spdif-dir' stub codec (sound/soc/codecs/spdif_receiver.c, module snd-soc-spdif-rx) has one DAI, "dir-hifi", and it is capture only. It allows 1-384 channels, rates SNDRV_PCM_RATE_8000_768000 | SNDRV_PCM_RATE_128000, and formats S16_LE, S20_3LE, S24_LE, S32_LE and IEC958_SUBFRAME_LE. It has no DAI ops (no hw_params), no ALSA controls, and no reference to the TC358743 driver. The component has only one DAPM input widget (spdif-in) and one route.
+- **Source:** raspberrypi/linux rpi-6.18.y sound/soc/codecs/spdif_receiver.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/codecs/spdif_receiver.c>
+- **Evidence:** '#define STUB_RATES (SNDRV_PCM_RATE_8000_768000 | SNDRV_PCM_RATE_128000)'; '#define STUB_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE | SNDRV_PCM_FMTBIT_IEC958_SUBFRAME_LE)'; 'static struct snd_soc_dai_driver dir_stub_dai = { .name = "dir-hifi", .capture = { .stream_name = "Capture", .channels_min = 1, .channels_max = 384, ...'. The component driver has only DAPM widgets and routes. Makefile: 'snd-soc-spdif-rx-y := spdif_receiver.o'.
+
+### I-12
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** Both arm64 defconfigs (bcm2711_defconfig for CM4, bcm2712_defconfig for CM5) set CONFIG_SND_SIMPLE_CARD=m, CONFIG_SND_BCM2835_SOC_I2S=m, CONFIG_SND_DESIGNWARE_I2S=m, CONFIG_SND_DESIGNWARE_PCM=y and CONFIG_VIDEO_TC358743=m. CONFIG_SND_SOC_SPDIF is not set directly. It is pulled in by CONFIG_SND_RP1_AUDIO_OUT=m, whose Kconfig entry does 'select SND_SOC_SPDIF'. The packaged Raspberry Pi kernels (linux-headers-6.18.50+rpt-rpi-v8 and -rpi-2712 .config) both contain CONFIG_SND_SOC_SPDIF=m.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm64/configs/bcm2711_defconfig, bcm2712_defconfig, sound/soc/raspberrypi/Kconfig — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/raspberrypi/Kconfig>
+- **Evidence:** sound/soc/raspberrypi/Kconfig: 'config SND_RP1_AUDIO_OUT tristate "PWM Audio Out from RP1" select SND_SOC_GENERIC_DMAENGINE_PCM select SND_SOC_SPDIF'. Both defconfigs contain CONFIG_SND_RP1_AUDIO_OUT=m, CONFIG_SND_SIMPLE_CARD=m, CONFIG_SND_BCM2835_SOC_I2S=m, CONFIG_SND_DESIGNWARE_I2S=m, CONFIG_VIDEO_TC358743=m.
+
+### I-13
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4
+- **Fact:** bcm2835-i2s (the CM4 CPU DAI, driver name "bcm2835-i2s") supports capture at exactly 2 channels, SNDRV_PCM_RATE_CONTINUOUS from 8000 to 384000 Hz, in S16_LE, S24_LE or S32_LE. hw_params calls clk_set_rate() only when the CPU is the bit-clock provider (BP_FP/BP_FC). In the overlay's BC_FC mode it sets the CLKM and FSM slave bits, and the requested rate never reaches hardware. Intersected with spdif-dir, the usable capture space on CM4 is 2 ch x {S16_LE, S24_LE, S32_LE} at any rate from 8-384 kHz, and the rate actually on the wire is set by the TC358743.
+- **Source:** raspberrypi/linux rpi-6.18.y sound/soc/bcm/bcm2835-i2s.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/bcm/bcm2835-i2s.c>
+- **Evidence:** '.capture = { .channels_min = 2, .channels_max = 2, .rates = SNDRV_PCM_RATE_CONTINUOUS, .rate_min = 8000, .rate_max = 384000, .formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE }'; '/* Clock should only be set up here if CPU is clock master */ if (bit_clock_provider && ...) { ... clk_set_rate(dev->clk, bclk_rate);'
+
+### I-14
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5
+- **Fact:** On RP1, dw_configure_dai_by_dt() declares SNDRV_PCM_RATE_8000_768000. Capture channels_max (2*(COMP1_RX_CHANNELS+1)) and formats (formats[] indexed by COMP2 RX word size) are read from the hardware COMP_PARAM registers, so they are not visible in source. dw_i2s_set_tdm_slot() accepts only slot_width == 32 with 0-16 slots, and requires rx_mask == tx_mask with a non-zero mask. The overlay's 2 x 32-bit setting passes, because ASoC defaults both masks to 0x3. hw_params also accepts only 2, 4, 6 or 8 channels and S16/S24/S32_LE.
+- **Source:** raspberrypi/linux rpi-6.18.y sound/soc/dwc/dwc-i2s.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/dwc/dwc-i2s.c>
+- **Evidence:** dw_configure_dai_by_dt(): 'ret = dw_configure_dai(dev, dw_i2s_dai, SNDRV_PCM_RATE_8000_768000);'. dw_configure_dai(): 'dw_i2s_dai->capture.channels_max = 2 * (COMP1_RX_CHANNELS(comp1) + 1); dw_i2s_dai->capture.formats = formats[idx];'. dw_i2s_set_tdm_slot(): 'if (slot_width != 32) return -EINVAL; if (slots < 0 || slots > 16) return -EINVAL;'
+
+### I-15
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The ALSA card id is "tc358743" (from simple-audio-card,name), so the capture device can be opened as hw:CARD=tc358743,DEV=0 (or plughw:/sysdefault:CARD=tc358743) whatever card index is assigned. ASoC names the PCM '<link stream_name> <codec-dai>-<id>', where simple-card builds the stream name as '<cpu dai_name>-<codec dai_name>'. On CM4 the CPU DAI driver name is "bcm2835-i2s", giving 'bcm2835-i2s-dir-hifi dir-hifi-0'.
+- **Source:** raspberrypi/linux rpi-6.18.y sound/soc/generic/simple-card.c, sound/soc/soc-core.c, sound/soc/soc-pcm.c, bcm2835-i2s.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/soc-pcm.c>
+- **Evidence:** simple-card.c line 350: link name '"%s-%s", cpus->dai_name, codecs->dai_name'. soc-core.c snd_soc_dai_name_get(): 'if (dai->driver->name) return dai->driver->name;'. bcm2835-i2s.c: 'static struct snd_soc_dai_driver bcm2835_i2s_dai = { .name = "bcm2835-i2s",'. soc-pcm.c: 'snprintf(new_name, sizeof(new_name), "%s %s-%d", rtd->dai_link->stream_name, soc_codec_dai_name(rtd), rtd->id);'
+
+### I-16
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM4
+- **Fact:** Raspberry Pi Forums thread t=258742 (Dec 2019, BCM2835-I2S Pi on a 2019 kernel) shows 'card 0: tc358743 [tc358743], device 0: bcm2835-i2s-dir-hifi dir-hifi-0' in 6by9's test. The original poster saw the same device as card 1, so the index varies. Capture was run with 'arecord -vv -d 20 -r 48000 -c 2 -f dat -t wav -D sysdefault:CARD=tc358743 out.wav'. 6by9 stated: 'dtoverlay=tc358743-audio *requires* dtoverlay=tc358743 to be loaded too. It can't be used independently as the tc358743 has to be configured appropriately.' The thread also shows audio_sampling_rate 0x00981980 value=48000 read-only and audio_present 0x00981981 value=1.
+- **Source:** Raspberry Pi Forums: HDMI to CSI-2 TC358743 I2S Audio (t=258742) — <https://forums.raspberrypi.com/viewtopic.php?t=258742>
+- **Evidence:** Forum quotes: 'card 0: tc358743 [tc358743], device 0: bcm2835-i2s-dir-hifi dir-hifi-0'; 6by9: 'dtoverlay=tc358743-audio *requires* dtoverlay=tc358743 to be loaded too. It can't be used independently as the tc358743 has to be configured appropriately.' Control readout shown: 'audio_sampling_rate: value=48000 flags=read-only / audio_present: value=1'.
+
+### I-17
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM5
+- **Fact:** On CM5 the PCM name will differ from CM4. dwc-i2s allocates its DAI driver with devm_kzalloc and never sets .name, and dw_i2s_component sets legacy_dai_naming = 1. The DAI name therefore falls back to the platform-device name via fmt_single_name(), which for RP1 I2S1 is '1f000a4000.i2s'. The expected PCM name is '1f000a4000.i2s-dir-hifi dir-hifi-0'. Software should select the device by card id 'tc358743', not by PCM name.
+- **Source:** raspberrypi/linux rpi-6.18.y sound/soc/dwc/dwc-i2s.c and sound/soc/soc-core.c (fmt_single_name) — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/dwc/dwc-i2s.c>
+- **Verifier's best source:** <https://forums.raspberrypi.com/viewtopic.php?t=391090>
+- **Evidence:** dwc-i2s.c: 'dw_i2s_dai = devm_kzalloc(...)' with no name assignment, and 'static const struct snd_soc_component_driver dw_i2s_component = { .name = "dw-i2s", ... .legacy_dai_naming = 1, };'. soc-core.c fmt_single_name() returns dev_name(dev) when the driver name is not a substring and the name is not '%x-%x'. The exact RP1 device name was not verified on hardware.
+
+### I-18
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM5
+- **Fact:** The kernel has no path that carries HDMI sample-rate changes into ALSA. spdif-dir has no controls or hw_params and accepts 8-768 kHz. The CPU I2S (bcm2835-i2s or RP1 dwc-i2s) runs as clock consumer and ignores the requested rate. Nothing outside tc358743.c uses TC358743_CID_AUDIO_SAMPLING_RATE. If the application opens the card at 48000 Hz while the source sends 44100 Hz, frames arrive at 44.1 kHz but are labelled 48 kHz. Played at 48 kHz they run 48000/44100 = 1.0884x fast (+8.84 %, about +1.47 semitones), and the audio timeline is 44100/48000 = 0.919 of real time (8.1 % short), so A/V drift accumulates.
+- **Source:** Derived from spdif_receiver.c, bcm2835-i2s.c, dwc-i2s.c, tc358743.c (rpi-6.18.y) — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/sound/soc/codecs/spdif_receiver.c>
+- **Evidence:** Inputs: no rate control in spdif-dir; bcm2835-i2s programs a clock only when bit_clock_provider; TC358743 is I2S master per datasheet. Calculation: 48000/44100 = 1.0884.
+
+### I-19
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** tc358743.c get_audio_sampling_rate() decodes FS_SET (0x8621) & MASK_FS (0x0f) through code_to_rate[] = {44100, 0, 48000, 32000, 22050, 384000, 24000, 352800, 88200, 768000, 96000, 705600, 176400, 0, 192000, 0}. It returns 0 when no_signal() is true, i.e. when SYS_STATUS lacks MASK_S_TMDS, with the comment 'Register FS_SET is not cleared when the cable is disconnected'. audio_present() reads AU_STATUS0 (0x8523) & MASK_S_A_SAMPLE (0x01).
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/media/i2c/tc358743.c and tc358743_regs.h — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/i2c/tc358743.c>
+- **Evidence:** 'static const int code_to_rate[] = { 44100, 0, 48000, 32000, 22050, 384000, 24000, 352800, 88200, 768000, 96000, 705600, 176400, 0, 192000, 0 }; /* Register FS_SET is not cleared when the cable is disconnected */ if (no_signal(sd)) return 0; return code_to_rate[i2c_rd8(sd, FS_SET) & MASK_FS];'. regs: '#define FS_SET 0x8621', '#define MASK_FS 0x0f', '#define AU_STATUS0 0x8523', '#define MASK_S_A_SAMPLE 0x01'.
+
+### I-20
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** TC358743_CID_AUDIO_SAMPLING_RATE = V4L2_CID_USER_TC358743_BASE + 0 and TC358743_CID_AUDIO_PRESENT = base + 1. The base is V4L2_CID_USER_BASE + 0x1080, and V4L2_CID_USER_BASE = V4L2_CID_BASE = (V4L2_CTRL_CLASS_USER | 0x900) = 0x00980900, so the IDs are 0x00981980 and 0x00981981. 'Audio sampling rate' is a read-only INTEGER, range 0-768000, step 1. 'Audio present' is a read-only BOOLEAN.
+- **Source:** raspberrypi/linux rpi-6.18.y include/media/i2c/tc358743.h, include/uapi/linux/v4l2-controls.h, drivers/media/i2c/tc358743.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/include/media/i2c/tc358743.h>
+- **Evidence:** tc358743.h: '#define TC358743_CID_AUDIO_SAMPLING_RATE (V4L2_CID_USER_TC358743_BASE + 0)', '#define TC358743_CID_AUDIO_PRESENT (V4L2_CID_USER_TC358743_BASE + 1)'. v4l2-controls.h: '#define V4L2_CID_USER_TC358743_BASE (V4L2_CID_USER_BASE + 0x1080)'. tc358743.c: '.name = "Audio sampling rate", .type = V4L2_CTRL_TYPE_INTEGER, .min = 0, .max = 768000, ... .flags = V4L2_CTRL_FLAG_READ_ONLY'. Hex arithmetic: 0x980900 + 0x1080 = 0x981980.
+
+### I-21
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The tc358743 driver updates the sampling-rate control when the CBIT interrupt has MASK_I_CBIT_FS set, and the audio-present control on MASK_I_AF_LOCK or MASK_I_AF_UNLOCK. These CBIT interrupts are unmasked only while +5V/cable is detected. tc358743_subscribe_event() accepts V4L2_EVENT_CTRL (and V4L2_EVENT_SOURCE_CHANGE). Userspace can therefore get a control-change event on a rate change and reopen the ALSA stream at the new rate.
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/media/i2c/tc358743.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/i2c/tc358743.c>
+- **Evidence:** 'if (cbit_int & MASK_I_CBIT_FS) { v4l2_dbg(1, debug, sd, "%s: Audio sample rate changed\n", __func__); tc358743_s_ctrl_audio_sampling_rate(sd);' ... 'if (cbit_int & (MASK_I_AF_LOCK | MASK_I_AF_UNLOCK)) { ... tc358743_s_ctrl_audio_present(sd);'. tc358743_subscribe_event(): 'case V4L2_EVENT_CTRL: return v4l2_ctrl_subdev_subscribe_event(sd, fh, sub);'
+
+### I-22
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The shared tc358743.dtsi used by tc358743 and tc358743-pi5 has no 'interrupts' property, so the driver uses a poll timer every POLL_INTERVAL_MS = 1000 ms. It polls every 10 ms (POLL_INTERVAL_CEC_MS) only when a CEC adapter exists, and CONFIG_VIDEO_TC358743_CEC is not set in either defconfig or in the packaged 6.18.50 rpi-v8 and rpi-2712 kernels. A source sample-rate change can therefore take up to about 1 s, plus I2C time, to reach the V4L2 control.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/overlays/tc358743.dtsi, drivers/media/i2c/tc358743.c, arm64 defconfigs — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/tc358743.dtsi>
+- **Evidence:** tc358743.dtsi node 'tc358743@f { compatible = "toshiba,tc358743"; reg = <0x0f>; clocks = <&cam1_clk>; ... }' has no interrupts. tc358743.c: '#define POLL_INTERVAL_CEC_MS 10', '#define POLL_INTERVAL_MS 1000', 'if (state->i2c_client->irq) { ... } else { ... timer_setup(&state->timer, tc358743_irq_poll_timer, 0);', 'msecs = state->cec_adap ? POLL_INTERVAL_CEC_MS : POLL_INTERVAL_MS;'. grep finds no TC358743_CEC in bcm2711/bcm2712 defconfigs.
+
+### I-23
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** Where the audio controls appear depends on the board. On CM4, the tc358743 overlay's fragment@100 sets csi1 compatible to "brcm,bcm2835-unicam-legacy" unless media-controller=on (default off). That gives mc_api = false, and unicam then calls v4l2_ctrl_add_handler() to copy the sensor's controls onto /dev/videoN. On CM5, the rp1-cfe driver bound by DT (compatible "raspberrypi,rp1-cfe") never calls v4l2_ctrl_add_handler(). It registers subdev nodes, so the tc358743 controls are only on the tc358743 /dev/v4l-subdevN.
+- **Source:** raspberrypi/linux rpi-6.18.y tc358743-overlay.dts, drivers/media/platform/bcm2835/bcm2835-unicam.c, drivers/media/platform/raspberrypi/rp1_cfe/cfe.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/platform/bcm2835/bcm2835-unicam.c>
+- **Evidence:** tc358743-overlay.dts: 'legacy_frag: fragment@100 { target = <&csi1>; __overlay__ { compatible = "brcm,bcm2835-unicam-legacy"; }; }; __overrides__ { media-controller = <0>,"!100";'. unicam: 'if (!unicam->mc_api) { /* Add controls from the subdevice */ ret = v4l2_ctrl_add_handler(&unicam->ctrl_handler, unicam->sensor->ctrl_handler, NULL, true);'. cfe.c has no v4l2_ctrl_add_handler call (grep).
+
+### I-24
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** tc358743_set_hdmi_audio() is called only from tc358743_initial_setup(), which runs once at probe (line 2267). It hard-codes I2S output: SDO_MODE1 = MASK_SDO_FMT_I2S; CONFCTL |= MASK_AUDCHNUM_2 | MASK_AUDOUTSEL_I2S | MASK_AUTOINDEX; FS_IMODE = MASK_NLPCM_SMODE | MASK_FS_SMODE; ACR_MODE = MASK_CTS_MODE; BUFINIT_START = 500 ms; FS_MUTE = 0x00. It also sets auto-mute/auto-play masks, ACR_MDF0/1 limits and DIV_MODE delay 100 ms. tc358743_regs.h also defines MASK_AUDOUTSEL_TDM (0x18), MASK_AUDOUTSEL_CSI (0x00) and MASK_AUDCHNUM_4/6/8, but the driver never selects them.
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/media/i2c/tc358743.c and tc358743_regs.h — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/i2c/tc358743.c>
+- **Evidence:** 'i2c_wr8(sd, BUFINIT_START, SET_BUFINIT_START_MS(500)); ... i2c_wr8(sd, FS_IMODE, MASK_NLPCM_SMODE | MASK_FS_SMODE); i2c_wr8(sd, ACR_MODE, MASK_CTS_MODE); ... i2c_wr8(sd, SDO_MODE1, MASK_SDO_FMT_I2S); ... i2c_wr16_and_or(sd, CONFCTL, 0xffff, MASK_AUDCHNUM_2 | MASK_AUDOUTSEL_I2S | MASK_AUTOINDEX);'. regs: MASK_AUDCHNUM_8 0x0000, _6 0x0400, _4 0x0800, _2 0x0c00; MASK_AUDOUTSEL_CSI 0x0000, _I2S 0x0010, _TDM 0x0018. tc358743_initial_setup() is called at probe (line 2267).
+
+### I-25
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, CM5
+- **Fact:** The TC358743XBG public datasheet (Rev. 1.0, 2017-10-26, Features, page 7/18) lists the I2S output as a single data lane for stereo, 'Support Master Clock mode only', 16/18/20/24-bit data 'depend on HDMI input stream', 'Left or Right-justify with MSB first', 'Support 32 bit-wide time-slot only', and a 256fs oversampling clock output. The TDM output is 'Fixed to 8 channels', 32-bit slots, master-clock only, with 16/18/20/24-bit PCM. I2S and TDM pins are multiplexed.
+- **Source:** Toshiba TC358743XBG datasheet Rev. 1.0, 2017-10-26 (Features) — <https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8588919017658585088>
+- **Evidence:** Page 7: 'Audio Output Interface: Either I2S or TDM Audio interface available (pins are multiplexed). I2S Audio Interface: Single data lane for stereo data; Support Master Clock mode only; Support 16, 18, 20 or 24-bit data (depend on HDMI input stream); Support Left or Right-justify with MSB first; Support 32 bit-wide time-slot only; Output Audio Over sampling clock (256fs). TDM ...: Fixed to 8 channels (depend on HDMI input stream); Support 32 bit-wide time slot only; Support Master Clock mode only ...'
+
+### I-26
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, CM5
+- **Fact:** Per its datasheet, the TC358743XBG has an 'Internal Audio PLL to track N/CTS value transmitted by the ACR packet', so its I2S clocks follow the HDMI source's audio clock. The datasheet also says 'Video, Audio and InfoFrame data can be transmit over MIPI CSI-2', but the Linux driver selects I2S output (MASK_AUDOUTSEL_I2S), not CSI.
+- **Source:** Toshiba TC358743XBG datasheet Rev. 1.0, 2017-10-26 (Features) — <https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8588919017658585088>
+- **Evidence:** Page 7: 'Audio Supports: Internal Audio PLL to track N/CTS value transmitted by the ACR packet.' and 'CSI-2 TX Interface ... Video, Audio and InfoFrame data can be transmit over MIPI CSI-2'.
+
+### I-27
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, CM5
+- **Fact:** TC358743XBG has four audio pins, all outputs: A_SCK (I2S/TDM bit clock), A_WFS (I2S word clock or TDM frame sync), A_SD (I2S/TDM data) and A_OSCK (oversampling clock). They are powered from VDDIO2, which is rated 1.8-3.3 V (recommended 1.65-3.6 V). The balls are F7 = A_SCK, F8 = A_SD, G7 = A_WFS and G8 = A_OSCK.
+- **Source:** Toshiba TC358743XBG datasheet Rev. 1.0, Table 3.1 and Figure 3.1 — <https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8588919017658585088>
+- **Evidence:** Table 3.1: 'Audio (4) A_SCK O L N I2S/TDM Bit Clock signal VDDIO2 1.8V-3.3V; A_WFS O L N I2S Word Clock or TDM Frame Sync signal VDDIO2 1.8V-3.3V; A_SD O L N I2S/TDM data signal VDDIO2 1.8V-3.3V; A_OSCK O L N Audio Oversampling Clock VDDIO2 1.8V-3.3V'. Pin layout row F: '... A_SCK A_SD'; row G: '... A_WFS A_OSCK'.
+
+### I-28
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM5
+- **Fact:** The overlay and the datasheet agree on clock roles. The datasheet makes the TC358743 the I2S clock master only. The overlay sets bitclock-master and frame-master to the codec link, which makes the Pi the clock consumer (BC_FC), and binds the CPU DAI through i2s_clk_consumer. On CM4 that label is the single bidirectional bcm2835-i2s, which switches to slave via CLKM/FSM. On CM5 it is RP1 I2S1, which the RP1 datasheet calls the 'clock-consumer (slave)' instance. The overlay's 2 x 32-bit slots match the datasheet's '32 bit-wide time-slot only': 64 BCK per LRCK frame (64fs).
+- **Source:** Comparison of tc358743-audio-overlay.dts, bcm270x-rpi.dtsi, bcm2712-rpi.dtsi and the TC358743XBG datasheet — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/tc358743-audio-overlay.dts>
+- **Evidence:** Inputs: I-03 (bitclock-master/frame-master = codec; tdm 2 x 32), I-07 / I-10 (label mapping), I-09 (dwc BC_FC needs slave HW), I-25 (Master Clock mode only; 32-bit slots). Calculation: 2 slots x 32 bits = 64 BCK/frame = 64fs.
+
+### I-29
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** The CM4 IO Board and the CM5 IO Board documentation both list a 'HAT footprint with 40-pin GPIO connector' and 'Selectable 1.8 V or 3.3 V GPIO voltage'. The TC358743's VDDIO2 (I-27) should match the selected GPIO bank voltage, or the audio lines need level shifting.
+- **Source:** Raspberry Pi documentation, compute-module/introduction.adoc (CM5IO and CM4IO feature lists) — <https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/compute-module/introduction.adoc>
+- **Evidence:** CM5IO and CM4IO lists both contain '** HAT footprint with 40-pin GPIO connector.' and '** Selectable 1.8 V or 3.3 V GPIO voltage.'
+
+### I-30
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** GPIO18-GPIO21 are named lines on the CM4 SoC GPIO bank (bcm2711-rpi-cm4.dts gpio-line-names) and on the CM5 RP1 bank (bcm2712-rpi-cm5.dtsi &rp1_gpio). When tc358743-audio is enabled, the I2S pinctrl claims all four, including GPIO21 (DOUT/SDO0), although the TC358743 path uses only 18, 19 and 20. On CM4 the pins are set to ALT0 (i2s_pins <18 19 20 21>). On CM5 they use function "i2s1" (rp1_i2s1_18_21).
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2711-rpi-cm4.dts, bcm2711-rpi-ds.dtsi, bcm2712-rpi-cm5.dtsi, rp1.dtsi — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm64/boot/dts/broadcom/bcm2712-rpi-cm5.dtsi>
+- **Evidence:** CM4 gpio-line-names include "GPIO18" ... "GPIO21"; i2s_pins brcm,pins = <18 19 20 21> ALT0. CM5 '&rp1_gpio { gpio-line-names = ... "GPIO18", // GPIO18 "GPIO19", ... "GPIO21"'. rp1_i2s1_18_21 pins gpio18-21.
+
+### I-31
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** Several overlays default to GPIO 18-21 and conflict with I2S. The pwm and pwm-2chan overlays default to pin 18, and the README notes that pin 18 'is the one used by the I2S audio interface'. gpio-ir defaults to gpio_pin 18. audremap offers pins_18_19 on bcm2835/bcm2711, but on bcm2712 overlay_map redirects audremap to audremap-pi5, where the README says 'pins_18_19 Not available; this will not enable audio out'. gpio-fan defaults to gpiopin 12 and does not conflict.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/overlays/README — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/README>
+- **Evidence:** pwm: 'Pin 18 is the only one available on all platforms, and it is the one used by the I2S audio interface' / 'pin Output pin (default 18)'. gpio-ir: 'gpio_pin Input pin number. Default is 18.' audremap: 'pins_18_19 Select GPIOs 18 & 19'. audremap-pi5: 'pins_18_19 Not available; this will not enable audio out'. gpio-fan: 'gpiopin GPIO used to control the fan (default 12)'.
+
+### I-32
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5
+- **Fact:** On CM5, the base DT's GPIO-20 and fan entries do not touch header GPIO 18-21. The power button is gpio-keys on '&gio 20' with pwr_button_pins in &pinctrl, both on the BCM2712 SoC GPIO controller, not RP1 header GPIO20. The cooling_fan node (status disabled by default in the CM5 dtsi) uses pwms = <&rp1_pwm1 3 41566 PWM_POLARITY_INVERTED>. The rp1_gpio line names put FAN_TACH on GPIO29 and FAN_PWM on GPIO45.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm64/boot/dts/broadcom/bcm2712-rpi-cm5.dtsi — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm64/boot/dts/broadcom/bcm2712-rpi-cm5.dtsi>
+- **Evidence:** '&pinctrl { pwr_button_pins: pwr_button_pins { function = "gpio"; pins = "gpio20"; bias-pull-up; };' and 'pwr_key: pwr { ... gpios = <&gio 20 GPIO_ACTIVE_LOW>;'. 'fan: cooling_fan { ... pwms = <&rp1_pwm1 3 41566 PWM_POLARITY_INVERTED>;'. rp1_gpio line names: '"FAN_TACH", // GPIO29', '"FAN_PWM", // GPIO45'.
+
+### I-33
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The Raspberry Pi CSI receiver drivers in rpi-6.18.y all set q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC: legacy/MC bcm2835-unicam, the upstream-style broadcom/bcm2835-unicam, the DT-bound downstream rp1_cfe ('raspberrypi,rp1-cfe') and the upstream rp1-cfe ('raspberrypi,rp1-cfe-upstream'). Each stamps the buffer with ktime_get_ns() (CLOCK_MONOTONIC) in its frame-start interrupt handler (UNICAM_FSI or cfe_sof_isr_handler).
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/media/platform/bcm2835/bcm2835-unicam.c, drivers/media/platform/broadcom/bcm2835-unicam.c, drivers/media/platform/raspberrypi/rp1_cfe/cfe.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/platform/raspberrypi/rp1_cfe/cfe.c>
+- **Evidence:** bcm2835-unicam.c: 'if (ista & UNICAM_FSI) { /* Timestamp is to be when the first data byte was captured, aka frame start. */ ts = ktime_get_ns(); ... cur_frm->vb.vb2_buf.timestamp = ts;' and 'q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;'. cfe.c: 'node->ts = ktime_get_ns(); ... node->cur_frm->vb.vb2_buf.timestamp = node->ts;' and 'q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;'
+
+### I-34
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** ALSA PCM status reports avail/delay with a system-time snapshot whose clock the application picks through sw_params: CLOCK_REALTIME, CLOCK_MONOTONIC or CLOCK_MONOTONIC_RAW. alsa-lib's hw plugin (v1.2.14, the version in trixie, and master) switches each newly opened PCM to SNDRV_PCM_TSTAMP_TYPE_MONOTONIC via the SNDRV_PCM_IOCTL_TTSTAMP ioctl when the kernel PCM protocol is 2.0.9 or later. Opens in SND_PCM_APPEND mode are not switched.
+- **Source:** Linux Documentation/sound/designs/timestamping.rst (rpi-6.18.y); alsa-lib src/pcm/pcm_hw.c — <https://github.com/alsa-project/alsa-lib/blob/master/src/pcm/pcm_hw.c>
+- **Verifier's best source:** <https://github.com/alsa-project/alsa-lib/blob/v1.2.14/src/pcm/pcm_hw.c>
+- **Evidence:** timestamping.rst: 'Applications can select from CLOCK_REALTIME (NTP corrections including going backwards), CLOCK_MONOTONIC (NTP corrections but never going backwards), CLOCK_MONOTIC_RAW (without NTP corrections) and change the mode dynamically with sw_params'. pcm_hw.c: 'if (SNDRV_PROTOCOL_VERSION(2, 0, 9) <= ver) { ... int on = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC; if (ioctl(fd, SNDRV_PCM_IOCTL_TTSTAMP, &on) < 0) ... tstamp_type = SND_PCM_TSTAMP_TYPE_MONOTONIC;' (alsa-lib master; trixie's alsa-lib version not checked).
+
+### I-35
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** GStreamer 1.26.2 alsasrc sets tstamp mode SND_PCM_TSTAMP_MMAP. On PAUSED->PLAYING it uses driver timestamps only if use-driver-timestamps is TRUE (the default) and the element clock's exact GType is GstSystemClock with clock-type MONOTONIC. In that case each timestamp is snd_pcm_status htstamp minus avail/rate minus one period_time. GstAudioBaseSrc defaults are provide-clock=TRUE, slave-method=skew, buffer-time 200 ms and latency-time 10 ms.
+- **Source:** GStreamer 1.26.2 subprojects/gst-plugins-base/ext/alsa/gstalsasrc.c and gst-libs/gst/audio/gstaudiobasesrc.c — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26.2/subprojects/gst-plugins-base/ext/alsa/gstalsasrc.c>
+- **Evidence:** gstalsasrc.c: 'if (G_OBJECT_TYPE (clk) == GST_TYPE_SYSTEM_CLOCK) { ... if (clocktype == GST_CLOCK_TYPE_MONOTONIC && alsa->use_driver_timestamps) { GST_INFO ("Using driver timestamps !"); alsa->driver_timestamps = TRUE;'; 'snd_pcm_status_get_htstamp (status, &tstamp); ... timestamp -= gst_util_uint64_scale_int (avail, GST_SECOND, asrc->rate); timestamp -= asrc->period_time * 1000;'. gstaudiobasesrc.c: '#define DEFAULT_BUFFER_TIME ((200 * GST_MSECOND) / GST_USECOND)', '#define DEFAULT_LATENCY_TIME ((10 * GST_MSECOND) / GST_USECOND)', '#define DEFAULT_PROVIDE_CLOCK TRUE', '#define DEFAULT_SLAVE_METHOD GST_AUDIO_BASE_SRC_SLAVE_SKEW'.
+
+### I-36
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** GStreamer documentation says that on PLAYING the pipeline asks elements from sink to source whether they can provide a clock, and uses the last one that can. This 'prefers ... a clock from source elements in a typical capture pipeline'. v4l2src does not provide a clock, so in a v4l2src + alsasrc pipeline alsasrc's GstAudioClock (provide-clock=TRUE) normally becomes the pipeline clock. alsasrc then does not use ALSA driver timestamps, because the clock is not a GstSystemClock (I-35).
+- **Source:** GStreamer Application Development Manual: Clocks and synchronization — <https://gstreamer.freedesktop.org/documentation/application-development/advanced/clocks.html>
+- **Evidence:** 'When the pipeline goes to the PLAYING state, it will go over all elements in the pipeline from sink to source and ask each element if they can provide a clock. The last element that can provide a clock will be used as the clock provider in the pipeline. This algorithm prefers a clock from an audio sink in a typical playback pipeline and a clock from source elements in a typical capture pipeline.'
+
+### I-37
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** GStreamer 1.26.2 v4l2src computes delay = CLOCK_MONOTONIC now minus the V4L2 buffer timestamp. If the timestamp is in the future or more than 10 s old, it compares against g_get_real_time() instead. It then sets PTS = (pipeline clock time - base_time) - delay. If the driver timestamp is in the future, goes backwards, or the delay exceeds the timestamp, it sets has_bad_timestamp and assumes a one-frame delay for the rest of the session; start() resets the flag.
+- **Source:** GStreamer 1.26.2 subprojects/gst-plugins-good/sys/v4l2/gstv4l2src.c — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26.2/subprojects/gst-plugins-good/sys/v4l2/gstv4l2src.c>
+- **Evidence:** 'clock_gettime (CLOCK_MONOTONIC, &now); gstnow = GST_TIMESPEC_TO_TIME (now); if (timestamp > gstnow || (gstnow - timestamp) > (10 * GST_SECOND)) { /* very large diff, fall back to system time */ gstnow = g_get_real_time () * GST_USECOND; } ... delay = gstnow - timestamp; ... timestamp = abs_time - base_time; /* adjust for delay in the device */ if (timestamp > delay) timestamp -= delay;'
+
+### I-38
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** In FFmpeg n7.1 the two capture devices use different clocks. The alsa input device stamps packets with av_gettime() (wall clock) minus (snd_pcm_delay + frames read)/sample_rate, smoothed by ff_timefilter, in microseconds. The v4l2 input device by default (-ts/-timestamps default) passes the kernel's monotonic buffer timestamps through unchanged; 'abs' autodetects and converts to wall clock, and 'mono2abs' forces the monotonic-to-wall-clock conversion. Mixing -f v4l2 and -f alsa without -ts abs/mono2abs therefore mixes clock bases. The ffmpeg CLI hides this by default by shifting each input to start at 0 (ts_offset = -start_time unless -copyts), which also discards the real start offset between the two inputs.
+- **Source:** FFmpeg n7.1 libavdevice/alsa_dec.c and libavdevice/v4l2.c — <https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavdevice/alsa_dec.c>
+- **Evidence:** alsa_dec.c: 'dts = av_gettime(); snd_pcm_delay(s->h, &delay); dts -= av_rescale(delay + res, 1000000, s->sample_rate); pkt->pts = ff_timefilter_update(s->timefilter, dts, s->last_period);'. v4l2.c: '{ "timestamps", ... {.i64 = 0 } ...}', '{ "default", "use timestamps from the kernel" ...}', '{ "abs", "use absolute timestamps (wall clock)" ...}', '{ "mono2abs", "force conversion from monotonic to absolute timestamps" ...}'.
+
+### I-39
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** In the Raspberry Pi trixie arm64 archive (Release dated Wed, 07 Oct 2026 19:33:14 UTC), ffmpeg and libavcodec61 are both 8:7.1.5-0+deb13u1+rpt2. libavcodec61 depends on libopus0 (>= 1.1), libmp3lame0, libx264-164 and libx265-215, and not on libfdk-aac. No fdk package exists in that archive, and libavcodec-extra61 has no fdk-aac either. The Pi build therefore has the libopus wrapper and the native 'aac' encoder but no libfdk_aac. Linking libx264 and libx265, which are on FFmpeg's EXTERNAL_LIBRARY_GPL_LIST, makes it a GPL build.
+- **Source:** archive.raspberrypi.com debian dists/trixie/main/binary-arm64/Packages — <http://archive.raspberrypi.com/debian/dists/trixie/main/binary-arm64/Packages.gz>
+- **Evidence:** 'Package: libavcodec61 / Source: ffmpeg / Version: 8:7.1.5-0+deb13u1+rpt2 / Depends: ... libmp3lame0 (>= 3.100), ... libopus0 (>= 1.1), ... libx264-164 (>= 2:0.164.3108+git31e19f9), libx265-215 (>= 4.1), ...'. No libfdk-aac in the Depends list. 'Package: ffmpeg / Version: 8:7.1.5-0+deb13u1+rpt2'.
+
+### I-40
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** FFmpeg 7.1's native 'aac' encoder is documented as the default AAC encoder and is not flagged AV_CODEC_CAP_EXPERIMENTAL. It takes AV_SAMPLE_FMT_FLTP at the MPEG-4 audio rates (ff_mpeg4audio_sample_rates). Its codec default is b=0. When -b is not given, aac_encode_init() sums a bitrate per channel element: 128000 per channel pair, 69000 per single channel, 16000 per LFE. Stereo capture therefore defaults to 128 kb/s and mono to 69 kb/s. encoders.texi says an explicit -b 'automatically activates constant bit rate (CBR) mode'.
+- **Source:** FFmpeg n7.1 libavcodec/aacenc.c and doc/encoders.texi — <https://github.com/FFmpeg/FFmpeg/blob/n7.1/doc/encoders.texi>
+- **Verifier's best source:** <https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavcodec/aacenc.c>
+- **Evidence:** encoders.texi: '@section aac / Advanced Audio Coding (AAC) encoder. This encoder is the default AAC encoder, natively implemented into FFmpeg. ... @item b Set bit rate in bits/s. Setting this automatically activates constant bit rate (CBR) mode. If this option is unspecified it is set to 128kbps.' aacenc.c: '.p.capabilities = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY | AV_CODEC_CAP_SMALL_LAST_FRAME, ... .p.supported_samplerates = ff_mpeg4audio_sample_rates, ... .p.sample_fmts = { AV_SAMPLE_FMT_FLTP, ...'
+- **Original claim (before verification):** FFmpeg 7.1's native 'aac' encoder is the default AAC encoder and is not flagged experimental. It takes AV_SAMPLE_FMT_FLTP input at the MPEG-4 audio sample rates (ff_mpeg4audio_sample_rates), and its bitrate defaults to 128 kbps CBR when -b is not given.
+- **Verifier note:** encoders.texi line 40 says 'If this option is unspecified it is set to 128kbps', but code lines 1279-1285 and 1414-1416 show the default depends on the channel layout. For PACSCORDER's 2-channel capture the result is still 128 kb/s.
+
+### I-41
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** FFmpeg 7.1's native 'opus' encoder is flagged AV_CODEC_CAP_EXPERIMENTAL, implements only the CELT part of Opus, supports only 48000 Hz, and supports mono or stereo only. Production Opus encoding should use the 'libopus' wrapper, which needs --enable-libopus at build time, accepts 48000/24000/16000/12000/8000 Hz, and is present in the Raspberry Pi build because libavcodec61 depends on libopus0.
+- **Source:** FFmpeg n7.1 libavcodec/opus/enc.c and doc/encoders.texi — <https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavcodec/opus/enc.c>
+- **Evidence:** enc.c: '.p.capabilities = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY | AV_CODEC_CAP_SMALL_LAST_FRAME | AV_CODEC_CAP_EXPERIMENTAL, ... .p.supported_samplerates = (const int []){ 48000, 0 },'. encoders.texi: 'This is a native FFmpeg encoder for the Opus format. Currently, it's in development and only implements the CELT part of the codec. Its quality is usually worse and at best is equal to the libopus encoder.' ffmpeg-codecs: 'libopus ... You need to explicitly configure the build with --enable-libopus.'
+
+### I-42
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** In FFmpeg 7.1's configure, libfdk_aac is on EXTERNAL_LIBRARY_NONFREE_LIST (with decklink and libtls), and 'enabled gpl && map "die_license_disabled_gpl nonfree"' applies to that list. A --enable-gpl build (needed for x264/x265) therefore needs --enable-nonfree to enable libfdk_aac. --enable-nonfree is described as making 'the resulting libs and binaries ... unredistributable', and configure then reports the license as 'nonfree and unredistributable'. An LGPL build (no --enable-gpl) can enable libfdk_aac without --enable-nonfree.
+- **Source:** FFmpeg n7.1 configure; FFmpeg Codecs Documentation (libfdk_aac) — <https://github.com/FFmpeg/FFmpeg/blob/n7.1/configure>
+- **Evidence:** configure: 'EXTERNAL_LIBRARY_NONFREE_LIST=" decklink libfdk_aac libtls "'; 'enabled gpl && map "die_license_disabled_gpl nonfree" $EXTERNAL_LIBRARY_NONFREE_LIST'; '--enable-nonfree allow use of nonfree code, the resulting libs and binaries will be unredistributable [no]'. Docs: 'The library is also incompatible with GPL, so if you allow the use of GPL, you should configure with --enable-gpl --enable-nonfree --enable-libfdk-aac.'
+
+### I-43
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** Debian trixie ships fdk-aac 2.0.3-1 in non-free (Section non-free/libs), with binary packages libfdk-aac2t64 (arm64 565.3 kB, also armhf), libfdk-aac-dev and aac-enc. The licence is 'Fraunhofer-FDK-AAC-for-Android'. Debian's copyright file says it 'is incompatible with any version of the GNU GPL'. The licence's clause 3 grants 'NO EXPRESS OR IMPLIED LICENSES TO ANY PATENT CLAIMS' and points to Via Licensing (now Via LA) or the patent owners for patent licences.
+- **Source:** packages.debian.org trixie fdk-aac / libfdk-aac2t64; Debian copyright file fdk-aac_2.0.3-1 — <https://packages.debian.org/source/trixie/fdk-aac>
+- **Evidence:** 'Source Package: fdk-aac (2.0.3-1) [non-free] ... binary packages: aac-enc, libfdk-aac-dev, libfdk-aac2t64'. 'Package: libfdk-aac2t64 (2.0.3-1) [non-free]' with arm64 565.3 kB download. Copyright: 'License: Fraunhofer-FDK-AAC-for-Android'; 'It is incompatible with any version of the GNU GPL'; '3. NO PATENT LICENSE ... NO EXPRESS OR IMPLIED LICENSES TO ANY PATENT CLAIMS ... ARE GRANTED'; 'Patent licenses ... may be obtained through Via Licensing'.
+
+### I-44
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** The Raspberry Pi archive's gstreamer1.0-plugins-bad 1.26.2-3+rpt4+deb13u3 (arm64) depends on libvo-aacenc0 (>= 0.1.3) and libopus0 (>= 1.1), and not on libfdk-aac. Its .deb, like Debian's 1.26.2-3+deb13u3, contains libgstvoaacenc.so and libgstopusparse.so but no libgstfdkaac.so. voaacenc is therefore available; fdkaacenc is not shipped and would need a custom build linked against non-free libfdk-aac.
+- **Source:** archive.raspberrypi.com trixie Packages; packages.debian.org trixie/arm64 gstreamer1.0-plugins-bad file list — <https://packages.debian.org/trixie/arm64/gstreamer1.0-plugins-bad/filelist>
+- **Evidence:** RPi Packages: 'Package: gstreamer1.0-plugins-bad / Source: gst-plugins-bad1.0 / Version: 1.26.2-3+rpt4+deb13u3 / Depends: ... libopus0 (>= 1.1), ... libvo-aacenc0 (>= 0.1.3), ...'. Debian file list includes '/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvoaacenc.so' and no fdkaac entry. Debian: 'Package: libvo-aacenc0 (0.1.3-3)' in main.
+
+### I-45
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** The GStreamer Opus encoder (opusenc, plugin 'opus') is in gst-plugins-base. The Raspberry Pi archive ships gstreamer1.0-plugins-base 1.26.2-1+rpt3+deb13u2, which depends on libopus0 (>= 1.1) and contains /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstopus.so. alsasrc comes from gstreamer1.0-alsa 1.26.2-1+rpt3+deb13u2. Debian trixie's libopus0 is 1.5.2-2, and Raspberry Pi does not rebuild it.
+- **Source:** archive.raspberrypi.com trixie Packages; packages.debian.org trixie gstreamer1.0-plugins-base, libopus0 — <https://packages.debian.org/trixie/libopus0>
+- **Evidence:** RPi: 'Package: gstreamer1.0-plugins-base / Version: 1.26.2-1+rpt3+deb13u2 / Depends: ... libopus0 (>= 1.1) ...'; 'Package: gstreamer1.0-alsa / Version: 1.26.2-1+rpt3+deb13u2'. Debian file list: '/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstopus.so'. 'Package: libopus0 (1.5.2-2)'. GStreamer docs: 'opusenc ... Plugin – opus, Package – GStreamer Base Plug-ins'.
+
+### I-46
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** Raspberry Pi does not rebuild gstreamer1.0-libav, which provides avenc_aac wrapping FFmpeg's native AAC encoder. The package comes from Debian trixie as 1.26.2-1+deb13u1, ships libgstlibav.so, and depends on libavcodec61 (>= 7:7.1.4). The Raspberry Pi libavcodec61 8:7.1.5-0+deb13u1+rpt2 satisfies that and wins on epoch (8 > 7).
+- **Source:** packages.debian.org trixie gstreamer1.0-libav; archive.raspberrypi.com trixie Packages — <https://packages.debian.org/trixie/gstreamer1.0-libav>
+- **Evidence:** Debian: 'Package: gstreamer1.0-libav (1.26.2-1+deb13u1)'; deps 'libavcodec61 (>= 7:7.1.4)'; file list '/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstlibav.so'. No gstreamer1.0-libav package in the RPi trixie arm64 Packages index. GStreamer docs: avenc_aac 'Plugin – libav, Package – GStreamer FFMPEG Plug-ins'.
+
+### I-47
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** GStreamer encoders accept different sample rates on their sink pads. opusenc accepts only 48000, 24000, 16000, 12000 or 8000 Hz (F32LE/S16LE, 1-255 channels) and defaults to bitrate 64000 with bitrate-type constrained-vbr. avenc_aac accepts F32LE at 7350-96000 Hz including 44100 and 48000, with 1-16 channels. voaacenc accepts S16LE at 8000-96000 Hz with 1 or 2 channels, rank secondary. fdkaacenc (plugin fdkaac, gst-plugins-bad) accepts S16LE at 8000-96000 Hz and offers profiles lc, he-aac-v1, he-aac-v2 and ld. A 44.1 kHz HDMI source needs audioresample before opusenc.
+- **Source:** GStreamer documentation: opusenc, avenc_aac, voaacenc, fdkaacenc — <https://gstreamer.freedesktop.org/documentation/opus/opusenc.html>
+- **Evidence:** opusenc sink: 'format: { F32LE, S16LE } ... rate: { (int)48000, (int)24000, (int)16000, (int)12000, (int)8000 } channels: [ 1, 255 ]'; bitrate 'Default value : 64000'; bitrate-type 'Default value : constrained-vbr (2)'. avenc_aac sink: 'rate: { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350 } format: F32LE'. voaacenc sink: 'format: S16LE ... rate: {8000 ... 96000} channels: 1 / channels: 2', 'Rank – secondary'. fdkaacenc: 'profile: { lc, he-aac-v1, he-aac-v2, ld }'.

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | Active — 2 ACCEPTED, 4 PROPOSED, 2 OPEN |
-| Last updated | 2026-10-07 |
+| Last updated | 2026-10-08 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 |
-| Verification | Evidence is from source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
+| Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H and I) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 13 (decision log), Rule 14 (never delete) |
 
 Every architectural or technical decision gets an ADR. ADRs are never edited to change their meaning. A changed decision gets a new ADR that marks the old one `SUPERSEDED BY ADR-NNN` (Rule 13).
@@ -213,6 +213,8 @@ The "1080p60 capture possible" row is a bandwidth statement only. Reasoning from
 - CM4 on CAM1 is the only candidate with both an officially documented 4-lane 1080p60 TC358743 configuration and a hardware H.264 encoder. That encoder is officially specified only to 1080p30 [D-10], and a Raspberry Pi engineer reported 1080p60 as an "edge case" on the hardware encoder (community source) [D-50], so 1080p60 hardware encode is **unproven** (RISK-002, OQ-056).
 - Pi 5 and CM5 have the lanes and CPU, but no official TC358743 documentation. They also need software encoding and per-frame format conversion [D-43].
 - Recommended next step: evaluate CM4 (CAM1) and Pi 5/CM5 side by side during bring-up, using TEST-CAP-002 and TEST-ENC-001. Then decide this ADR on measured results. This covers the 4-lane configuration. For the 2-lane configuration of REQ-CAP-007 (owner, 2026-10-07), TEST-CAP-004 records the supported-mode matrix on the chosen 2-lane candidate (Pi 4 Model B, CM4 CAM0 or a 2-lane bridge board).
+- *(Added 2026-10-08, research topic H — H.265 is required, REQ-ENC-001.)* H.265 is software-encoded on both CM4 and CM5 [D-24], [D-31], so CM4's hardware H.264 encoder does not help it. x265's Neon DotProd kernels can apply only on CM5's Cortex-A76; CM4's Cortex-A72 has no DotProd, and I8MM, SVE and SVE2 paths apply on neither [H-04], [H-05]. Cost evidence is weak: research found no official H.265 figure [H-19]; a Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]; community benchmarks report `libx265` "Live" results of 10.00 FPS on Pi 5 and 4.33 FPS on a Cortex-A72 Pi 400, in a test that is not a 1080p60 live measurement (community sources) [H-20], [H-21], [H-22]; reasoning: in that harness `libx265` was about 6.6 times slower than `libx264` on Pi 5 [H-23]. Claude's reading (reasoning, not a measurement): if H.265 is required at 1080p, CM5 is the more likely of the two to sustain it; neither is shown to do so. TEST-ENC-001 should include H.265 runs on both boards (OQ-104, OQ-105; RISK-022). On CM5, an H.264 WebRTC track alongside H.265 would be a second concurrent software encode (OQ-108).
+- *(Added 2026-10-08, research topic I — HDMI audio is required, REQ-CAP-006.)* CM4: the `tc358743-audio` overlay drives the single `bcm2835-i2s` on GPIO 18–21, which captures exactly 2 channels [I-10], [I-13]. CM5: `overlay_map` has no entry for the overlay, so the firmware does not block it [I-05], [I-06], and its labels resolve to RP1 I2S1 on GPIO 18–21 [I-07]; but no official statement or test result shows audio being captured through this path on CM5 (research gap, topic I; OQ-054). Reasoning: HDMI audio is therefore a bring-up gate on CM5 that TEST-AUD-001 must pass before CM5 can be chosen for the product.
 
 ## Decision
 
@@ -305,9 +307,23 @@ OPEN — 2026-10-06 (OQ-015).
 
 All D-series facts cited above are `CONFIRMED` in [REFERENCES.md](REFERENCES.md).
 
+### Evidence added 2026-10-08 (research topics H and I; the options and status are unchanged)
+
+H.265 (required by REQ-ENC-001) and HDMI audio (required by REQ-CAP-006) add the following evidence. All cited H and I entries have verdict `CONFIRMED` or `CORRECTED`.
+
+| Option | Evidence for (added 2026-10-08) | Evidence against (added 2026-10-08) |
+|---|---|---|
+| **GStreamer** (Raspberry Pi OS 1.26.2) | `x265enc` is shipped in plugins-bad [H-11], [H-12] (CORRECTED). `qtmux`/`mp4mux` and `matroskamux` accept H.265 [H-37]. `mpegtsmux` accepts H.265, and the SRT and MPEG-TS plugins are shipped [H-30]. Audio encoders `voaacenc` and `opusenc` are shipped, and `avenc_aac` is available [I-44], [I-45], [I-46]. | `flvmux` has no H.265, so the distribution's GStreamer cannot mux HEVC into FLV/RTMP [H-27]; `eflvmux` arrives only in 1.28 (CORRECTED) [F-34]. `x265enc` reports a hard-coded 5-frame latency unless `tune=zerolatency`; the fix arrived in 1.26.8 and is not backported [H-15]. `rtph265pay` lacks profile, tier and level in its caps until 1.26.4 [H-31]. A/V timestamps: in a `v4l2src` + `alsasrc` pipeline, `alsasrc` normally provides the pipeline clock and then does not use ALSA driver timestamps [I-35], [I-36]; `v4l2src` maps monotonic buffer timestamps through a measured delay and falls back to a one-frame delay after a bad timestamp [I-37]. |
+| **FFmpeg** (Raspberry Pi build 7.1.5) | Can mux HEVC + AAC into enhanced FLV for RTMP publishing [H-26]; links `libx265` [H-09]; built with `--enable-libsrt` [H-08]; its MP4 and Matroska muxers handle HEVC [H-38]. Has the native `aac` encoder and `libopus` [I-39], [I-41]. | Its FLV muxer has no Opus [H-26]. Its `libx265` wrapper copies the thread count into x265's frame threads after applying tune [H-10] (CORRECTED); reasoning from [H-10] and [H-16]: the `-threads` setting replaces `tune=zerolatency`'s single frame thread unless set explicitly. Its ALSA input stamps packets with wall-clock time while its V4L2 input passes monotonic timestamps through by default, so the two clock bases are mixed unless `-ts abs` or `mono2abs` is used [I-38]. Linking `libx264`/`libx265` makes it a GPL build [I-39]. |
+| **Direct V4L2 application** | Video buffers carry `CLOCK_MONOTONIC` frame-start timestamps on every Raspberry Pi CSI receiver driver [I-33], and alsa-lib 1.2.14 (the trixie version) switches each newly opened `hw` PCM to monotonic timestamps when the kernel PCM protocol is 2.0.9 or later [I-34]; reasoning: one timestamp clock is then available for both, although the audio samples are still clocked by the source [I-26]. | H.265 encoding, muxing and transport still have to come from x265 or FFmpeg libraries (reasoning from [H-09], [H-13]). |
+
+Reasoning from [H-26], [H-27], [F-34]: if RTMP must carry H.265 (OQ-103) and GStreamer is chosen for the rest, HEVC RTMP needs FFmpeg, a backported or newer GStreamer, or SRT instead — a possible split GStreamer/FFmpeg architecture (RISK-025, OQ-107). Whichever framework is chosen must also define how audio and video timestamps are aligned (RISK-024, OQ-112) and how the audio sample rate follows the source (RISK-023, OQ-111).
+
 ## Decision
 
 Not yet made. Decide after bring-up proves capture (TEST-CAP-002) and encode (TEST-ENC-001) on the candidate platforms (ADR-004).
+
+*(Added 2026-10-08; the decision status is unchanged.)* The decision should also record the HEVC-over-RTMP path (OQ-107) and the A/V clock model (OQ-112), measured with TEST-AUD-001 and TEST-STR-001.
 
 ---
 
@@ -365,6 +381,8 @@ On a CM4 CAM1 4-lane link only, evaluate 297 MHz as an alternative for 1080p60 U
 
 The evidence in every ADR cites [REFERENCES.md](REFERENCES.md) entries with verdict `CONFIRMED` or `CORRECTED`. `CORRECTED` entries (A-22, B-11, B-25, C-36, C-39, D-46, G-36, G-69, G-71) are used in their corrected wording. Community-tier entries (C-33, C-35, C-41, C-42, C-43, D-17, D-18, D-50) are worded as reports. Reasoning-tier entries (A-23, B-10, B-11, B-27, B-49, C-46, C-47, C-48, C-49, C-52, G-71) are labelled as reasoning. Statements marked *research gap* come from the research JSON and are not register facts. "Verified from sources" means only that the cited source says so.
 
+Added 2026-10-08 (research topics H and I, cited in ADR-004 Analysis and ADR-007): topic H facts H-04, H-05, H-08, H-09, H-10, H-11, H-12, H-13, H-15, H-16, H-19, H-20, H-21, H-22, H-23, H-26, H-27, H-30, H-31, H-37, H-38; topic I facts I-05, I-06, I-07, I-10, I-13, I-26, I-33, I-34, I-35, I-36, I-37, I-38, I-39, I-41, I-44, I-45, I-46. `CORRECTED` entries H-10, H-12 and F-34 are used in their corrected wording. Community-tier entries H-19, H-20, H-21 and H-22 are worded as reports. The reasoning-tier entry H-23 is labelled as reasoning. The topic I research gap on CM5 audio comes from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) and is not a register fact.
+
 ## Verified on PACSCORDER hardware
 
 Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a test. ADR-001 is ACCEPTED by the owner's rules, not by test evidence.
@@ -382,3 +400,4 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated (verification pass): ADR-003 Status no longer says REQ-CAP-007 "spans the Pi 4 family and the Pi 5 family" (both configurations could sit in one family; now "may put the two configurations on different board families", ADR-004 OPEN); the [G-71] sentence no longer claims the image carries "the tested kernel" and "both `tc358743` overlays" — it states what [G-71] supports (both kernels, module trees with `tc358743`, Unicam and RP1 CFE, boots all four boards) and keeps the overlays NEEDS VERIFICATION as in the Context; ADR-004 recommended next step adds the 2-lane configuration (TEST-CAP-004). No decision status changed. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner ("accept ADR-003", 2026-10-07): Status, index row and header counts updated; decision text unchanged. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-004: owner input recorded — bring-up evaluates CM4 and CM5 side by side; the decision stays OPEN until measured. | Claude (session 2026-10-07) |
+| 2026-10-08 | Research topics H and I propagated; **no decision, status or option changed**. ADR-004 Analysis: two dated bullets — H.265 is software on both CM4 and CM5, DotProd only on CM5's Cortex-A76 [H-04], [H-05], H.265 cost evidence (no official figure; community statement and community benchmarks that are not 1080p60 measurements; 6.6x reasoning) [H-19] to [H-23], H.265 runs to be included in TEST-ENC-001 (OQ-104, OQ-105); CM4 audio via `bcm2835-i2s`, CM5 audio labels resolve but operation unconfirmed [I-05], [I-06], [I-07] (OQ-054), so audio is a CM5 bring-up gate (reasoning). ADR-007: dated evidence table — GStreamer 1.26.2 cannot mux HEVC into FLV [H-27] while FFmpeg 7.1.5 can [H-26]; `x265enc` latency and `rtph265pay` caps limits [H-15], [H-31]; HEVC MP4/Matroska/MPEG-TS support [H-30], [H-37], [H-38]; audio encoders [I-39], [I-41], [I-44], [I-45], [I-46]; A/V timestamp handling differs between GStreamer and FFmpeg [I-35] to [I-38]; split-architecture reasoning (RISK-025, OQ-107); note that the decision should also record the HEVC RTMP path and A/V clock model. Header Verification row and Verification status updated. | Claude (session 2026-10-08) |

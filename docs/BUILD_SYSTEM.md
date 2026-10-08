@@ -3,17 +3,19 @@
 | | |
 |---|---|
 | Document status | DRAFT. **No build exists.** There is no build configuration, script or image in this repository. The owner requires the product to run its own project-built OS image (REQ-BLD-002, DRAFT, 2026-10-07). The OS and image basis, including the build tool (ADR-003), is **ACCEPTED** (owner, 2026-10-07: "accept ADR-003"): stock Raspberry Pi OS Lite for bring-up, the product's own image built with `rpi-image-gen`. Nothing of it is implemented. |
-| Last updated | 2026-10-07 |
-| Applies to | Raspberry Pi 4 Model B, CM4, Raspberry Pi 5, CM5. Both a 2-lane and a 4-lane capture configuration are required (REQ-CAP-007); which platform serves each is undecided (ADR-004 OPEN). Covers Raspberry Pi OS Lite 64-bit (trixie), `rpi-image-gen` and Buildroot. |
-| Verification | Source research of 2026-10-06 only ([REFERENCES.md](REFERENCES.md)). No image has been built. Nothing has been run on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
-| Traceability | REQ-BLD-001 (DRAFT, NOT STARTED) · REQ-BLD-002 (DRAFT, NOT STARTED) · REQ-CAP-007 (DRAFT) · ADR-003 (ACCEPTED) · ADR-004 (OPEN) · RISK-017 · TEST-BLD-001 (NOT STARTED) · OQ-012 (ANSWERED) |
+| Last updated | 2026-10-08 |
+| Applies to | Raspberry Pi 4 Model B, CM4, Raspberry Pi 5, CM5. Both a 2-lane and a 4-lane capture configuration are required (REQ-CAP-007); which platform serves each is undecided (ADR-004 OPEN). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07, second answer). Covers Raspberry Pi OS Lite 64-bit (trixie), `rpi-image-gen` and Buildroot. |
+| Verification | Source research of 2026-10-06 and of 2026-10-08 (topic H, H.265/HEVC; topic I, HDMI audio) ([REFERENCES.md](REFERENCES.md)). No image has been built. Nothing has been run on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
+| Traceability | REQ-BLD-001 (DRAFT, NOT STARTED) · REQ-BLD-002 (DRAFT, NOT STARTED) · REQ-CAP-007 (DRAFT) · ADR-003 (ACCEPTED) · ADR-004 (OPEN) · RISK-017 · TEST-BLD-001 (NOT STARTED) · OQ-012 (ANSWERED). Added 2026-10-08: REQ-ENC-001 (H.264 + H.265) · REQ-CAP-006 (HDMI audio, DRAFT) · RISK-022 · RISK-025 · OQ-054 · OQ-105 · OQ-107 · OQ-113 · OQ-114 |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rules 2, 17, 22, 23, 25 |
 
 This document answers the Rule 25 question **"How is the system built?"**. Today the answer is that it is not built: no build has been set up, run or tested. The document records what the 2026-10-06 source research established about the three candidate build paths, and the plan decided in ADR-003 (ACCEPTED 2026-10-07).
 
 **Owner input of 2026-10-07.** Asked about the OS and image build (OQ-012), the owner answered "which is best i need by own one". This is recorded as REQ-BLD-002 (DRAFT): the product runs a project-built OS image of its own, not an unmodified stock distribution image. The choice of build tool was again delegated to Claude's recommendation, which is unchanged: Raspberry Pi OS Lite for bring-up ([§1](#1-bring-up-os-raspberry-pi-os-lite-64-bit-trixie-2026-10-06)), the product's own image built with `rpi-image-gen` ([§2](#2-production-image-adr-003-accepted-rpi-image-gen)), Buildroot as the documented alternative ([§3](#3-alternative-buildroot)). The owner then accepted ADR-003 on 2026-10-07 ("accept ADR-003"); OQ-012 is ANSWERED.
 
-Fact references such as `[G-04]` point to [REFERENCES.md](REFERENCES.md). For entries whose verdict is `CORRECTED`, only the corrected wording is used, and the verdict is noted next to the citation. Open questions (`OQ-NNN`) are in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Text marked *research gap* comes from the `gaps` / `open_questions` lists in [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json); it is **not** a register fact.
+**Owner decisions of 2026-10-07 (second set) and source research of 2026-10-08.** The owner chose CM4 and CM5 for side-by-side bring-up (ADR-004 stays OPEN), made HDMI audio required (REQ-CAP-006, DRAFT; OQ-004 ANSWERED), and chose H.264 **and** H.265 for recording and streaming (REQ-ENC-001; which output uses which is OQ-103). Research topics H and I (2026-10-08) establish which Raspberry Pi OS packages provide H.265 encoding and the audio path, and at which versions. Their effect on the build is in [§1.3](#13-one-image-four-boards-what-differs) (H.265 and audio rows), [§1.4](#14-configtxt) (audio overlay), [§1.5](#15-kernel-modules-and-kernel-configuration-present) (audio kernel options), [§1.6](#16-bring-up-package-list) (packages) and [§1.8](#18-version-limits-of-the-distribution-media-stack-added-2026-10-08) (version limits). Buildroot equivalents were not researched ([§3.6](#36-packages-and-symbols-pacscorder-would-need)).
+
+Fact references such as `[G-04]` point to [REFERENCES.md](REFERENCES.md). For entries whose verdict is `CORRECTED`, only the corrected wording is used, and the verdict is noted next to the citation. Open questions (`OQ-NNN`) are in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Text marked *research gap* comes from the `gaps` / `open_questions` lists in [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) or, for topics H and I, [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json); it is **not** a register fact.
 
 ## Contents
 
@@ -114,6 +116,10 @@ The Lite image ships both the `rpi-v8` kernel (bcm2711, 4K pages) and the `rpi-2
 | Default capture model | Legacy Unicam in video-node mode unless the `media-controller` parameter is given [G-12], [G-21] | same as Pi 4 | RP1 CFE, Media Controller only [G-71] | same as Pi 5 |
 | CSI-2 lanes at the camera interface(s) | One 15-pin connector, 2 data lanes [C-01] | 2-lane CSI0 and 4-lane CSI1 (CM4 IO Board connectors) [C-03]; the `tc358743` `4lane` parameter applies to Compute Module CAM1 only [G-12] | Two 22-pin ports, each backed by a 4-lane transceiver [C-04]. `tc358743-pi5` has a `4lane` parameter [G-13]; whether it works on the Pi 5 connectors is NEEDS VERIFICATION (*research gap*, topic G) | Two 4-lane MIPI interfaces [C-05] |
 | H.264 encode | Hardware `bcm2835-codec` [G-71] | same as Pi 4 | Software only [G-22] | same as Pi 5 |
+| H.265 encode *(added 2026-10-08)* | Software only: `bcm2835-codec` has no HEVC encoder [D-24]; Debian x265 4.1-2 [H-01], [H-02]; Cortex-A72 (BCM2711) has no DotProd [H-05] | same as Pi 4 | Software only [D-31]; same x265 package; Cortex-A76 (BCM2712) has DotProd [H-05] | same as Pi 5 |
+| HDMI audio kernel options *(added 2026-10-08)* | `bcm2711_defconfig`: `CONFIG_SND_SIMPLE_CARD=m`, `CONFIG_SND_BCM2835_SOC_I2S=m`, `CONFIG_SND_DESIGNWARE_I2S=m`, `CONFIG_SND_DESIGNWARE_PCM=y`; packaged `rpi-v8` kernel has `CONFIG_SND_SOC_SPDIF=m` [I-12] | same as Pi 4 | `bcm2712_defconfig`: the same options; packaged `rpi-2712` kernel has `CONFIG_SND_SOC_SPDIF=m` [I-12] | same as Pi 5 |
+| HDMI audio CPU I2S *(added 2026-10-08)* | Not researched separately in topic I: NEEDS VERIFICATION | `bcm2835-i2s` on GPIO 18–21 [I-10] | Not researched separately in topic I: NEEDS VERIFICATION | RP1 I2S1 on GPIO 18–21; capture unconfirmed (OQ-054) [I-07], [I-08] |
+| Bring-up board (owner, 2026-10-07, second answer) *(added 2026-10-08)* | No (documented candidate) | **Yes** | No (documented candidate) | **Yes** |
 | Storage and provisioning | SD [G-71] | eMMC flashed with `rpiboot` [G-71], [G-47] | SD [G-71] | eMMC flashed with `rpiboot` [G-71], [G-47] |
 
 The rows citing [G-71] are reasoning-tier. Which Compute Module variant PACSCORDER would use, and its boot storage, are **UNKNOWN — VERIFICATION REQUIRED** (OWNER DECISION REQUIRED; OQ-018). The boards' own storage, Ethernet and USB facts are not in the register (DATASHEET REQUIRED; OQ-098). The image also ships a CM5 Lite device tree [G-71]; how a Lite variant is provisioned is not in the register (NEEDS VERIFICATION).
@@ -131,7 +137,7 @@ The CSI-2 lane count and connector of the PACSCORDER board are **UNKNOWN — VER
 | `tc358743` parameters | `4lane` (Compute Module CAM1 only), `link-frequency` (only `297000000` or `486000000`; default `486000000`), `media-controller` (default off), `cam0` [G-12] |
 | `tc358743-pi5` parameters | `4lane`, `link-frequency` (`297000000` or `486000000`), `cam0`. There is no `media-controller` parameter [G-13]. |
 | Pi 5 remapping | `overlay_map` maps `tc358743` to `tc358743-pi5` on bcm2712 [E-43]. |
-| Audio overlay | `tc358743-audio`, whose only parameter is `card-name` [G-14]. Whether it works on Pi 5/CM5 is open (OQ-054); [G-14] is not read as confirming that. |
+| Audio overlay | `tc358743-audio`, whose only parameter is `card-name` [G-14]. Whether it works on Pi 5/CM5 is open (OQ-054); [G-14] is not read as confirming that. *(Added 2026-10-08; HDMI audio is required, REQ-CAP-006.)* Official documentation says audio needs `tc358743-audio` in addition to `tc358743` [C-37]; a Raspberry Pi engineer stated that it "*requires* dtoverlay=tc358743 to be loaded too" [I-16] (reported; community source). On CM5 `overlay_map` has no entry for it, so the firmware does not block it and it loads under its own name [I-05], [I-06]. The README's "tc358743-fast" is a stale name: the overlays Makefile builds only `tc358743.dtbo`, `tc358743-audio.dtbo` and `tc358743-pi5.dtbo` [I-04]. The overlay claims GPIO 18–21 [I-30]; the `pwm`, `pwm-2chan` and `gpio-ir` overlays default to GPIO 18, and `audremap` offers `pins_18_19` on BCM2711 [I-31], so the project `config.txt` must not enable those on the same pins (reasoning; OQ-114). The `config.txt` line form for loading both overlays is NEEDS VERIFICATION (OQ-100). |
 | Per-model sections | The `[pi4]`, `[pi5]`, `[cm4]` and `[cm5]` filters let one `config.txt` hold the settings for each model [G-71] (reasoning-tier entry, CORRECTED). Whether a `[pi4]` section also matches a CM4 is NEEDS VERIFICATION (OQ-100). |
 | `camera_auto_detect` | Official documentation requires `camera_auto_detect=0` for the listed camera-sensor overlays [G-15]. It does not state this for the TC358743. Disabling it is prudent but not a documented requirement [C-39] (CORRECTED). Open: OQ-072. |
 
@@ -155,6 +161,9 @@ The table below is the kernel configuration of the Raspberry Pi default branch `
 | `CONFIG_PREEMPT` | `=y` | Preemptible kernel | [G-19] |
 | `CONFIG_MEDIA_SUPPORT`; `CONFIG_MODULE_COMPRESS_XZ` | `=m`; `=y` | Media drivers are XZ-compressed loadable modules. | [E-49] |
 | `CONFIG_I2C_BCM2835`, `CONFIG_I2C_MUX_PINCTRL` | `=m`, `=m` | I2C controller, and the `i2c-mux-pinctrl` mux that provides the camera I2C bus `i2c_csi_dsi` on Pi 4B and CM4 [C-24] | [E-39], [C-24] |
+| *(Added 2026-10-08.)* `CONFIG_SND_SIMPLE_CARD`, `CONFIG_SND_BCM2835_SOC_I2S`, `CONFIG_SND_DESIGNWARE_I2S`, `CONFIG_SND_DESIGNWARE_PCM` | `=m`, `=m`, `=m`, `=y` in both defconfigs | HDMI audio path: the `simple-audio-card`, the CM4 CPU I2S (`bcm2835-i2s`) and the CM5 RP1 I2S (`dwc-i2s`) | [I-12] |
+| *(Added 2026-10-08.)* `CONFIG_SND_SOC_SPDIF` | Not set directly; selected by `CONFIG_SND_RP1_AUDIO_OUT=m`. The packaged `rpi-v8` and `rpi-2712` 6.18.50 kernels both contain `CONFIG_SND_SOC_SPDIF=m`. | The `linux,spdif-dir` stub codec the audio overlay uses (module `snd-soc-spdif-rx`) | [I-12], [I-11] |
+| *(Added 2026-10-08.)* `CONFIG_VIDEO_TC358743_CEC` in the packaged kernels | Not set in the packaged 6.18.50 `rpi-v8` and `rpi-2712` kernels either | Without CEC (and without an INT pin) the driver polls every 1000 ms, so an audio sample-rate change takes up to about 1 s to reach its control | [I-22] |
 
 Whether each module loads and binds on PACSCORDER hardware: **BLOCKED — HARDWARE REQUIRED** (TEST-PLT-001, TEST-DRV-001).
 
@@ -167,23 +176,40 @@ These versions are from the trixie archive indexes as read on 2026-10-06. The ar
 | `v4l-utils` | 1.30.1-1 | Debian | **Preinstalled** | `v4l2-ctl`, `media-ctl`, `v4l2-compliance`, `cec-ctl` | [G-24] |
 | `i2c-tools` | 4.4-2 | Debian | Not installed | `i2cdetect`, `i2cget`, `i2cset`, `i2cdump`, `i2ctransfer` | [G-25] |
 | `gstreamer1.0-plugins-good` | 1.26.2-1+deb13u2 | Debian; not overridden by the Raspberry Pi archive | Not installed | `libgstvideo4linux2` (`v4l2src` and the probed V4L2 M2M elements), `rtp`, `rtpmanager`, `isomp4`, `matroska`, `flv` | [G-26], [G-32] |
-| `gstreamer1.0-plugins-bad` | 1.26.2-3+rpt4+deb13u3 | Raspberry Pi build. It sorts higher than Debian's 1.26.2-3+deb13u3. | Not installed | `rtmp2`, `webrtc`, `webrtcdsp`, `srtp`, `dtls`, `sctp`, `v4l2codecs`, `kms` | [G-27], [G-32] |
+| `gstreamer1.0-plugins-bad` | 1.26.2-3+rpt4+deb13u3 | Raspberry Pi build. It sorts higher than Debian's 1.26.2-3+deb13u3. | Not installed | `rtmp2`, `webrtc`, `webrtcdsp`, `srtp`, `dtls`, `sctp`, `v4l2codecs`, `kms`. *(Added 2026-10-08.)* Also `x265` (`x265enc`, `libgstx265.so`; the Raspberry Pi build still Build-Depends on `libx265-dev`); `voaacenc` (`libgstvoaacenc.so`) and `opusparse`, with dependencies on `libvo-aacenc0` (>= 0.1.3) and `libopus0` (>= 1.1), but no `fdkaacenc`; `srt` and `mpegtsmux` (`libgstsrt.so`, `libgstmpegtsmux.so`, as shipped in trixie). | [G-27], [G-32], [H-11], [H-12] (CORRECTED), [H-30], [I-44] |
 | `gstreamer1.0-nice` | 0.1.22-1 | Debian | Not installed | `libgstnice`. `webrtcbin` needs it at runtime. | [G-28] |
-| `gstreamer1.0-plugins-base` | 1.26.2-1+rpt3+deb13u2 | Raspberry Pi override | Not installed | GStreamer base plugins. GStreamer core is `libgstreamer1.0-0` 1.26.2-2. | [G-31], [G-32] |
-| `ffmpeg` | 8:7.1.5-0+deb13u1+rpt2 | Raspberry Pi build. Its higher epoch wins over Debian's 7:7.1.5-0+deb13u1. | Not recorded in the register | FFmpeg with a Raspberry Pi patch that adds DMABUF input to the V4L2 M2M encoder | [G-29], [D-45] |
+| `gstreamer1.0-plugins-base` | 1.26.2-1+rpt3+deb13u2 | Raspberry Pi override | Not installed | GStreamer base plugins. GStreamer core is `libgstreamer1.0-0` 1.26.2-2. *(Added 2026-10-08.)* Includes the `opus` plugin (`opusenc`, `libgstopus.so`) and depends on `libopus0` (>= 1.1). | [G-31], [G-32], [I-45] |
+| `ffmpeg` | 8:7.1.5-0+deb13u1+rpt2 | Raspberry Pi build. Its higher epoch wins over Debian's 7:7.1.5-0+deb13u1. | Not recorded in the register | FFmpeg with a Raspberry Pi patch that adds DMABUF input to the V4L2 M2M encoder. *(Added 2026-10-08.)* Configured with `--enable-libx265` in every flavour, and with `--enable-libx264` and `--enable-libsrt` in the full build [H-08]. `libavcodec61` (same version) depends on `libx265-215` (>= 4.1), `libx264-164`, `libopus0` and `libmp3lame0`, not on `libfdk-aac`; it has the `libx265` encoder, the native `aac` encoder and the `libopus` wrapper, and no `libfdk_aac`. Linking `libx264` and `libx265` makes it a GPL build. | [G-29], [D-45], [H-08], [H-09], [I-39], [I-41] |
 | `x264` | 2:0.164.3108+git31e19f9-2+b1 | Debian. The Raspberry Pi archive has no `x264` or `libx264-164`. | Not recorded in the register | x264 H.264 software encoder | [G-30] |
+| `x265`, `libx265-215` *(added 2026-10-08)* | 4.1-2 | Debian. The Raspberry Pi archive has no x265 source or binary package, so Raspberry Pi OS uses Debian's unchanged. | Not recorded in the register | `x265` CLI and the H.265 library. Debian's build enables arm64 assembly and links Main, Main10 and Main12 into the one library. `libx265-215` is a dependency of `libavcodec61` [H-09]. | [H-01], [H-02], [H-03], [H-09] |
+| `gstreamer1.0-alsa` *(added 2026-10-08)* | 1.26.2-1+rpt3+deb13u2 | Version as recorded in [I-45]. Reasoning: the `+rpt3` suffix matches the Raspberry Pi `gstreamer1.0-plugins-base` override [G-31]. | Not recorded in the register | `alsasrc` (HDMI audio capture in GStreamer) | [I-45] |
+| `gstreamer1.0-libav` *(added 2026-10-08)* | 1.26.2-1+deb13u1 | Debian; not rebuilt by Raspberry Pi | Not recorded in the register | `libgstlibav.so`, including `avenc_aac`, which wraps FFmpeg's native AAC encoder. Depends on `libavcodec61` (>= 7:7.1.4), which the Raspberry Pi 8:7.1.5 build satisfies and wins on epoch. | [I-46] |
+| `libopus0` *(added 2026-10-08)* | 1.5.2-2 | Debian; not rebuilt by Raspberry Pi | Not recorded in the register | Opus library behind FFmpeg `libopus` and GStreamer `opusenc` | [I-45], [I-39] |
+| `libvo-aacenc0` *(added 2026-10-08)* | Version not in the register; `gstreamer1.0-plugins-bad` depends on (>= 0.1.3) | Not in the register | Not recorded in the register | AAC library behind `voaacenc` | [I-44] |
+| alsa-lib *(added 2026-10-08)* | 1.2.14 (the trixie version) | Binary package name not in the register (NEEDS VERIFICATION) | Not recorded in the register | ALSA library. Its `hw` plugin switches each newly opened PCM to monotonic timestamps when the kernel PCM protocol is 2.0.9 or later. | [I-34] |
+| `fdk-aac` (`libfdk-aac2t64`, `libfdk-aac-dev`, `aac-enc`) *(added 2026-10-08; listed so that it is **not** installed)* | 2.0.3-1 | Debian **non-free**; not in the Raspberry Pi archive | Not installed. PROPOSED: never installed in a PACSCORDER image ([RELEASE.md](RELEASE.md) §4) | Licence "Fraunhofer-FDK-AAC-for-Android", which Debian says "is incompatible with any version of the GNU GPL"; it grants no patent licence. Not used by the Raspberry Pi FFmpeg or GStreamer packages. | [I-39], [I-43], [I-44] |
 
 Not established by the source register (**NEEDS VERIFICATION**):
 
 - **`x264enc` package.** The GStreamer `x264enc` element is in GStreamer Ugly Plug-ins [D-40]. The Debian trixie package name and version that provide it are not in the register.
-- **FFmpeg build options.** Whether Raspberry Pi's `ffmpeg` build is configured with `--enable-gpl` and `libx264` is not in the register. `libx264` requires `--enable-gpl` [D-42].
+- **FFmpeg build options.** Whether Raspberry Pi's `ffmpeg` build is configured with `--enable-gpl` and `libx264` is not in the register. `libx264` requires `--enable-gpl` [D-42]. *(Superseded 2026-10-08: the Raspberry Pi FFmpeg source package is configured with `--enable-libx265`, and its full build with `--enable-libx264` [H-08]; `libavcodec61` links both, which makes it a GPL build [H-09], [I-39]. Research notes that the encoder list behind [I-39] was inferred from package dependencies, so confirming it on the image itself remains a BUILD TEST REQUIRED item — research gap, topic I.)*
 - **Dependency upgrades.** Whether installing these packages also upgrades packages that are already installed is not known. Record versions after installing.
+- *(Added 2026-10-08.)* **FFmpeg ALSA input.** Whether the Raspberry Pi FFmpeg build includes the ALSA input device described in [I-38] is not in the register: BUILD TEST REQUIRED.
+- *(Added 2026-10-08.)* **`arecord`.** Which package provides `arecord`, and whether it is preinstalled in the Lite image, is not in the register (NEEDS VERIFICATION). A 2019 forum test used it against the `tc358743` card [I-16] (reported; community source).
+- *(Added 2026-10-08.)* **Debian non-free in the image's apt sources.** Whether the 2026-10-06 image enables non-free is a research open question (topic I). It matters only if `fdk-aac` were wanted, which this document does not propose. BUILD TEST REQUIRED.
+- *(Added 2026-10-08.)* **x265 SIMD in the Debian binary.** Whether the arm64 `libx265-215` contains the Neon DotProd kernels, and whether CM5 reports `asimddp`, is OQ-105 (BUILD TEST REQUIRED; HARDWARE TEST REQUIRED). x265 enables those kernels only when `AT_HWCAP` reports ASIMDDP [H-04].
 
 **Install procedure (bring-up). NOT YET RUN ON PACSCORDER HARDWARE.** The `apt install` form is from [G-46] and [G-47], `apt update` is from [G-08], and the package names are from [G-25]–[G-31].
 
 ```bash
 sudo apt update
 sudo apt install i2c-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-nice ffmpeg x264
+```
+
+**Additional packages for H.265 and HDMI audio (added 2026-10-08). NOT YET RUN ON PACSCORDER HARDWARE.** The `apt install` form is as above; the package names are from [I-45] (`gstreamer1.0-alsa`), [I-46] (`gstreamer1.0-libav`) and [H-01] (`x265`, the optional CLI). Reasoning from the dependencies recorded in [H-09], [I-39], [I-44] and [I-45]: `libx265-215`, `libopus0` and `libvo-aacenc0` arrive as dependencies of `ffmpeg`/`libavcodec61`, `gstreamer1.0-plugins-base` and `gstreamer1.0-plugins-bad` from the first command. `x264enc` still needs the plugins-ugly package, whose name is NEEDS VERIFICATION (above).
+
+```bash
+sudo apt install gstreamer1.0-alsa gstreamer1.0-libav x265
 ```
 
 The package that provides the `gst-launch-1.0` command-line tool is not in the register (**NEEDS VERIFICATION**).
@@ -213,6 +239,24 @@ Field units are a separate question from bring-up: whether an update may be inst
 - a bootloader `FREEZE_VERSION` setting exists.
 
 Both are **NEEDS VERIFICATION** (OQ-071). See [RELEASE.md](RELEASE.md) for why the release process must pin and record the EEPROM version.
+
+### 1.8 Version limits of the distribution media stack (added 2026-10-08)
+
+H.265 (REQ-ENC-001) and HDMI audio (REQ-CAP-006) depend on features that the trixie package versions above either lack or have only in a later upstream release. Under ADR-003 (ACCEPTED) the product image installs Raspberry Pi OS and Debian binary packages [G-36] (CORRECTED), so each gap below is either accepted, worked around in the application, or closed by carrying a newer package outside the distribution.
+
+| Component (version in the image) | What that version lacks | Fixed in | Facts | Open |
+|---|---|---|---|---|
+| GStreamer `flvmux` (1.26.2) | H.265 on its video sink pad, so no HEVC into FLV/RTMP | `eflvmux`, first in the 1.28 branch | [H-27], [F-34] (CORRECTED) | OQ-107, RISK-025 |
+| GStreamer `x265enc` (1.26.2) | Latency computed from the encoder's real parameters; it reports a hard-coded 5 frames unless `tune=zerolatency` | 1.26.8; not backported by Debian or Raspberry Pi | [H-15] | OQ-104 |
+| GStreamer `rtph265pay` (1.26.2) | profile-id, tier-flag and level-id in its output caps | 1.26.4 | [H-31] | OQ-108 |
+| x265 (4.1-2) | The 4.2 (NEON/SVE, "8% faster encoding speed compared to v4.1") and 4.3 AArch64 speed-ups; only their Neon parts can help Cortex-A72/A76 | 4.2 (2026-04-19), 4.3 (2026-07-31) | [H-07] | OQ-105 |
+| FFmpeg (7.1.5) | Nothing for HEVC in enhanced FLV (it has that since 6.1); Enhanced FLV v2 (multitrack, more codecs) arrived in 8.0 | 8.0 (v2 only) | [H-25], [H-26] | OQ-106 |
+
+**Build consequences (reasoning from the table and [G-36], [G-41], [G-44]).**
+
+- Carrying a newer GStreamer or x265 means building and maintaining packages outside both archives, including their security updates (ADR-003; OQ-070, OQ-105, OQ-107). Such packages would also have to enter the PACSCORDER package mirror and the SBOM, or the build is not reproducible (RISK-017; [§2.6](#26-reproducibility-caveat-risk-017)).
+- The alternative paths that need no new package are FFmpeg 7.1.5 for HEVC RTMP [H-26] and SRT/MPEG-TS, whose components the distribution stacks already contain [H-30] (OQ-076, OQ-107). Which one is used is an ADR-007 decision.
+- None of these choices has been built or tested: BUILD TEST REQUIRED (TEST-BLD-001, TEST-STR-001).
 
 ---
 
@@ -329,6 +373,8 @@ These are from ADR-003 Consequences and the topic G research gaps. All are NOT S
 | Read-only root, if not using `image-rota` | `raspi-config`'s Overlay File System uses `overlayroot=tmpfs`. It refuses when `MemTotal` is 262144 kB or less [G-48]. Reasoning: a tmpfs upper layer loses every write at reboot, so recordings need a persistent partition (OQ-006), and device configuration needs a persistent store (OQ-092). |
 | EDID provisioning at every boot | REQ-CAP-003 (PROPOSED); RISK-010; trigger and ordering OQ-093; see [TC358743_DRIVER.md](TC358743_DRIVER.md) |
 | `camera_auto_detect=0` | OQ-072; [§1.4](#14-configtxt) |
+| *(Added 2026-10-08.)* Keep `fdk-aac` out of the image (no `libfdk-aac2t64`, no `fdkaacenc`, no FFmpeg rebuilt with `libfdk_aac`) | In a GPL FFmpeg build `libfdk_aac` needs `--enable-nonfree`, which makes the result unredistributable [I-42]; Debian calls its licence incompatible with every GPL version [I-43]; the Raspberry Pi FFmpeg is a GPL build [I-39]. See [RELEASE.md](RELEASE.md) §4 (OQ-113). |
+| *(Added 2026-10-08.)* Load `tc358743-audio` with `tc358743`, and keep other overlays off GPIO 18–21 | [C-37], [I-30], [I-31]; [§1.4](#14-configtxt); OQ-114 |
 
 ### 2.9 Proposed rpi-image-gen configuration content
 
@@ -341,6 +387,8 @@ PROPOSED, nothing exists. The YAML syntax, file names and build invocation are n
 | Image layout | `image-rpios` (single system) or `image-rota` (A/B). OPEN, see OQ-069. | [G-40], [G-41] |
 | SBOM | `sbom-base` | [G-40] |
 | Package list | The [§1.6](#16-bring-up-package-list) packages that the media framework needs once one is chosen (ADR-007 is OPEN), plus the PACSCORDER application | [G-24]–[G-31] |
+| *(Added 2026-10-08.)* H.265 and audio packages | Whichever of `libx265-215` (through `ffmpeg`/`libavcodec61` or `gstreamer1.0-plugins-bad`), `gstreamer1.0-alsa`, `gstreamer1.0-libav`, `libopus0` and `libvo-aacenc0` the chosen framework needs (ADR-007); never `fdk-aac`. Any package carried outside the archives for the [§1.8](#18-version-limits-of-the-distribution-media-stack-added-2026-10-08) gaps goes into the mirror and the SBOM. | [H-01], [H-09], [H-12] (CORRECTED), [I-39], [I-44], [I-45], [I-46] |
+| *(Added 2026-10-08.)* Audio overlay in the boot configuration | `tc358743-audio` with `tc358743` in the project `config.txt` | [C-37], [G-14] |
 | Boot configuration | Project `config.txt` with per-model sections; content in [DEVICE_TREE.md](DEVICE_TREE.md) | [G-11], [G-71] |
 | Package sources | A PACSCORDER mirror of both archives ([§2.6](#26-reproducibility-caveat-risk-017)) | RISK-017 |
 
@@ -436,6 +484,7 @@ Common settings in all four defconfigs:
 | Loading XZ-compressed modules | `BR2_PACKAGE_KMOD`, `_KMOD_TOOLS`, `_XZ`, `_HOST_KMOD_XZ`, already set in the RPi defconfigs | — | [E-49] |
 | Module autoloading | `/dev` management. The default is devtmpfs only (`BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS`). The manual names devtmpfs + mdev as able to load kernel modules automatically; with systemd, udev handles `/dev` [E-50]. That devtmpfs only does not autoload modules, and the eudev option, come from the research (*research gap*, topic E; NEEDS VERIFICATION). | — | [E-50] |
 | Field update (if chosen) | Packages `rauc`, `swupdate`, `mender`. Their Kconfig symbol names are not in the register (NEEDS VERIFICATION). | 1.15.2, 2026.05.1, 3.5.3 | [G-64] |
+| *(Added 2026-10-08.)* H.265 (`x265enc`, FFmpeg `libx265`), ALSA capture (`alsasrc`), Opus and AAC encoders | Not in the register: research topics H and I covered Raspberry Pi OS only. Symbol names and versions are NEEDS VERIFICATION (BUILD TEST REQUIRED). Reasoning from [H-25]: Buildroot's FFmpeg 6.1.5 belongs to the first FFmpeg series that can mux HEVC into FLV; whether Buildroot's build enables it is NEEDS VERIFICATION. Buildroot's GStreamer 1.24.13 has no `eflvmux` [F-34] (CORRECTED). | — | [H-25], [F-34] |
 
 **Not available in stock Buildroot 2026.08:**
 
@@ -485,7 +534,7 @@ These are from the topic E research gaps and design risks, with the register fac
 | 11 | **Pi 4/CM4 codec firmware.** Which firmware variant and `gpu_mem` `bcm2835-codec` needs is unknown. | [D-48], [E-13], [E-17] | VENDOR CONFIRMATION / HARDWARE TEST | OQ-048 |
 | 12 | **EEPROM bootloader.** Buildroot 2026.08 has no `rpi-eeprom` package, so the EEPROM version must be pinned and recorded outside Buildroot (*research gap*, topic E). | — | See [RELEASE.md](RELEASE.md) | OQ-071 |
 | 13 | **RTC on the camera I2C bus.** The CM4IO/CM5IO sample configs put an RTC on the camera I2C bus, according to the research (*research gap*, topic E; not a register fact; NEEDS VERIFICATION). | — | Check bus sharing with the TC358743 before reusing those samples | OQ-026 |
-| 14 | **Media stack differs from Raspberry Pi OS.** Buildroot has GStreamer 1.24.13 and upstream FFmpeg 6.1.5; Raspberry Pi OS has GStreamer 1.26.2 and FFmpeg 7.1.5 `+rpt2`. | [G-64], [D-46] (CORRECTED), [G-26], [G-29] | Diff the features the pipeline needs | OQ-066 |
+| 14 | **Media stack differs from Raspberry Pi OS.** Buildroot has GStreamer 1.24.13 and upstream FFmpeg 6.1.5; Raspberry Pi OS has GStreamer 1.26.2 and FFmpeg 7.1.5 `+rpt2`. *(Added 2026-10-08.)* The diff now also covers H.265 (x265 package and SIMD build), HEVC muxing and the audio encoders, which were researched for Raspberry Pi OS only ([§1.6](#16-bring-up-package-list), [§1.8](#18-version-limits-of-the-distribution-media-stack-added-2026-10-08)). | [G-64], [D-46] (CORRECTED), [G-26], [G-29] | Diff the features the pipeline needs | OQ-066 |
 | 15 | **Reproducibility.** `BR2_REPRODUCIBLE` is experimental and limited to builds that use the same output directory. Download hashes are enforced. | [G-66], [G-62] | Pin the Buildroot release; keep the download cache | OQ-064 |
 
 ---
@@ -588,6 +637,11 @@ PROPOSED evidence the test should record (reasoning; REQ-BLD-001 and REQ-BLD-002
 | OQ-100 | `config.txt` overlay-parameter syntax (bare booleans, several parameters per line, `[pi4]` matching CM4, unknown parameters) | VENDOR CONFIRMATION / HARDWARE TEST REQUIRED |
 | OQ-101 | Command syntax not in the register. For this document: recording kernel, firmware, EEPROM and package versions, and the `rpi-image-gen` build command | VENDOR CONFIRMATION / HARDWARE TEST REQUIRED |
 | OQ-018, OQ-021, OQ-026 | PACSCORDER hardware composition, lanes (including whether one bridge board serves both the 2-lane and the 4-lane configuration, REQ-CAP-007), I2C bus | OQ-018: OWNER DECISION / VENDOR CONFIRMATION REQUIRED. OQ-021: VENDOR CONFIRMATION / HARDWARE TEST REQUIRED. OQ-026: DATASHEET / HARDWARE TEST REQUIRED. |
+| OQ-054 *(added 2026-10-08)* | Does `tc358743-audio` load and capture on CM5 (RP1 I2S1)? | KERNEL SOURCE INSPECTION / HARDWARE TEST REQUIRED |
+| OQ-105 *(added 2026-10-08)* | x265 SIMD paths active on CM4 and CM5; will a newer x265 than 4.1 be provided, or must PACSCORDER carry one? | BUILD TEST / HARDWARE TEST / VENDOR CONFIRMATION REQUIRED |
+| OQ-107 *(added 2026-10-08)* | HEVC-over-RTMP path with GStreamer 1.26.2: FFmpeg, a backported or newer GStreamer, or SRT | BUILD TEST REQUIRED; OWNER DECISION REQUIRED |
+| OQ-113 *(added 2026-10-08)* | AAC patent licensing; `fdk-aac` licence | LEGAL CLARIFICATION REQUIRED ([RELEASE.md](RELEASE.md)) |
+| OQ-114 *(added 2026-10-08)* | GPIO 18–21 allocation when the audio overlay is enabled; custom overlay if a pin must be freed | OWNER DECISION / BUILD TEST REQUIRED |
 
 ---
 
@@ -606,6 +660,8 @@ These statements are supported by entries in [REFERENCES.md](REFERENCES.md), wit
 - **Buildroot:** [E-01]–[E-36], [E-41], [E-42], [E-45], [E-46], [E-48], [E-50], [E-53], [G-58]–[G-66], [G-68]. [E-21] is CORRECTED.
 - **Encoder and licensing context:** [D-39], [D-40], [D-42], [D-44], [D-45], [D-46] (CORRECTED), [D-48], [F-34] (CORRECTED), [F-43], [G-22].
 - **Kernel versions and OS lifecycle:** [E-37], [G-55] (CORRECTED), [G-56].
+- *(Added 2026-10-08.)* **H.265 packages, versions and version limits (topic H):** [H-01], [H-02], [H-03], [H-04], [H-05], [H-07], [H-08], [H-09], [H-11], [H-12] (CORRECTED), [H-15], [H-25], [H-26], [H-27], [H-30], [H-31]; context [D-24], [D-31].
+- *(Added 2026-10-08.)* **HDMI audio overlay, kernel options and packages (topic I):** [I-04], [I-05], [I-06], [I-07], [I-08], [I-10], [I-11], [I-12], [I-22], [I-30], [I-31], [I-34], [I-38], [I-39], [I-41], [I-42], [I-43], [I-44], [I-45], [I-46]; official audio-overlay statement [C-37]. Community-tier, worded as a report: [I-16].
 
 Items marked *research gap* or *research open question* are **not** register facts and remain NEEDS VERIFICATION.
 
@@ -622,3 +678,4 @@ Items marked *research gap* or *research open question* are **not** register fac
 | 2026-10-06 | Cross-document consistency fixes: `config.txt` overlay syntax now states the only attested forms (`<param>=<val>` [G-12], `,cam0` [C-39]) and marks bare booleans, several parameters per line, unknown parameters and `[pi4]` matching CM4 NEEDS VERIFICATION (OQ-100); version-recording, installed-package-list, shipped-kernel-config and `rpi-image-gen` build-command gaps linked to OQ-101; update policy versus active recordings linked to OQ-094 (§1.7, §2.4); driver-source difference 6.18.50 vs 6.18.55 linked to OQ-097 (§1.5, §4), and 6.18.39 labelled as an archive version [G-07] and the kernel of the community report [C-33] only; EDID provisioning trigger OQ-093 and configuration store OQ-092 added to §2.8; board storage/Ethernet/USB facts OQ-098; §7 table gains OQ-094, OQ-097, OQ-100, OQ-101; §2.9 package-list row no longer implies ADR-007 (OPEN) has chosen a framework; `tc358743-audio` row notes Pi 5/CM5 support is open (OQ-054); [C-33] added to the verification list | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: REQ-BLD-002 (own project-built OS image) and the owner input to ADR-003 added to the header, intro, Current status table, build-paths table (stock image is bring-up only), §1 purpose, §2 status, §3 status (Buildroot would also satisfy REQ-BLD-002; why ADR-003 still prefers `rpi-image-gen`), §5 layout and §7 OQ-012 row — ADR-003 still PROPOSED, OQ-012 still OPEN; REQ-CAP-007 (2-lane and 4-lane configurations) added to the header, §1.3 (per-configuration candidates, ADR-004 per configuration), §1.4 (`4lane` setting per configuration, reasoning from [G-12], [G-13]), §2.3 and §2.9 device layers, §5 EDID note (OQ-002) and §7 OQ-021 row; §6 TEST-BLD-001 "Verifies" extended to REQ-BLD-002 per the canonical table, with a REQ-BLD-002 evidence item and boot per capture configuration. | Claude (session 2026-10-07) |
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); header status and traceability (ADR-003 ACCEPTED, OQ-012 ANSWERED), intro, owner-input paragraph, Current status rows, build-paths table heading, §1 status and purpose, §1.7 bring-up rules attribution (rules stay PROPOSED; ADR-003 marked ACCEPTED), §2 heading (anchor changed to `#2-production-image-adr-003-accepted-rpi-image-gen`; the three internal links updated), §2 status and intro, §2.6 mitigation note (the package mirror is part of accepted ADR-003; method still OQ-067), §3 status, §4 table row and kernel note, §5 status, population note and layout comment, §6 procedure note, §7 OQ-012 row. Implementation status unchanged (NOT STARTED); other ADR statuses unchanged; no citation added or removed. | Claude (session 2026-10-07) |
+| 2026-10-08 | Second set of owner decisions of 2026-10-07 (CM4 + CM5 bring-up; HDMI audio required; H.264 + H.265) and research topics H and I propagated. Header (Last updated, Applies to, Verification, Traceability: REQ-ENC-001, REQ-CAP-006, RISK-022, RISK-025, OQ-054, OQ-105, OQ-107, OQ-113, OQ-114); new intro paragraph; research-gap source note extended to the 2026-10-08 JSON; §1.3 rows for H.265 encode, audio kernel options, CPU I2S and bring-up board; §1.4 audio-overlay row extended ([C-37], [I-16] community, [I-05], [I-06], [I-04], [I-30], [I-31]; OQ-114, OQ-100); §1.5 three kernel-option rows ([I-12], [I-11], [I-22]); §1.6 rows for `gstreamer1.0-plugins-bad`, `gstreamer1.0-plugins-base` and `ffmpeg` extended with their H.265/audio contents ([H-08], [H-09], [H-11], [H-12], [H-30], [I-39], [I-41], [I-44], [I-45]), new rows `x265`/`libx265-215` 4.1-2, `gstreamer1.0-alsa` 1.26.2-1+rpt3+deb13u2, `gstreamer1.0-libav` 1.26.2-1+deb13u1, `libopus0` 1.5.2-2, `libvo-aacenc0`, alsa-lib 1.2.14 and `fdk-aac` 2.0.3-1 (listed as not to be installed); "FFmpeg build options" NEEDS VERIFICATION marked superseded by [H-08], [H-09], [I-39]; four new NEEDS VERIFICATION items (FFmpeg ALSA input, `arecord`, non-free sources, x265 SIMD/OQ-105); second bring-up install command for `gstreamer1.0-alsa gstreamer1.0-libav x265` (NOT YET RUN); new §1.8 version limits of the distribution media stack ([H-27], [F-34], [H-15], [H-31], [H-07], [H-25], [H-26]) with build consequences; §2.8 two hardening rows (`fdk-aac` excluded; audio overlay and GPIO 18–21); §2.9 two configuration rows; §3.6 Buildroot H.265/audio row (NEEDS VERIFICATION); §3.8 pitfall 14 extended; §7 OQ-054, OQ-105, OQ-107, OQ-113, OQ-114 rows; Verification status gains topics H and I, [C-37], [D-24], [D-31]. No requirement, decision, risk or test status changed; implementation status unchanged (NOT STARTED). | Claude (session 2026-10-08) |
