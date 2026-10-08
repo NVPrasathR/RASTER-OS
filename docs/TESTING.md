@@ -4,7 +4,7 @@
 |---|---|
 | Document status | Active — 17 procedures defined; **no test has been run** |
 | Last updated | 2026-10-08 |
-| Applies to | PACSCORDER on every candidate platform (Pi 4 Model B, CM4, Pi 5, CM5), in both the 2-lane and the 4-lane CSI-2 configuration (REQ-CAP-007); TC358743 bridge; HDMI sources: ATEM switcher outputs and cameras connected directly (REQ-CAP-008); Raspberry Pi OS Lite 64-bit for bring-up and the project's own product image (REQ-BLD-002), as decided in ADR-003 (ACCEPTED 2026-10-07). *(Added 2026-10-08.)* Bring-up evaluates **CM4 and CM5 side by side** (owner, 2026-10-07; ADR-004 stays OPEN until measured); HDMI audio is required (REQ-CAP-006, DRAFT); video codecs are H.264 **and** H.265 (REQ-ENC-001; which outputs use H.265 is OQ-103) *(superseded later on 2026-10-08: owner answer to OQ-103, "H.264 only for now" — the video codec is **H.264 only** for recording, RTMP and WebRTC (REQ-ENC-001); H.265 is deferred as REQ-ENC-002 (DEFERRED), and the H.265 runs below are kept but not run in current scope)*; sources are any HDMI camera, with no model list, plus ATEM outputs (OQ-102 ANSWERED) |
+| Applies to | PACSCORDER on every candidate platform (Pi 4 Model B, CM4, Pi 5, CM5), in both the 2-lane and the 4-lane CSI-2 configuration (REQ-CAP-007); TC358743 bridge; HDMI sources: ATEM switcher outputs and cameras connected directly (REQ-CAP-008); Raspberry Pi OS Lite 64-bit for bring-up and the project's own product image (REQ-BLD-002), as decided in ADR-003 (ACCEPTED 2026-10-07). *(Added 2026-10-08.)* Bring-up evaluates **CM4 and CM5 side by side** (owner, 2026-10-07; ADR-004 stays OPEN until measured); HDMI audio is required (REQ-CAP-006, DRAFT); video codecs are H.264 **and** H.265 (REQ-ENC-001; which outputs use H.265 is OQ-103) *(superseded later on 2026-10-08: owner answer to OQ-103, "H.264 only for now" — the video codec is **H.264 only** for recording, RTMP and WebRTC (REQ-ENC-001); H.265 is deferred as REQ-ENC-002 (DEFERRED), and the H.265 runs below are kept but not run in current scope)*; sources are any HDMI camera, with no model list, plus ATEM outputs (OQ-102 ANSWERED). *(Added later on 2026-10-08: owner answer to OQ-005, "Separate record + live" — **two simultaneous H.264 encodes**, a recording encode and one live encode shared by RTMP and WebRTC (REQ-ENC-001). Bitrate, rate control and latency are still open (OQ-005). Whether the CM4 hardware encoder runs both is OQ-115; on CM5 both run in software (OQ-059).)* |
 | Verification | Procedures derived from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and extended on 2026-10-08 with the source research of topic H (H.265 software encoding and transport) and topic I (HDMI audio path). Nothing has been run on PACSCORDER hardware: no hardware exists as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 9 (test documentation), Rule 10 (status words), Rule 12 (traceability), Rule 21 (no retroactive edits), Rule 22 (unknowns) |
 
@@ -87,6 +87,7 @@ This document holds one procedure for each canonical test ID in [README.md](READ
 | Camera I2C bus (bridge expected at 7-bit 0x0f [A-15]) | `i2c-10` on GPIO 44/45 [C-24] | CAM1 `i2c-10` (GPIO 44/45); CAM0 `i2c-0` (GPIO 0/1) [C-24], [C-25] | CAM/DISP0 `/dev/i2c-10`, CAM/DISP1 `/dev/i2c-11` [C-26]; a Raspberry Pi engineer reported other numbers on earlier kernels [C-28] | depends on the carrier board [C-27]. CM5 IO Board: CAM/DISP 1 is RP1 i2c0 on GPIO 0/1, CAM/DISP 0 is RP1 i2c6 on GPIO 38/39 [C-27], [B-44]; `/dev` number UNKNOWN (OQ-052) |
 | I2C jumpers on the official IO board | — | CAM0 needs both J6 jumpers [C-03] | — | CAM/DISP 1 needs two J6 jumpers [C-06]; a DT comment disagrees (research gap, topic C; OQ-052) |
 | Encoder | hardware `bcm2835-codec`, `/dev/video11` [D-06], [D-07] | as Pi 4 | software only [G-22], [D-31] | software only [D-31] |
+| Two concurrent H.264 encodes, recording + live *(added 2026-10-08; owner, OQ-005)* | reasoning: as CM4, because Pi 4 Model B is also BCM2711 [D-10] | one encoder, a V4L2 M2M device [D-06], [D-08]; the register has no fact on concurrent encode sessions: UNKNOWN (OQ-115). Reasoning: two 1080p30 encodes need 2 × 244,800 = 489,600 macroblocks/s, the rate of one 1080p60 encode and about 2.0× the 1080p30 specification [D-10], [D-52] (RISK-002) | both in software [G-22]; as CM5 | both in software [D-31], [G-22]. Reasoning from [G-22]: roughly double the encode CPU of one encode; the base of the official "~30–40 % CPU" figure is UNKNOWN (OQ-059, RISK-003) |
 | H.265 encoder *(added 2026-10-08; deferred — REQ-ENC-002; not in current scope)* | software only: no HEVC encoder in `bcm2835-codec` [D-24] | as Pi 4 [D-24] | software only [D-31] | software only [D-31] |
 | x265 SIMD paths *(added 2026-10-08; deferred — REQ-ENC-002; not in current scope)* | reasoning: as CM4, because Pi 4 Model B is also BCM2711 [D-10], [H-05] | Cortex-A72: Neon only, no DotProd; I8MM, SVE, SVE2 not applicable [H-05] | reasoning: as CM5, because Pi 5 is also BCM2712 [D-30], [H-05] | Cortex-A76: Neon DotProd kernels can apply, enabled only if the kernel reports ASIMDDP [H-04], [H-05]; whether they are active is OQ-105 |
 | HDMI audio CPU DAI behind `i2s_clk_consumer` *(added 2026-10-08)* | not covered by the topic I research (CM4 and CM5 only) | single `bcm2835-i2s` on GPIO 18–21 (ALT0) [I-10]; capture exactly 2 channels, 8–384 kHz, S16_LE / S24_LE / S32_LE [I-13] | not covered by the topic I research (OQ-054) | RP1 I2S1 (`rp1_i2s1`, `snps,designware-i2s`) on GPIO 18–21 [I-07], [I-08]; the clock-consumer instance a codec-master link needs [I-09]; channel count and formats come from hardware registers [I-14]. **Operation unconfirmed** (OQ-054) |
@@ -115,6 +116,14 @@ TEST-BLD-001                                      (independent of bring-up)
 ```
 
 *(Added 2026-10-08.)* TEST-ENC-001 now contains H.264 and H.265 runs on CM4 and CM5 (REQ-ENC-001); its canonical title in [README.md](README.md) still says "H.264" and is unchanged here. TEST-REC-001, TEST-STR-001, TEST-STR-002 and TEST-PERF-001 take the H.265 runs as well as the H.264 runs, as far as the owner scopes H.265 to each output (OQ-103). *(Superseded later on 2026-10-08 by the owner's answer to OQ-103, "H.264 only for now": TEST-ENC-001 is now titled "Sustained real-time H.264 encode (H.265 deferred)" in [README.md](README.md). Its H.265 runs, and the H.265 runs in TEST-REC-001, TEST-STR-001, TEST-STR-002 and TEST-PERF-001, are deferred — REQ-ENC-002; not run in current scope. They are kept as the procedure for when REQ-ENC-002 is re-activated. The test order above is unchanged.)*
+
+*(Added later on 2026-10-08.)* Owner answer to OQ-005, "Separate record + live": REQ-ENC-001 requires two simultaneous H.264 encodes, a recording encode and one live encode shared by RTMP and WebRTC. In the procedures below:
+- TEST-DMA-001 also records how one capture feeds both encoders (one capture buffer, two consumers);
+- TEST-ENC-001 includes a **two-encode run on CM4 and CM5** (CM4: OQ-115, RISK-002; CM5: OQ-059, RISK-003);
+- TEST-REC-001 uses the recording encode, and TEST-STR-001 and TEST-STR-002 share the live encode;
+- TEST-PERF-001 measures the **combined load**: two video encodes, two audio encodes (AAC and Opus) and all three outputs.
+
+The test order above is unchanged. The canonical title of TEST-ENC-001 in [README.md](README.md) is unchanged.
 
 ---
 
@@ -963,12 +972,14 @@ BLOCKED — HARDWARE REQUIRED — not run
 |---|---|
 | Verifies | REQ-DMA-001, REQ-ARCH-001 |
 | Related risks | RISK-003, RISK-020 |
-| Related open questions | OQ-015, OQ-057, OQ-058, OQ-060, OQ-062, OQ-066 |
+| Related open questions | OQ-015, OQ-057, OQ-058, OQ-060, OQ-062, OQ-066; added 2026-10-08: OQ-005, OQ-115 (two encoders fed from one capture) |
 | Depends on | TEST-CAP-002 |
 
 ### Objective
 
 Confirm that captured frames reach the encoder as DMABUF buffers without a CPU copy, where the platform encoder supports DMABUF import. On Pi 5 / CM5, which have no hardware encoder, record the buffer path that is used instead. This covers the "V4L2 → DMABUF → Encoder" part of REQ-ARCH-001.
+
+*(Added 2026-10-08.)* Owner answer to OQ-005, "Separate record + live": one capture now feeds **two** H.264 encoders, the recording encode and the live encode shared by RTMP and WebRTC (REQ-ENC-001). This test therefore also records how one captured frame reaches both encoders (one capture buffer, two consumers), on CM4 and CM5.
 
 ### Setup
 
@@ -982,6 +993,7 @@ Confirm that captured frames reach the encoder as DMABUF buffers without a CPU c
   - Reasoning: `/dev/video11` does not exist there [D-29].
   - The software H.264 encoders researched, GStreamer `x264enc` and FFmpeg `libx264`, do not accept packed UYVY [D-40], [D-43], so a conversion stage is needed (OQ-060).
 - *(Added 2026-10-08.)* **H.265 on CM4 and CM5.** H.265 is software-encoded on both boards [D-24], [D-31], and `x265enc` and `libx265` accept planar input only, not UYVY [H-13], [H-10] (CORRECTED). Reasoning: for H.265, zero-copy into a hardware encoder does not apply on CM4 either; record the conversion and copy path as on Pi 5/CM5 (OQ-060). *(Deferred — REQ-ENC-002; not in current scope: H.264 only for now (OQ-103 ANSWERED 2026-10-08), so this H.265 check is not run in current scope.)*
+- *(Added later on 2026-10-08.)* **One capture buffer, two consumers (two H.264 encodes, OQ-005).** No register fact describes how a framework hands one capture buffer to two encoders. No register fact says whether `bcm2835-codec` runs two encode sessions at once (OQ-115; KERNEL SOURCE INSPECTION REQUIRED). The framework is ADR-007 (OPEN, OQ-015). Candidate buffer flows are in [DMA.md](DMA.md).
 
 ### Test
 
@@ -1014,6 +1026,18 @@ Run capture → conversion → software encoder and record where buffers are cop
 - Record the `bytesperline` of the capture buffers.
 - Record the CPU load compared with a copy-based run. The comparison method is NEEDS VERIFICATION.
 
+**Two encoders from one capture — CM4 and CM5 (added later on 2026-10-08; owner: "Separate record + live", OQ-005)**
+
+Pipelines and commands are NEEDS VERIFICATION (OQ-101).
+
+1. **CM4.** Run the recording encode and the live encode on `/dev/video11` at the same time, both importing the same capture buffers. Record:
+   - whether the second encode session starts at all (OQ-115);
+   - whether both imports succeed;
+   - any import error in the kernel log.
+2. **CM5.** Record whether the UYVY → planar conversion runs once and feeds both software encoders, or once per encoder. Record the CPU load of each stage (OQ-059, OQ-060).
+3. **Both boards.** With both encoders running, record the number of capture buffers in flight and `CmaFree` (OQ-061).
+   - Reasoning: a capture buffer read by two consumers can go back to the capture queue only after both have finished with it. The slower encode therefore sets how long each buffer is held.
+
 ### Expected Result
 
 **Pi 4 / CM4**
@@ -1031,6 +1055,12 @@ Run capture → conversion → software encoder and record where buffers are cop
 - Zero-copy *into the encoder* does not apply, because encoding is in software [G-22].
 - Whether CFE buffers come from CMA is not established (reasoning, CORRECTED) [C-53] (OQ-053).
 - The DMA-BUF heap names on rpi-6.18.y are `default_cma_region` plus a legacy heap named after the CMA area [E-48] (OQ-062).
+
+**Two encoders from one capture** *(added later on 2026-10-08)*
+
+- CM4: no source-derived expectation exists for two encode sessions importing the same capture buffer: UNKNOWN — HARDWARE TEST REQUIRED (OQ-115). Reasoning from [D-19] and [D-20]: each import has to meet the same contiguity and size condition as a single import.
+- CM5: zero-copy into the encoder applies to neither encode, because both are software [G-22].
+- CMA use with both encoders running is UNKNOWN until measured (OQ-061).
 
 ### Actual Result
 
@@ -1056,7 +1086,7 @@ BLOCKED — HARDWARE REQUIRED — not run
 |---|---|
 | Verifies | REQ-ENC-001 |
 | Related risks | RISK-002, RISK-003, RISK-015; added 2026-10-08: RISK-022 (H.265 software-only; not in current scope — H.265 deferred, REQ-ENC-002) |
-| Related open questions | OQ-001, OQ-005, OQ-011, OQ-015, OQ-041, OQ-048, OQ-056, OQ-057, OQ-059, OQ-060, OQ-096; added 2026-10-08: OQ-103, OQ-104, OQ-105, OQ-101 (OQ-103 ANSWERED 2026-10-08; OQ-104 and OQ-105 not in current scope — H.265 deferred, REQ-ENC-002) |
+| Related open questions | OQ-001, OQ-005, OQ-011, OQ-015, OQ-041, OQ-048, OQ-056, OQ-057, OQ-059, OQ-060, OQ-096; added 2026-10-08: OQ-103, OQ-104, OQ-105, OQ-101 (OQ-103 ANSWERED 2026-10-08; OQ-104 and OQ-105 not in current scope — H.265 deferred, REQ-ENC-002); added later on 2026-10-08: OQ-115 (two concurrent encodes on CM4) |
 | Depends on | TEST-CAP-002 and TEST-DMA-001 (see Preconditions) |
 
 ### Objective
@@ -1067,6 +1097,12 @@ Measure whether each platform can encode the captured video to H.264 in real tim
 
 *(Superseded later on 2026-10-08 by the owner's answer to OQ-103, "H.264 only for now".)* REQ-ENC-001 is **H.264 only**, for all outputs, and H.265 is deferred as REQ-ENC-002 (DEFERRED). In the current scope this test runs **H.264 only**, on CM4 and CM5. The H.265 setup, runs and expected results below are kept as the procedure and evidence for REQ-ENC-002, but they are deferred and not run in current scope. The canonical title is now "Sustained real-time H.264 encode (H.265 deferred)" ([README.md](README.md)).
 
+*(Added later on 2026-10-08.)* Owner answer to OQ-005, "Separate record + live": REQ-ENC-001 requires **two simultaneous H.264 encodes**, a recording encode and one live encode shared by RTMP and WebRTC. This test therefore includes a **two-encode run on CM4 and CM5**:
+- on CM4 both encodes share the hardware encoder, whose concurrency is unknown (OQ-115, RISK-002);
+- on CM5 both run in software (OQ-059, RISK-003).
+
+Bitrate, rate control and latency are still open (OQ-005). The combined load with audio and all outputs is measured in TEST-PERF-001.
+
 ### Setup
 
 - As TEST-DMA-001.
@@ -1074,7 +1110,14 @@ Measure whether each platform can encode the captured video to H.264 in real tim
   - TEST-CAP-002 has a recorded result of TESTED — PASS for the mode under test. TEST-CAP-002 cannot run on a 2-lane connector; there, as for TEST-CAP-003, a passing lower-rate capture of the mode under test is needed instead.
   - TEST-DMA-001 has been run.
   - The encoder settings are recorded: profile, level (set from the mode; [VIDEO_ENCODER.md](VIDEO_ENCODER.md) §6), bitrate and mode, GOP, and the repeat-header setting.
-- Encoding parameters (codec, bitrate, latency target, number of simultaneous encodes): UNDEFINED — OWNER DECISION REQUIRED (OQ-005). *(Partly superseded 2026-10-08: the codec is decided — H.264 and H.265, owner 2026-10-07. Bitrate, latency target and the number of simultaneous encodes are still OQ-005; the H.265 scope per output is OQ-103.)* *(Superseded later on 2026-10-08: the codec is H.264 only — owner, "H.264 only for now" (OQ-103 ANSWERED); H.265 is deferred, REQ-ENC-002. Bitrate, latency target and the number of simultaneous encodes are still OQ-005.)*
+- Encoding parameters (codec, bitrate, latency target, number of simultaneous encodes): UNDEFINED — OWNER DECISION REQUIRED (OQ-005). *(Partly superseded 2026-10-08: the codec is decided — H.264 and H.265, owner 2026-10-07. Bitrate, latency target and the number of simultaneous encodes are still OQ-005; the H.265 scope per output is OQ-103.)* *(Superseded later on 2026-10-08: the codec is H.264 only — owner, "H.264 only for now" (OQ-103 ANSWERED); H.265 is deferred, REQ-ENC-002. Bitrate, latency target and the number of simultaneous encodes are still OQ-005.)* *(Superseded again later on 2026-10-08: the number of simultaneous encodes is decided. There are two: a recording encode and a live encode shared by RTMP and WebRTC (owner, "Separate record + live"; OQ-005). Bitrate, rate control and latency target are still OQ-005. Record the encoder settings named in the preconditions separately for each encode.)*
+- *(Added later on 2026-10-08.)* **Live-encode settings (WebRTC-receivable; REQ-ENC-001).** The live encode feeds WebRTC as well as RTMP, so:
+  - **Profile: Constrained Baseline.** RFC 7742 requires WebRTC endpoints to support H.264 Constrained Baseline [F-36]. libwebrtc assumes Constrained Baseline Level 3.1 when `profile-level-id` is absent [F-39]. The CM4 encoder offers Constrained Baseline; its default is High [D-11]. The `h264_profile` value or caps that select Constrained Baseline are NEEDS VERIFICATION (OQ-101). In the pipeline reported by a Raspberry Pi engineer, `h264_profile=4` is High (community source) [D-54].
+  - **Level.** Reasoning: 1080p30 needs Level 4 or above, and 1080p60 needs Level 4.2 [F-40]. The CM4 driver calls Level 4.0 the hardware specification [D-12]. Whether browsers decode 1080p when `42e01f` (Level 3.1) was negotiated, or PACSCORDER must signal Level 4.0 or 4.2, is OQ-073.
+  - **No B-frames.** Browsers do not accept H.264 B-frames in WebRTC (reported by the MediaMTX project) [F-45]. The CM4 encoder produces none [D-14]. A software configuration can produce them: rpicam-apps' normal-mode `libx264` defaults set `max_b_frames=1` [D-35]. On CM5, set and record the B-frame setting.
+  - **In-band SPS/PPS.** WebRTC requires SPS/PPS in-band [F-36]. Repetition is off by default on the CM4 encoder [D-15]; the official pipeline enables it with `repeat_sequence_header=1` [D-37].
+  - **CM5.** How to select Constrained Baseline and turn off B-frames on `x264enc` or `libx264` is not in the source register: NEEDS VERIFICATION (OQ-101).
+- *(Added later on 2026-10-08.)* **Recording-encode settings.** Profile, level and bitrate are not specified (OQ-005); record what is used. The CM4 encoder's default profile is High [D-11].
 - *(Added 2026-10-08.)* **H.265 encoders (CM4 and CM5) (deferred — REQ-ENC-002; not in current scope).** No candidate platform has a hardware HEVC encoder [D-24], [D-31], so H.265 runs in software on both boards.
   - x265: Debian's 4.1-2, unchanged in Raspberry Pi OS [H-01], [H-02]. One `libx265-215` provides Main, Main10 and Main12 [H-03].
   - GStreamer: `x265enc` in `gstreamer1.0-plugins-bad` [H-11], [H-12] (CORRECTED). Properties: `speed-preset` (default `medium`), `tune` (default `ssim`), `bitrate` in kbit/s (default 2048), `key-int-max` and `option-string` [H-14].
@@ -1108,6 +1151,23 @@ Measure whether each platform can encode the captured video to H.264 in real tim
 - Official documentation says to replace the encoder with `x264enc speed-preset=1 threads=1` [D-37].
 - Insert a UYVY → I420/NV12 conversion before it [D-40]. The element and its placement are NEEDS VERIFICATION.
 
+**Two-encode run — CM4 and CM5 (added later on 2026-10-08; owner: "Separate record + live", OQ-005)**
+
+Run the recording encode and the live encode at the same time from one capture (see TEST-DMA-001). Set the live encode as in Setup (live-encode settings). Full pipelines are NEEDS VERIFICATION (OQ-101). On Pi 4 Model B and Pi 5, if they are still evaluated (ADR-004, OQ-011), run as on CM4 and CM5 respectively.
+
+1. **CM4: hardware encoder, `/dev/video11`** [D-06].
+   - Run both encodes at 1080p30 first. Reasoning: they need 2 × 244,800 = 489,600 macroblocks/s, the rate of one 1080p60 encode and about 2.0× the 1080p30 specification [D-10], [D-52] (OQ-115, RISK-002).
+   - Then run both at the capture rate of the configuration under test: 1080p60 on CM4 CAM1, at most 1080p50 on CM4 CAM0 (reasoning [C-48]). Reasoning: two 1080p60 encodes need 979,200 macroblocks/s, about 4.0× the specification (from [D-52]).
+   - Record whether the second encode session starts, and the highest combination of resolution and frame rate that both encodes sustain.
+   - If they do not sustain the required rates, record that. Which split is acceptable is an owner decision (OQ-115).
+2. **CM5: software.** Run two `x264enc` or `libx264` encodes plus the UYVY → planar conversion (OQ-060). Record per-core CPU load and throttling.
+   - Reasoning from [G-22]: two encodes need roughly twice the encode CPU of one. The official figure is "~30–40 % CPU" for one 1080p30 encode, and whether that means the whole CPU or one core is UNKNOWN (OQ-059, RISK-003).
+3. **Optional, CM4 only.** Repeat with `gpu_freq=550`, as in the Pi 4 / CM4 step 3 above, only if the owner allows an overclock to be evaluated (OQ-056, OQ-096).
+4. **Live-encode output check.** The inspection tool is NEEDS VERIFICATION (OQ-101). Check the live encode's output for:
+   - profile and level;
+   - no B-frames;
+   - SPS/PPS with every IDR [D-15].
+
 **H.265 runs — CM4 and CM5 (added 2026-10-08; deferred — REQ-ENC-002; not in current scope)**
 
 *Deferred, not run in current scope* (owner, 2026-10-08: "H.264 only for now"; OQ-103 ANSWERED). Kept for when REQ-ENC-002 is re-activated. Run on both boards. Full pipelines and command lines are NEEDS VERIFICATION (OQ-101); the conversion element is NEEDS VERIFICATION (OQ-060).
@@ -1132,6 +1192,7 @@ Measure whether each platform can encode the captured video to H.264 in real tim
 - Duration: UNDEFINED.
   - The research suggested at least 10 minutes (research open question, topic D), and [RISKS.md](RISKS.md) RISK-002 repeats it. The owner has not accepted it (OQ-010, OQ-017).
   - Commands for these measurements are NEEDS VERIFICATION.
+- *(Added later on 2026-10-08.)* In the two-encode run, record the frame-rate, dropped-frame and latency measurements for each encode separately (recording and live). Record CPU load and SoC temperature for the two together.
 
 ### Expected Result
 
@@ -1159,6 +1220,15 @@ Measure whether each platform can encode the captured video to H.264 in real tim
 **All platforms**
 
 No candidate platform has a hardware HEVC encoder [D-24], [D-31]. Pass thresholds are UNDEFINED (OQ-005, OQ-010, OQ-017).
+
+**Two encodes — CM4 and CM5 (added later on 2026-10-08)**
+
+- **CM4.**
+  - The encoder is one V4L2 M2M device [D-06], [D-08]. The register has no fact on concurrent encode sessions, so whether two run at once is UNKNOWN (OQ-115).
+  - Reasoning: two 1080p30 encodes need about 2.0× the specified macroblock rate [D-10], [D-52]. That is the same demand as one 1080p60 encode, which is itself unproven (RISK-002, OQ-056).
+  - For the live encode, Constrained Baseline is offered [D-11], no B-frames are produced [D-14], and SPS/PPS repetition has to be switched on [D-15], [D-37].
+- **CM5.** Reasoning from [G-22]: two software encodes need roughly twice the encode CPU of one, plus the conversion (OQ-060). No source covers two concurrent encodes (OQ-059, RISK-003).
+- Pass thresholds: UNDEFINED (OQ-005, OQ-010, OQ-017).
 
 **H.265 — CM4 and CM5 (added 2026-10-08; deferred — REQ-ENC-002; not in current scope)**
 
@@ -1195,7 +1265,7 @@ BLOCKED — HARDWARE REQUIRED — not run
 |---|---|
 | Verifies | REQ-REC-001 |
 | Related risks | None registered in [RISKS.md](RISKS.md) *(superseded 2026-10-08: RISK-022, RISK-023 and RISK-024 now list REQ-REC-001; RISK-022 is not in current scope — H.265 deferred, REQ-ENC-002)* |
-| Related open questions | OQ-006, OQ-069; added 2026-10-08: OQ-103, OQ-111, OQ-112, OQ-113 (OQ-103 ANSWERED 2026-10-08: H.264 only) |
+| Related open questions | OQ-006, OQ-069; added 2026-10-08: OQ-103, OQ-111, OQ-112, OQ-113 (OQ-103 ANSWERED 2026-10-08: H.264 only); added later on 2026-10-08: OQ-005 (recording encode) |
 | Depends on | TEST-ENC-001; added 2026-10-08: TEST-AUD-001 (audio is required in recordings, REQ-CAP-006) |
 
 ### Objective
@@ -1215,6 +1285,9 @@ Confirm that encoded video is written to local storage as a playable file of the
   - GStreamer 1.26.2 `qtmux` / `mp4mux` and `matroskamux` accept H.265; `h265parse` is needed after `x265enc`; `matroskamux` warns that the `hev1` form is not officially supported [H-37].
   - FFmpeg 7.1.5's MP4 muxer tags HEVC as `hev1`, `hvc1` or `dvh1`, and its Matroska muxer handles HEVC [H-38].
 - *(Added 2026-10-08.)* **Audio** (REQ-CAP-006). AAC encoders available: FFmpeg's native `aac` (CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. Capture audio at the rate the source sends (TEST-AUD-001; RISK-023).
+- *(Added later on 2026-10-08.)* **Recording encode.** Recordings come from the recording encode. It is separate from the live encode that RTMP and WebRTC use (owner, "Separate record + live", OQ-005; REQ-ENC-001).
+  - Its bitrate and rate control are still open (OQ-005). Record the profile, level, bitrate and mode used.
+  - Run at least once with the live encode running at the same time (CM4: OQ-115; CM5: OQ-059). TEST-PERF-001 covers the full combined load.
 
 ### Test
 
@@ -1224,6 +1297,7 @@ Confirm that encoded video is written to local storage as a playable file of the
 2. Stop recording normally and check the file plays, its duration and its frame count.
 3. If OQ-006 requires it, remove power during recording, reboot, and check what is recoverable.
 4. *(Added 2026-10-08.)* Repeat steps 1–2 with H.265 video (if scoped to recording, OQ-103) and with audio, using a 44.1 kHz and a 48 kHz source. Check the recorded audio's pitch and duration against the source, and the A/V offset at the start and end of the file (OQ-112). *(Superseded later on 2026-10-08: the H.265 repeat is deferred, not run in current scope — REQ-ENC-002 (OQ-103 ANSWERED). The audio repeat runs with H.264 video.)*
+5. *(Added later on 2026-10-08.)* Repeat steps 1–2 with the live encode running at the same time (two encodes, OQ-005). Compare the recorded frame count with the run of step 2.
 
 ### Expected Result
 
@@ -1255,7 +1329,7 @@ BLOCKED — HARDWARE REQUIRED — not run
 |---|---|
 | Verifies | REQ-STR-001 |
 | Related risks | RISK-003; added 2026-10-08: RISK-022, RISK-023, RISK-024, RISK-025 (RISK-022 and RISK-025 not in current scope — H.265 deferred, REQ-ENC-002) |
-| Related open questions | OQ-007, OQ-063, OQ-075; added 2026-10-08: OQ-076, OQ-101, OQ-103, OQ-106, OQ-107, OQ-111, OQ-113 (OQ-103 ANSWERED 2026-10-08; OQ-106 and OQ-107 not in current scope — H.265 deferred, REQ-ENC-002) |
+| Related open questions | OQ-007, OQ-063, OQ-075; added 2026-10-08: OQ-076, OQ-101, OQ-103, OQ-106, OQ-107, OQ-111, OQ-113 (OQ-103 ANSWERED 2026-10-08; OQ-106 and OQ-107 not in current scope — H.265 deferred, REQ-ENC-002); added later on 2026-10-08: OQ-005 (live encode shared with WebRTC) |
 | Depends on | TEST-ENC-001; added 2026-10-08: TEST-AUD-001 (audio) |
 
 ### Objective
@@ -1278,6 +1352,10 @@ Publish the encoded stream (and audio, if required) to an RTMP server and confir
   - Test servers: MediaMTX's documentation lists H265 among RTMP publish and read codecs [H-28]. YouTube Live lists H.264, H.265 and AV1 over RTMP/RTMPS, with AAC or MP3 audio [H-29]. Whether each required destination accepts FFmpeg's signalling is OQ-106.
   - Alternative transport: the distribution stacks contain the components for HEVC over SRT in MPEG-TS [H-30]; whether SRT is required is OQ-076.
 - *(Added 2026-10-08.)* **Audio.** AAC encoders: FFmpeg's native `aac` (CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. FFmpeg 7.1.5's FLV muxer has no Opus [H-26]. `fdk-aac` is not shipped and would need `--enable-nonfree` in the GPL FFmpeg build, which makes it unredistributable [I-39], [I-42] (OQ-113). Use sources at 44.1 kHz and 48 kHz (TEST-AUD-001).
+- *(Added later on 2026-10-08.)* **Live encode.** RTMP publishes the live encode, which WebRTC shares (owner, "Separate record + live", OQ-005; REQ-ENC-001).
+  - It is set up to be WebRTC-receivable: Constrained Baseline, no B-frames, in-band SPS/PPS (TEST-ENC-001 Setup, live-encode settings).
+  - Its bitrate and rate control are still open (OQ-005).
+  - Audio is still a separate encode: AAC for RTMP, beside the Opus encode for WebRTC (TEST-STR-002).
 
 ### Test
 
@@ -1297,6 +1375,7 @@ Publish the encoded stream (and audio, if required) to an RTMP server and confir
 - Play the stream back from the server with a client. The client is UNDEFINED (OQ-007).
 - *(Added 2026-10-08.)* **H.265 run (CM4 and CM5) — deferred, not run in current scope (REQ-ENC-002; OQ-103 ANSWERED: H.264 only for now).** Publish H.265 with FFmpeg: `libx265` video and AAC audio to `-f flv`, once without and once with `rtmp_enhanced_codecs` set to `hvc1` [H-26]. The option's command-line form is NEEDS VERIFICATION (OQ-101); whether a destination needs it is OQ-106. Publish to MediaMTX, then to each required destination (OQ-007), and play back. If the owner chooses another path under OQ-107 (backported `eflvmux`, newer GStreamer, or SRT), run that path instead and record it.
 - *(Added 2026-10-08.)* **Audio run.** In every run, include AAC audio captured from the `tc358743` card at the source's rate (TEST-AUD-001, step 4). Repeat with a 44.1 kHz and a 48 kHz source, and play back to check pitch, duration and A/V offset.
+- *(Added later on 2026-10-08.)* **Shared live encode.** At least once, run this test together with TEST-STR-002 from the same live encode, with the recording encode (TEST-REC-001) also running. Record that RTMP and WebRTC take their video from the one live encode, and record the CPU load.
 
 ### Expected Result
 
@@ -1304,6 +1383,9 @@ Publish the encoded stream (and audio, if required) to an RTMP server and confir
 - The stream carries H.264 video (FLV CodecID 7) and, if audio is included, AAC audio [F-31]. `flvmux` needs raw AAC (CORRECTED) [F-34]. *(2026-10-08: audio is required, so AAC audio is expected in every run.)*
 - Pi 4 / CM4: in-band SPS/PPS repetition is off by default on the encoder [D-15]. The official pipeline enables it with `repeat_sequence_header=1` [D-37].
 - Pass criteria (bitrate, latency, duration): UNDEFINED (OQ-007, OQ-017).
+- *(Added later on 2026-10-08.)* **Live encode.**
+  - The stream carries the live encode as H.264 (FLV CodecID 7) [F-31]. Reasoning: because RTMP and WebRTC share one encode, the RTMP stream has the same profile, level and SPS/PPS as the WebRTC track.
+  - Whether every required RTMP destination accepts a Constrained Baseline stream is not in the source register: UNKNOWN (OQ-007).
 - *(Added 2026-10-08.)* **H.265 (deferred — REQ-ENC-002; not in current scope):**
   - Legacy FLV carries only AVC video; HEVC needs Enhanced RTMP FourCC signalling [F-31]. FFmpeg 7.1.5 writes FourCC `hvc1` and enhanced video headers [H-26].
   - Linking `x265enc` or `h265parse` to GStreamer 1.26.2 `flvmux` is expected to fail, because its sink pad has no H.265 [H-27] ([TROUBLESHOOTING.md](TROUBLESHOOTING.md) §6.7).
@@ -1339,7 +1421,7 @@ BLOCKED — HARDWARE REQUIRED — not run
 |---|---|
 | Verifies | REQ-STR-002 |
 | Related risks | RISK-019, RISK-003; added 2026-10-08: RISK-022, RISK-023, RISK-024 (RISK-022 not in current scope — H.265 deferred, REQ-ENC-002) |
-| Related open questions | OQ-008, OQ-063, OQ-073, OQ-074; added 2026-10-08: OQ-103, OQ-108, OQ-111, OQ-112 (OQ-103 ANSWERED 2026-10-08; OQ-108 not in current scope — H.265 deferred, REQ-ENC-002) |
+| Related open questions | OQ-008, OQ-063, OQ-073, OQ-074; added 2026-10-08: OQ-103, OQ-108, OQ-111, OQ-112 (OQ-103 ANSWERED 2026-10-08; OQ-108 not in current scope — H.265 deferred, REQ-ENC-002); added later on 2026-10-08: OQ-005 (live encode shared with RTMP) |
 | Depends on | TEST-ENC-001; added 2026-10-08: TEST-AUD-001 (audio) |
 
 ### Objective
@@ -1356,6 +1438,13 @@ Confirm that live PACSCORDER video plays in each target browser over WebRTC, and
 - Packages: `webrtcbin` is in `gstreamer1.0-plugins-bad` (`libgstwebrtc`) [G-27] and needs `gstreamer1.0-nice` at runtime [G-28]. `webrtcbin` has no built-in signalling [F-42].
 - *(Added 2026-10-08.)* **Opus encoders.** GStreamer `opusenc` (in `gstreamer1.0-plugins-base`) [I-45] and FFmpeg's `libopus` wrapper [I-41]. Both accept only 48000, 24000, 16000, 12000 or 8000 Hz [I-41], [I-47], so a 44.1 kHz HDMI source needs `audioresample` before `opusenc` [I-47]. FFmpeg's native `opus` encoder is experimental, CELT-only and 48 kHz only; production encoding should use `libopus` [I-41].
 - *(Added 2026-10-08.)* **H.265 in WebRTC (deferred — REQ-ENC-002; not in current scope).** GStreamer's `rtph265pay` implements the RFC 7798 HEVC payload; profile, tier and level in its output caps arrived in 1.26.4, after the distribution's 1.26.2 [H-31]. MediaMTX's documentation lists H265 among WebRTC read codecs [H-28]. Viewer browsers and devices for an H.265 run: OQ-008, OQ-108.
+- *(Added later on 2026-10-08.)* **Live encode.** WebRTC plays the live encode, which RTMP shares (owner, "Separate record + live", OQ-005; REQ-ENC-001). There is no separate WebRTC video encode. The live encode is set for WebRTC (TEST-ENC-001 Setup, live-encode settings):
+  - Constrained Baseline [F-36], which the CM4 encoder offers [D-11];
+  - Level 4 or above for 1080p (reasoning) [F-40];
+  - no B-frames, because browsers do not accept them in WebRTC (reported by the MediaMTX project; community source) [F-45]; the CM4 encoder produces none [D-14];
+  - SPS/PPS in-band [F-36]; off by default on the CM4 encoder [D-15].
+
+  In step 2, also record the profile and level in the encoded SPS, next to the SDP `profile-level-id`. The inspection tool is NEEDS VERIFICATION (OQ-101).
 
 ### Test
 
@@ -1382,7 +1471,7 @@ Confirm that live PACSCORDER video plays in each target browser over WebRTC, and
 - Audio: RFC 7874 requires WebRTC endpoints to implement Opus and G.711; AAC is not a required WebRTC codec, so AAC audio has to be transcoded, typically to Opus, for browser playback [F-41].
 - *(Added 2026-10-08.)* **Audio details:**
   - `opusenc` does not accept 44.1 kHz input; a 44.1 kHz source needs `audioresample` before it [I-47] ([TROUBLESHOOTING.md](TROUBLESHOOTING.md) §6.8). `opusenc` defaults to 64000 bit/s, constrained VBR [I-47].
-  - Reasoning from [F-41] and [H-26]: if RTMP runs at the same time, the product needs two audio encodes, AAC for RTMP and Opus for WebRTC.
+  - Reasoning from [F-41] and [H-26]: if RTMP runs at the same time, the product needs two audio encodes, AAC for RTMP and Opus for WebRTC. *(2026-10-08, later: RTMP and WebRTC now share one live video encode (OQ-005), but audio is still two encodes, AAC and Opus.)*
   - Pitch and duration are correct only when the capture rate equals the source rate (reasoning) [I-18] (RISK-023). A/V tolerance: UNDEFINED (OQ-112).
 - *(Added 2026-10-08.)* **H.265, per browser (deferred — REQ-ENC-002; not in current scope):**
   - RFC 7742 does not require H.265 in WebRTC [H-32].
@@ -1390,7 +1479,7 @@ Confirm that live PACSCORDER video plays in each target browser over WebRTC, and
   - Safari 18.0: supports the standard RFC HEVC RTP payload [H-34].
   - Firefox: no evidence of support was found [H-35].
   - Edge 147 on Windows 11: reported in a Microsoft Q&A answer by a moderator not to enable H.265 by default; the workaround given is the launch flags `--enable-features=WebRtcAllowH265Send,WebRtcAllowH265Receive` (community source) [H-36].
-  - Reasoning (as in RISK-019): an H.264 WebRTC track has to remain for browser reach; on CM5 that means two concurrent software video encodes (RISK-022, OQ-108).
+  - Reasoning (as in RISK-019): an H.264 WebRTC track has to remain for browser reach; on CM5 that means two concurrent software video encodes (RISK-022, OQ-108). *(2026-10-08, later: the current scope already requires CM5 to run two concurrent software H.264 encodes, recording and live; whether it sustains them is OQ-059 (OQ-005, RISK-003).)*
 
 ### Actual Result
 
@@ -1580,17 +1669,25 @@ NOT STARTED — no build configuration exists; not run
 | | |
 |---|---|
 | Verifies | REQ-PERF-001 |
-| Related risks | RISK-003, RISK-006, RISK-020; added 2026-10-08: RISK-022 (H.265 soak; not in current scope — H.265 deferred, REQ-ENC-002), RISK-024 (A/V drift) |
-| Related open questions | OQ-010, OQ-035, OQ-053, OQ-055, OQ-059, OQ-061, OQ-096; added 2026-10-08: OQ-104 (not in current scope — H.265 deferred, REQ-ENC-002), OQ-112 |
+| Related risks | RISK-003, RISK-006, RISK-020; added 2026-10-08: RISK-022 (H.265 soak; not in current scope — H.265 deferred, REQ-ENC-002), RISK-024 (A/V drift); added later on 2026-10-08: RISK-002 (two encodes on the CM4 hardware encoder) |
+| Related open questions | OQ-010, OQ-035, OQ-053, OQ-055, OQ-059, OQ-061, OQ-096; added 2026-10-08: OQ-104 (not in current scope — H.265 deferred, REQ-ENC-002), OQ-112; added later on 2026-10-08: OQ-005, OQ-115 (combined load of two encodes) |
 | Depends on | TEST-ENC-001 and the selected outputs (TEST-REC-001, TEST-STR-001, TEST-STR-002); added 2026-10-08: TEST-AUD-001 |
 
 ### Objective
 
 Run the full pipeline (capture, encode, and record and/or stream) continuously across the operating temperature range. Measure frame drops, CPU load, temperatures and contiguous-memory (CMA) use.
 
+*(Added later on 2026-10-08.)* The owner's answer to OQ-005 ("Separate record + live") defines the full pipeline:
+- one capture;
+- two H.264 encodes: the recording encode, and the live encode shared by RTMP and WebRTC;
+- two audio encodes: AAC for recording and RTMP, Opus for WebRTC;
+- all three outputs.
+
+This test measures that combined load on CM4 and CM5.
+
 ### Setup
 
-- Full pipeline as selected by the owner.
+- Full pipeline as selected by the owner. *(Later on 2026-10-08: selected — "Separate record + live", OQ-005. Video: capture → recording encode → recording, and capture → live encode → RTMP and WebRTC. Audio: HDMI audio → AAC (recording, RTMP) and Opus (WebRTC). Bitrates and latency targets are still open (OQ-005).)*
 - Soak duration, frame-drop threshold, ambient temperature range and enclosure: UNDEFINED — OWNER DECISION REQUIRED (OQ-010).
 - Temperature chamber: required if OQ-010 sets a range beyond room temperature.
 
@@ -1606,6 +1703,11 @@ Run the full pipeline (capture, encode, and record and/or stream) continuously a
 6. Pi 5 / CM5: if both OS options are evaluated, repeat on both page sizes. Raspberry Pi OS's default bcm2712 kernel uses 16K pages; Buildroot's Pi 5/CM5 defconfigs force 4K pages [E-09], [G-60] (OQ-055).
 7. *(Added 2026-10-08.)* Run the soak on **CM4 and CM5**, with the HDMI audio path active (REQ-CAP-006) and with the H.265 encodes the owner scopes (OQ-103), alongside the H.264 encodes. Record per-core CPU load and throttling with the software H.265 encode running (OQ-104; RISK-022). *(Superseded later on 2026-10-08: OQ-103 is ANSWERED — "H.264 only for now". In the current scope, run the soak on CM4 and CM5 with the HDMI audio path active and the H.264 encodes only. The H.265 soak is deferred — REQ-ENC-002; not run in current scope.)*
 8. *(Added 2026-10-08.)* **A/V drift (RISK-024, OQ-112).** At the start and end of the soak, and at regular intervals, measure the audio/video offset in the recorded and streamed outputs with the marker source from TEST-AUD-001 step 9. Record the framework and its clock settings [I-35], [I-38]. Commands are NEEDS VERIFICATION (OQ-101).
+9. *(Added later on 2026-10-08.)* **Combined load (OQ-005).** On CM4 and CM5, run recording, RTMP publishing and a WebRTC session at the same time from one capture: two H.264 encodes (recording and live) and two audio encodes (AAC and Opus). The "H.264 encodes" of step 7 are these two.
+   - Record, for each encode: output frame rate and dropped frames.
+   - Record, for the whole system: per-core CPU load, SoC temperature, throttling and `CmaFree`.
+   - Run at the highest required mode (step 1) and at the combinations that the TEST-ENC-001 two-encode run sustained.
+   - CM4: OQ-115, RISK-002. CM5: OQ-059, RISK-003. Commands are NEEDS VERIFICATION (OQ-101).
 
 ### Expected Result
 
@@ -1616,6 +1718,7 @@ Run the full pipeline (capture, encode, and record and/or stream) continuously a
 - `vc4-kms-v3d-pi4` sets (512 − 4) MB and `vc4-kms-v3d-pi5` sets 64 MB [C-40].
 - Whether Pi 5 / CM5 CFE buffers count against CMA is not established (reasoning from kernel source, CORRECTED) [C-53] (OQ-053).
 - `CmaFree` must stay above zero (RISK-020). The margin is UNDEFINED (OQ-061).
+- *(Added later on 2026-10-08.)* With two encoders, the number of capture and encoder buffers in flight, and so the CMA use, is UNKNOWN until measured (OQ-061; TEST-DMA-001).
 
 **Thermal**
 
@@ -1630,6 +1733,11 @@ The TC358743XBG is rated −30 to +70 °C ambient [A-41]. Pi thermal limits were
 **CPU**
 
 Pi 5 / CM5 encode is CPU-bound: about 30–40 % CPU for 1080p30 (official) [G-22] (OQ-059, RISK-003).
+
+*(Added later on 2026-10-08.)* **Two encodes (OQ-005).**
+- CM5: reasoning from [G-22]: roughly twice the encode CPU of one encode. Add the UYVY → planar conversion (OQ-060) and the two audio encodes, whose cost is UNKNOWN (OQ-063).
+- CM4: the two video encodes share the hardware encoder. Reasoning: two 1080p30 encodes need about 2.0× the specified macroblock rate [D-10], [D-52] (OQ-115, RISK-002).
+- No measured value exists for either board.
 
 *(Added 2026-10-08.)* H.265 is software-encoded on CM4 and CM5 [D-24], [D-31]; its sustained cost on either board is unmeasured (OQ-104). A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. *(Deferred — REQ-ENC-002; not in current scope: H.264 only for now, OQ-103 ANSWERED 2026-10-08.)*
 
@@ -1691,7 +1799,7 @@ The procedures and expected results above rest on these entries of [REFERENCES.m
 | A — TC358743 hardware | A-04, A-05, A-08, A-11, A-12, A-13, A-15, A-16, A-17, A-18, A-19, A-20, A-22, A-23, A-24, A-30, A-31, A-33, A-35, A-41, A-43, A-45, A-46, A-47, A-50 |
 | B — tc358743 Linux driver | B-06, B-07, B-09, B-10, B-11, B-12, B-14, B-15, B-16, B-18, B-19, B-21, B-22, B-23, B-24, B-25, B-26, B-27, B-28, B-29, B-30, B-32, B-33, B-34, B-37, B-38, B-39, B-40, B-41, B-42, B-43, B-44, B-46, B-48, B-49 |
 | C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-08, C-09, C-10, C-11, C-12, C-15, C-16, C-17, C-18, C-19, C-20, C-23, C-24, C-25, C-26, C-27, C-28, C-29, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53 |
-| D — Encoders | D-06, D-07, D-08, D-10, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21, D-22, D-23, D-24, D-29, D-30, D-31, D-32, D-34, D-36, D-37, D-39, D-40, D-43, D-44, D-45, D-48, D-50, D-52, D-53, D-54 |
+| D — Encoders | D-06, D-07, D-08, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17, D-18, D-19, D-20, D-21, D-22, D-23, D-24, D-29, D-30, D-31, D-32, D-34, D-35, D-36, D-37, D-39, D-40, D-43, D-44, D-45, D-48, D-50, D-52, D-53, D-54 (D-11 and D-35 added later on 2026-10-08, two-encode procedures) |
 | E — Buildroot and kernel configuration | E-06, E-09, E-15, E-32, E-37, E-39, E-40, E-43, E-44, E-47, E-48 |
 | F — ATEM and streaming | F-02, F-06, F-07, F-10, F-11, F-16, F-17, F-18, F-23, F-24, F-25, F-26, F-31, F-32, F-33, F-34, F-35, F-36, F-38, F-39, F-40, F-41, F-42, F-44, F-45, F-46 |
 | G — Raspberry Pi OS and image tooling | G-01, G-04, G-05, G-08, G-11, G-12, G-13, G-14, G-15, G-16, G-17, G-18, G-21, G-22, G-24, G-25, G-26, G-27, G-28, G-29, G-32, G-36, G-37, G-38, G-39, G-40, G-44, G-47, G-48, G-60, G-61, G-71 |
@@ -1721,3 +1829,5 @@ Nothing (no hardware exists as of 2026-10-06). No procedure in this document has
 | 2026-10-08 | Citation verification of the topic H and I additions: TEST-AUD-001 step 5 — "a 32-bit sample format, which both CPU DAIs accept [I-13], [I-14]" overstated CM5; reworded to CM4 accepting S32_LE [I-13] and CM5's RP1 I2S1 formats coming from hardware registers, so the run uses what step 3 reports [I-14]. All other [H-xx] and [I-xx] citations checked against the register; no change needed. No test run; no status changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): header "Applies to" codec statement marked superseded (H.264 only); TEST-ENC-001 retitled "Sustained real-time H.264 encode (H.265 deferred)" in the summary table and section heading (README title; ID unchanged); encode-package row notes x265enc/libx265/x265 are needed only if REQ-ENC-002 is re-activated, that `libx265-215` is still pulled in by the Raspberry Pi FFmpeg's `libavcodec61` [H-09] and that `x265enc` ships in `gstreamer1.0-plugins-bad` with `rtmp2sink`/`webrtcbin` [H-11], [H-12], [G-27]; platform-reference H.265 encoder and x265 SIMD rows labelled deferred; test-order H.265 note marked superseded; TEST-DMA-001 H.265 note deferred; TEST-ENC-001 — related RISK-022, OQ-104, OQ-105 marked not in current scope and OQ-103 ANSWERED, superseding scope note (H.264 only in current scope), codec note superseded, H.265 encoders, H.265 runs and H.265 expected results labelled "deferred — REQ-ENC-002; not in current scope" (runs: not run in current scope), OQ-103 expectation superseded; TEST-REC-001, TEST-STR-001, TEST-STR-002 — related risks/OQs annotated, H.265 objective and codec statements superseded (H.264 only), H.265 setup, runs and expectations labelled deferred, not run in current scope; TEST-BLD-001 step 5 H.265 encoder check only if REQ-ENC-002 is re-activated, outside-package examples noted as H.265-driven; TEST-PERF-001 — RISK-022, OQ-104 not in current scope, step 7 superseded (H.264 encodes only), H.265 CPU note deferred. All H.265 research and evidence kept; no step deleted; no test run; no status, test ID or "Verifies" mapping changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): header "Applies to" note (recording encode + one live encode shared by RTMP and WebRTC; OQ-115, OQ-059); platform-reference row for two concurrent encodes (CM4: one M2M encoder [D-06], [D-08], concurrency UNKNOWN, reasoning 2.0× the 1080p30 specification [D-10], [D-52]; CM5: both software, reasoning roughly double the encode CPU [G-22]); test-order note; TEST-DMA-001 — OQ-005, OQ-115 linked, objective, setup, test steps and expected results for one capture buffer feeding two encoders (CM4 imports, CM5 conversion once or per encoder, buffers in flight and `CmaFree`, OQ-061); TEST-ENC-001 — OQ-115 linked, objective note, "number of simultaneous encodes" marked superseded (two), live-encode settings (Constrained Baseline [F-36], [F-39], [D-11]; Level 4 / 4.2 [F-40], [D-12]; no B-frames [F-45], [D-14], [D-35]; in-band SPS/PPS [F-36], [D-15], [D-37]), recording-encode settings, two-encode run on CM4 and CM5 (1080p30 pair, then the capture rate; reasoning 4.0× for two 1080p60 encodes from [D-52]), per-encode measurements, two-encode expected results; TEST-REC-001 — OQ-005 linked, recording-encode setup, step 5 (with the live encode running); TEST-STR-001 — OQ-005 linked, shared live-encode setup, joint run with TEST-STR-002, expectations ([F-31]; destination acceptance of Constrained Baseline UNKNOWN, OQ-007); TEST-STR-002 — OQ-005 linked, live-encode setup (SPS profile and level recorded next to the SDP), audio note (still AAC + Opus), CM5 two-encode note on the deferred H.265 bullet; TEST-PERF-001 — RISK-002, OQ-005, OQ-115 linked, objective and setup define the combined load, step 9 (combined load), CMA and CPU expectations; verification table adds D-11, D-35. No test run; no status, test ID, title or "Verifies" mapping changed; no step deleted. | Claude (session 2026-10-08) |
+| 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): verifier pass — TEST-STR-002 H.265 note: "CM5 already runs two concurrent software H.264 encodes" → the current scope requires it; sustaining them is OQ-059. TEST-STR-002 live-encode setup: no-B-frames worded as a MediaMTX report [F-45] (community source). No status changed; no ID added. | Claude (session 2026-10-08) |

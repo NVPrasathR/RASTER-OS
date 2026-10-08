@@ -66,7 +66,8 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - Reasoning: 1080p60 needs about twice the specified macroblock rate [D-52].
   - A Raspberry Pi engineer called hardware 1080p60 an "edge case" (community source) [D-50].
 - **Impact:** A CM4 product may capture 1080p60 but be unable to encode it in real time. 1080p60 capture is required on the 4-lane configuration (REQ-CAP-007, owner 2026-10-07), and CM4 CAM1 is a 4-lane candidate (ADR-004, OPEN). Whether the captured 1080p60 must also be encoded at 60 fps is not specified in REQ-ENC-001 (encoding parameters: OQ-005).
-- **Open questions:** OQ-056 (measurement, including at `gpu_freq=550`); OQ-096 (owner decision: whether a GPU overclock is acceptable in the product).
+- **Open questions:** OQ-056 (measurement, including at `gpu_freq=550`); OQ-096 (owner decision: whether a GPU overclock is acceptable in the product), OQ-115 (two concurrent encodes, added 2026-10-08).
+- **Owner decision (2026-10-08):** two simultaneous encodes (recording + live) are required (REQ-ENC-001). Reasoning: two 1080p30 encodes equal the macroblock rate of one 1080p60 encode, about 2.0× the 1080p30 specification [D-10], [D-52]. Open question: OQ-115.
 - **Retire by:** TEST-ENC-001 (sustained 1080p60 encode on CM4). The "at least 10 minutes" duration used in [TESTING.md](TESTING.md) and [PERFORMANCE.md](PERFORMANCE.md) comes from a research open question (topic D); it is not an owner-accepted criterion (OQ-010, OQ-017).
 
 ## RISK-003 — No hardware video encoder on Pi 5/CM5
@@ -77,6 +78,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - The product briefs list no encoder [D-31].
 - **Impact:** CPU and thermal load at 1080p60, especially with recording, RTMP and WebRTC running at the same time. UYVY must also be converted to a planar format per frame [D-43]. Pi 5 and CM5 are 4-lane candidates (ADR-004, OPEN), where 1080p60 capture is required (REQ-CAP-007, owner 2026-10-07).
 - **Open questions:** OQ-059, OQ-060.
+- **Owner decision (2026-10-08):** two simultaneous software encodes (recording + live) are required on CM5 (REQ-ENC-001), roughly doubling the encode CPU load (reasoning from [G-22]). Open question: OQ-059.
 - **Retire by:** TEST-ENC-001 and TEST-PERF-001 on Pi 5/CM5.
 
 ## RISK-004 — TC358743 supply / lifecycle uncertain
@@ -356,3 +358,5 @@ Nothing (no hardware exists as of 2026-10-06). No risk has been confirmed or ret
 | 2026-10-08 | Citation verification of the topic H and I additions: RISK-019 reasoning bullet reworded — "H.264 remains a working baseline" replaced by "the baseline codec that RFC 7742 requires browsers to implement [F-36]" (Rule 10: "working" is not used without test evidence); the Firefox point now says "no support found" and the Edge point is marked as a community report [H-36]. No severity, status or ID changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | RISK-022 and RISK-025 marked not in current scope (H.265 deferred, REQ-ENC-002); status and severity unchanged. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): verifier pass — header Basis row notes the narrowed codec decision; summary-table rows for RISK-022 and RISK-025 annotated "not in current scope", RISK-015 (HEVC patents) and RISK-019 (H.265 part) annotated; RISK-015 and RISK-019: "H.265 … now required" evidence bullets marked superseded in part and a dated scope note added to each (x265 GPL part of RISK-015 stays in scope because `libavcodec61` depends on `libx265-215` [H-09]). Risk headings, statuses, severities and IDs unchanged (summary-table annotations are appended after the titles); 25 risks, all OPEN. | Claude (session 2026-10-08) |
+| 2026-10-08 | RISK-002 and RISK-003 note the owner decision of two simultaneous H.264 encodes (OQ-005; OQ-115, OQ-059). Severities unchanged. | Claude (session 2026-10-08) |
+| 2026-10-08 | RISK-002 Open questions line now lists OQ-115. | Claude (session 2026-10-08) |

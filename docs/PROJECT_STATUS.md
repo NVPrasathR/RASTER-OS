@@ -26,9 +26,10 @@ Product work cannot start until the hardware and remaining decisions listed unde
 
 ## Current Objective
 
-1. **OQ-103 decided (owner, 2026-10-08): "H.264 only for now".** All outputs (recording, RTMP, WebRTC) use H.264. H.265 is deferred as REQ-ENC-002 (DEFERRED), and its evidence and risks (RISK-022, RISK-025, OQ-104 to OQ-109) are kept for later.
+1. **Encoding decided for the current scope (owner, 2026-10-08):** two simultaneous H.264 encodes, one for recording and one live encode shared by RTMP and WebRTC ("Separate record + live", OQ-005). Whether CM4's hardware encoder can run both is open (OQ-115); on CM5 both run in software (OQ-059). Bitrate and latency targets are still open (OQ-005).
+   **OQ-103 decided (owner, 2026-10-08): "H.264 only for now".** All outputs (recording, RTMP, WebRTC) use H.264. H.265 is deferred as REQ-ENC-002 (DEFERRED), and its evidence and risks (RISK-022, RISK-025, OQ-104 to OQ-109) are kept for later.
 2. **Other owner decisions** in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md):
-   - OQ-005 to OQ-008: bitrate, latency, recording and streaming parameters.
+   - OQ-005 (bitrate, rate control, latency) and OQ-006 to OQ-008: recording and streaming parameters.
    - OQ-010: sustained-operation envelope.
    - OQ-109 / OQ-113: HEVC and AAC patent licensing.
    - OQ-018 to OQ-021: bridge board(s), wiring of INT/RESET and audio I2S.
@@ -41,14 +42,15 @@ Product work cannot start until the hardware and remaining decisions listed unde
 
 - [x] Git: `main` is pushed to `origin` (github.com/NVPrasathR/RASTER-OS). Commits:
   - `7107a39` docs: bootstrap PACSCORDER rules, source register and documentation baseline (squash of the owner's two local commits, Rule 15);
-  - `df3591d` docs: record owner decisions, accept ADR-003, add H.265 and audio research (pushed 2026-10-08 at the owner's request).
-  - The H.265 deferral is uncommitted; see Next Step.
+  - `df3591d` docs: record owner decisions, accept ADR-003, add H.265 and audio research (pushed 2026-10-08 at the owner's request);
+  - `d2d217e` docs: defer H.265 encoding, H.264 only for now (OQ-103) (pushed 2026-10-08).
+  - The two-encode decision (OQ-005) is uncommitted; see Next Step.
 - [x] Owner's engineering rules stored verbatim in [ENGINEERING_RULES.md](ENGINEERING_RULES.md), loaded every session through `CLAUDE.md`.
 - [x] Source research: **467 facts in 9 topics (A–I)**, each independently fact-checked: 434 CONFIRMED, 33 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED ([REFERENCES.md](REFERENCES.md)). Topics H (H.265) and I (HDMI audio) were added on 2026-10-08.
 - [x] Requirements: 21 (16 DRAFT, 4 PROPOSED, 1 DEFERRED — REQ-ENC-002 H.265) — [REQUIREMENTS.md](REQUIREMENTS.md).
 - [x] Decisions: 8 ADRs (ACCEPTED: ADR-001, ADR-003; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-004, ADR-007) — [DECISIONS.md](DECISIONS.md).
 - [x] Risks: 25, all OPEN — [RISKS.md](RISKS.md).
-- [x] Open questions: 114 (108 OPEN; 6 ANSWERED by owner statements) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+- [x] Open questions: 115 (109 OPEN; 6 ANSWERED by owner statements; OQ-115 added 2026-10-08) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 - [x] Full Rule 2 documentation set, written from the source register, reviewed and kept consistent; the documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)).
 
 None of the above is product functionality. **Nothing in the product works yet, because nothing has been built or tested.**
@@ -96,9 +98,9 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 
 ## Next Step
 
-1. The owner decides the remaining owner-decision OQs listed under Current Objective, starting with OQ-005: bitrate, latency and the number of simultaneous H.264 encodes.
+1. The owner decides the remaining owner-decision OQs listed under Current Objective, starting with OQ-005 (bitrate, rate control and latency) and OQ-006 (recording container, storage, power-loss behaviour).
 2. The owner obtains the CM4 + CM5 bring-up hardware listed under Current Objective, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
-3. Commit and push the H.265 deferral once the owner approves. The proposed commit is in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) (2026-10-08, second entry).
+3. Commit and push the two-encode decision once the owner approves. The proposed commit is in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) (2026-10-08, third entry).
 
 ## Change history
 
@@ -110,3 +112,4 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 | 2026-10-07 | Second set of owner answers recorded (CM4 + CM5 evaluation, audio required, H.264 + H.265, any HDMI camera); counts updated (16 DRAFT / 4 PROPOSED, 103 OQs, 22 risks); stale ADR-003 lines in Blocked and the phase plan updated. | Claude (session 2026-10-07) |
 | 2026-10-08 | Brought up to date after topics H and I: 467 facts, 25 risks, 114 OQs; OQ-103 (H.265 scope) made the most urgent owner decision; known problems extended with RISK-022, RISK-023 and RISK-014; commit `7107a39` recorded; phase plan updated for CM4 + CM5, audio and H.265; Last Verified 2026-10-08. | Claude (session 2026-10-08) |
 | 2026-10-08 | OQ-103 answered ("H.264 only for now"): H.265 deferred (REQ-ENC-002); counts 21 requirements / 108 OPEN + 6 ANSWERED OQs; git state (commits `7107a39`, `df3591d` pushed); next step updated. | Claude (session 2026-10-08) |
+| 2026-10-08 | Two-encode decision recorded (OQ-005: recording + shared live; OQ-115 added); commit `d2d217e` pushed; next step updated. | Claude (session 2026-10-08) |

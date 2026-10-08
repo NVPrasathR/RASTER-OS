@@ -461,9 +461,9 @@ Counted with `git show --name-only` and amended the unpushed message. Counts are
 
 ### Next Step
 
-1. The owner decides OQ-005 (bitrate, latency, number of simultaneous H.264 encodes) and the other owner-decision OQs.
+1. The owner decides OQ-005 (bitrate, latency, number of simultaneous H.264 encodes) and the other owner-decision OQs. *(Done for the number of encodes on 2026-10-08 — see the third entry.)*
 2. The owner obtains the CM4 + CM5 bring-up hardware.
-3. Commit and push this change once the owner approves. Proposed commit (Rule 15):
+3. Commit and push this change once the owner approves. *(Done: `d2d217e`, pushed 2026-10-08.)* Proposed commit (Rule 15):
 
 ```text
 Commit title: docs: defer H.265 encoding, H.264 only for now (OQ-103)
@@ -477,6 +477,97 @@ Reason: Rules 1, 11, 13, 14, 21 — owner decision documented, deferred work rec
 Tests: documentation consistency check — 0 problems (DEVELOPMENT_LOG.md 2026-10-08, second entry)
 ```
 
+---
+
+## 2026-10-08 (third entry) — Two H.264 encodes (OQ-005), H.265 deferral pushed
+
+### Objective
+
+Commit and push the H.265 deferral as approved, and record the owner's answer on the number of encodes.
+
+### Starting State
+
+`df3591d` on `origin/main`; the H.265 deferral was uncommitted.
+
+### Changes
+
+1. **Commit and push.** Committed `d2d217e` "docs: defer H.265 encoding, H.264 only for now (OQ-103)" with the approved message (23 files, counted from the staged set), then pushed: `df3591d..d2d217e`.
+2. **Owner answer to OQ-005** (2026-10-08): "Separate record + live". There are two simultaneous H.264 encodes: one for recording, and one live encode shared by RTMP and WebRTC. Bitrate, rate control and latency remain open (OQ-005 stays OPEN).
+3. **Canonical files.**
+   - REQ-ENC-001 records the decision, plus the constraints that follow because the live encode also feeds WebRTC (reasoning from [F-36], [F-39], [F-40], [F-45], [D-11], [D-14], [D-15]).
+   - New OQ-115 asks whether CM4's single hardware encoder can run two sessions. The register has no fact on it. Reasoning: 2 × 1080p30 ≈ 2.0× the 1080p30 specification [D-10], [D-52].
+   - RISK-002 and RISK-003 annotated; RISK-002 now links OQ-115.
+   - Notes added to ADR-004 and ADR-007; statuses unchanged.
+4. **Propagation workflow:** 3 file-owned agents and a verifier made 92 changes and 14 fixes. The fixes mainly reworded "CM4 runs both encodes" as "would run", because OQ-115 is unknown.
+
+### Files Modified
+
+`docs/REQUIREMENTS.md`, `docs/OPEN_QUESTIONS.md`, `docs/RISKS.md`, `docs/DECISIONS.md`, `docs/PROJECT_STATUS.md`, `docs/CHANGELOG.md`, `docs/DEVELOPMENT_LOG.md`, `docs/VIDEO_ENCODER.md`, `docs/PERFORMANCE.md`, `docs/DMA.md`, `docs/STREAMING.md`, `docs/RECORDING.md`, `docs/ARCHITECTURE.md`, `docs/SOFTWARE_ARCHITECTURE.md`, `docs/TESTING.md`, `docs/TRACEABILITY.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation and git only.
+
+### Commands Used
+
+```bash
+git commit && git push origin main    # d2d217e
+python3 doccheck.py docs/
+```
+
+### Test Results
+
+Documentation consistency check after all edits (exit code 0):
+
+```text
+defined: facts=467 REQ=21 ADR=8 RISK=25 OQ=115 TEST(canon)=17 TEST(in TESTING.md)=17
+files=29 distinct facts cited=467/467
+PROBLEMS (0):
+```
+
+- **Result: TESTED — PASS** for documentation consistency only.
+- No hardware or software test was possible.
+
+### Problems Found
+
+None new. The open technical question is OQ-115: whether one CM4 hardware encoder can run two encodes.
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PARTIAL. Encoding scope is decided: two H.264 encodes, with H.265 deferred. Bitrate and latency are still open.
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. The owner decides OQ-005 (bitrate, rate control, latency) and OQ-006 (recording container, storage, power-loss behaviour).
+2. The owner obtains the CM4 + CM5 bring-up hardware.
+3. Commit and push this change once the owner approves. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: two H.264 encodes - recording and shared live (OQ-005)
+Commit description: Record the owner's answer to OQ-005 ("Separate record + live"): one
+  recording encode and one live encode shared by RTMP and WebRTC, with the WebRTC
+  constraints on the live encode; add OQ-115 (two concurrent encodes on the CM4 hardware
+  encoder); annotate RISK-002, RISK-003, ADR-004, ADR-007; update the encoder, performance,
+  DMA, streaming, recording, architecture, testing and traceability documents.
+  No hardware or code exists; nothing is tested.
+Files changed: docs/** (16 Markdown files)
+Reason: Rules 1, 11, 13, 22 - owner decision and its consequences documented
+Tests: documentation consistency check - 0 problems (DEVELOPMENT_LOG.md 2026-10-08, third entry)
+```
+
 ## Change history
 
 | Date | Change | By |
@@ -485,3 +576,4 @@ Tests: documentation consistency check — 0 problems (DEVELOPMENT_LOG.md 2026-1
 | 2026-10-07 | Entry added: owner decisions, ADR-003 accepted, commit squash (written 2026-10-08). | Claude (session 2026-10-07/08) |
 | 2026-10-08 | Entry added: topics H and I research and propagation. | Claude (session 2026-10-08) |
 | 2026-10-08 | Second 2026-10-08 entry added: H.265 deferred (OQ-103), commit `df3591d` and push. | Claude (session 2026-10-08) |
+| 2026-10-08 | Third 2026-10-08 entry added: two H.264 encodes (OQ-005), push of `d2d217e`. | Claude (session 2026-10-08) |

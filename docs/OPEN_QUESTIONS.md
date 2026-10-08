@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 114 questions registered: 108 OPEN, 6 ANSWERED |
+| Document status | Active — 115 questions registered: 109 OPEN, 6 ANSWERED |
 | Last updated | 2026-10-08 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H and I) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -142,6 +142,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-112 | A/V synchronisation across the I2S audio and CSI-2 video clock domains | 7 Encoding & DMA | HARDWARE TEST REQUIRED; OWNER DECISION REQUIRED | OPEN |
 | OQ-113 | AAC patent licensing | 11 Legal, licensing & supply | LEGAL CLARIFICATION REQUIRED | OPEN |
 | OQ-114 | GPIO 18–21 allocation when HDMI audio is enabled | 2 Hardware & bridge board | OWNER DECISION REQUIRED; BUILD TEST REQUIRED | OPEN |
+| OQ-115 | Two concurrent H.264 encodes on the CM4 hardware encoder | 7 Encoding & DMA | HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | OPEN |
 
 ---
 
@@ -230,6 +231,7 @@ Product requirements and pending decisions that only the owner can make. Each on
   - Browser WebRTC interoperability requires H.264 Constrained Baseline [F-36].
   - *(Added 2026-10-08, research topic H.)* H.265 parameters: `x265enc` exposes speed-preset, tune, bitrate (kbit/s) and key-int-max [H-14]; `tune=zerolatency` disables B-frames and lookahead and sets one frame thread, so only wavefront row parallelism remains [H-16]. YouTube Live recommends 12 Mbps for 1080p60 H.265 versus 17 Mbps for H.264, with 2 s keyframes (not more than 4 s) and CBR [H-29]. *(2026-10-08, later: the H.265 parameters are deferred — REQ-ENC-002; not in current scope. The H.264 figures still apply.)*
 - **Owner input (2026-10-07):** codecs are H.264 **and** H.265 for recording and streaming (REQ-ENC-001). Which output uses which codec, and whether software-only H.265 is acceptable, is OQ-103. Bitrate, rate control, latency and the number of simultaneous encodes remain open here. *(Superseded 2026-10-08: OQ-103 ANSWERED — "H.264 only for now". Every output uses H.264 (REQ-ENC-001); H.265 is deferred (REQ-ENC-002, DEFERRED; not in current scope). Bitrate, rate control, latency and the number of simultaneous encodes remain open here.)*
+- **Owner input (2026-10-08):** "Separate record + live" — two simultaneous H.264 encodes: one for recording, and one live encode shared by RTMP and WebRTC (REQ-ENC-001). Bitrate, rate control and latency targets remain open here. Whether the CM4 hardware encoder sustains two encodes is OQ-115; CM5 concurrency is OQ-059.
 - **Resolution method:** OWNER DECISION REQUIRED.
 - **Resolving test:** TEST-ENC-001
 - **Status:** OPEN
@@ -1096,6 +1098,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - *(Added 2026-10-08, research topic H.)* H.265 (also required, REQ-ENC-001) runs on the same CPU. A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. The community benchmarks reported for Pi 5 and a Pi 400 are not 1080p60 live measurements (community sources) [H-20], [H-21], [H-22]; reasoning: in one harness on Pi 5, `libx265` was about 6.6 times slower than `libx264` [H-23]. Research noted that this ratio combined with the two readings of the "~30–40 % CPU" figure (all cores or one core) points to opposite feasibility conclusions, so the question above about the figure's meaning matters for H.265 too (research open question, topic H). H.265 measurement: OQ-104.
   - BCM2712's Cortex-A76 includes DotProd, which x265 can use; BCM2711's Cortex-A72 does not [H-05] (OQ-105).
   - *(Superseded 2026-10-08, later: OQ-103 ANSWERED — "H.264 only for now". H.265 is no longer required; the two H.265 notes above are deferred — REQ-ENC-002; not in current scope, and kept as evidence for REQ-ENC-002. This question now concerns software H.264 only.)*
+  - *(Added 2026-10-08, owner answer to OQ-005.)* The number of encodes is set: two simultaneous H.264 encodes, recording and live (REQ-ENC-001). The "how many simultaneous encodes (recording + RTMP + WebRTC) fit" part of the question therefore now concerns those two software encodes on CM5. Reasoning from [G-22]: roughly double the encode CPU of one encode, if the cost scales linearly with the number of encodes, which no source establishes. Whether CM5 sustains both is unknown until TEST-ENC-001 and TEST-PERF-001 run. The CM4 counterpart is OQ-115.
 - **Resolution method:** HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED (meaning of the CPU figure; the "H264 accelerators" comment).
 - **Resolving test:** TEST-ENC-001, TEST-PERF-001
 - **Status:** OPEN
@@ -1201,6 +1204,19 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Resolving test:** TEST-AUD-001, TEST-REC-001, TEST-PERF-001
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic I)
+
+## OQ-115 — Two concurrent H.264 encodes on the CM4 hardware encoder
+
+- **Question:** Can the BCM2711 hardware encoder (`bcm2835-codec`, `/dev/video11`) run two encodes at the same time — recording plus live — at the rates PACSCORDER needs, and at what combined resolution and frame rate? If not, which split (for example a lower-resolution live encode, or one encode in software) is acceptable?
+- **Why it matters:** REQ-ENC-001 (two encodes, owner 2026-10-08), RISK-002, ADR-004, OQ-005, OQ-056.
+- **Known so far:**
+  - The encoder is one V4L2 memory-to-memory device [D-06], [D-08]; the source register has no fact on how many encode contexts it supports concurrently.
+  - The official specification is 1080p30 encode [D-10]. Reasoning: two 1080p30 encodes need 2 × 244,800 = 489,600 macroblocks/s, the same as one 1080p60 encode and about 2.0× the specification [D-52].
+  - On CM5 both encodes are software; that concurrency is OQ-059.
+- **Resolution method:** HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED (concurrent M2M contexts in `bcm2835-codec`).
+- **Resolving test:** TEST-ENC-001, TEST-PERF-001
+- **Status:** OPEN
+- **Added:** 2026-10-08 (after the owner chose separate recording and live encodes)
 
 ---
 
@@ -1641,9 +1657,9 @@ Rows H and I map the lists of [research/2026-10-08-hevc-audio-research.json](res
 
 | Source | Item → OQ |
 |---|---|
-| [REQUIREMENTS.md](REQUIREMENTS.md) UNDEFINED / owner-to-confirm items | REQ-CAP-001 (60 Hz mandatory, 59.94 Hz, 50 Hz, pixel format, audio) → 001, 002, 003, 004; REQ-CAP-007 (2-lane and 4-lane, all frame rates; owner 2026-10-07) → 001, 002, 021, 038, 040; REQ-CAP-008 (ATEM and camera sources; owner 2026-10-07) → 009, 102; REQ-BLD-002 (own OS image; owner 2026-10-07) → 012; REQ-CAP-003 (EDID contents) → 002 (provisioning trigger and ordering → 093); REQ-CAP-006 (audio required) → 004 (added 2026-10-08: sample-rate handling → 111; A/V synchronisation and tolerance → 112; compressed, multichannel and 24-bit input → 110; GPIO 18–21 allocation → 114); REQ-ENC-001 (codec, bitrate, latency, simultaneous encodes) → 005 (H.265 scope → 103; added 2026-10-08: H.265 throughput → 104; x265 build and version → 105) *(2026-10-08, later: OQ-103 ANSWERED — REQ-ENC-001 is H.264 only; the H.265 items 104 to 109 now belong to REQ-ENC-002 (DEFERRED) and are not in current scope)*; REQ-REC-001 (container, storage, duration, power loss) → 006; REQ-STR-001 (server targets, bitrate) → 007 (added 2026-10-08: HEVC over RTMP → 106, 107); REQ-STR-002 (browsers, latency, LAN/internet) → 008 (added 2026-10-08: H.265 in WebRTC → 108); REQ-ATEM-001 (kind of integration) → 009; REQ-PERF-001 (duration, drop threshold, temperature) → 010; REQ-PLT-001 (platform) → 011; REQ-BLD-001 (OS/build) → 012; acceptance of all DRAFT/PROPOSED requirements → 017 |
+| [REQUIREMENTS.md](REQUIREMENTS.md) UNDEFINED / owner-to-confirm items | REQ-CAP-001 (60 Hz mandatory, 59.94 Hz, 50 Hz, pixel format, audio) → 001, 002, 003, 004; REQ-CAP-007 (2-lane and 4-lane, all frame rates; owner 2026-10-07) → 001, 002, 021, 038, 040; REQ-CAP-008 (ATEM and camera sources; owner 2026-10-07) → 009, 102; REQ-BLD-002 (own OS image; owner 2026-10-07) → 012; REQ-CAP-003 (EDID contents) → 002 (provisioning trigger and ordering → 093); REQ-CAP-006 (audio required) → 004 (added 2026-10-08: sample-rate handling → 111; A/V synchronisation and tolerance → 112; compressed, multichannel and 24-bit input → 110; GPIO 18–21 allocation → 114); REQ-ENC-001 (codec, bitrate, latency, simultaneous encodes) → 005 (H.265 scope → 103; added 2026-10-08: H.265 throughput → 104; x265 build and version → 105) *(2026-10-08, later: OQ-103 ANSWERED — REQ-ENC-001 is H.264 only; the H.265 items 104 to 109 now belong to REQ-ENC-002 (DEFERRED) and are not in current scope)* *(2026-10-08, later: number of encodes answered — two, OQ-005; two concurrent encodes on the CM4 hardware encoder → 115; on CM5 → 059)*; REQ-REC-001 (container, storage, duration, power loss) → 006; REQ-STR-001 (server targets, bitrate) → 007 (added 2026-10-08: HEVC over RTMP → 106, 107); REQ-STR-002 (browsers, latency, LAN/internet) → 008 (added 2026-10-08: H.265 in WebRTC → 108); REQ-ATEM-001 (kind of integration) → 009; REQ-PERF-001 (duration, drop threshold, temperature) → 010; REQ-PLT-001 (platform) → 011; REQ-BLD-001 (OS/build) → 012; acceptance of all DRAFT/PROPOSED requirements → 017 |
 | [DECISIONS.md](DECISIONS.md) OPEN / PROPOSED, and ADR-003 (ACCEPTED 2026-10-07) | ADR-002 → 013; ADR-003 → 012 (ANSWERED 2026-10-07; Buildroot alternative → 064, 065, 066; reproducibility → 067; image size and boot time → 068; hardening → 071; EDID provisioning at boot → 093); ADR-004 → 011 (added 2026-10-08: H.265 cost per board → 104, 105; CM5 audio → 054); ADR-005 → 003; ADR-006 → 014 (`config.txt` parameter syntax → 100; `v4l2-ctl -d` sub-device form → 101); ADR-007 → 015 (added 2026-10-08: HEVC-over-RTMP muxing path → 107; A/V clock handling → 112; audio rate policy → 111); ADR-008 → 099 |
-| [RISKS.md](RISKS.md) (each risk's **Open questions** line) | RISK-001 → 001, 011, 021, 038, 099; RISK-002 → 056, 096; RISK-003 → 059, 060; RISK-004 → 085, 034; RISK-005 → 027; RISK-006 → 035, 038, 095, 099; RISK-007 → 019, 013; RISK-008 → 028, 083; RISK-009 → 002; RISK-010 → 002, 032, 093; RISK-011 → 050, 095, 099; RISK-012 → 049, 050, 051, 052; RISK-013 → 020, 051; RISK-014 → 004, 025, 033, 054 (added 2026-10-08: 024, 110, 114); RISK-015 → 086, 087, 088 (added 2026-10-08: 109, 113); RISK-016 → 045, 003; RISK-017 → 067, 070; RISK-018 → 009, 077, 084, 089; RISK-019 → 008, 073, 074 (added 2026-10-08: 108, 063); RISK-020 → 053, 061; RISK-021 → 018, 019, 021, 022, 024; RISK-022 → 103, 005, 059 (added 2026-10-08: 104, 105, 106, 107, 108, 060); RISK-023 → 111, 020; RISK-024 → 112, 040; RISK-025 → 107, 015 |
+| [RISKS.md](RISKS.md) (each risk's **Open questions** line) | RISK-001 → 001, 011, 021, 038, 099; RISK-002 → 056, 096, 115(its 2026-10-08 owner-decision note also names 115); RISK-003 → 059, 060; RISK-004 → 085, 034; RISK-005 → 027; RISK-006 → 035, 038, 095, 099; RISK-007 → 019, 013; RISK-008 → 028, 083; RISK-009 → 002; RISK-010 → 002, 032, 093; RISK-011 → 050, 095, 099; RISK-012 → 049, 050, 051, 052; RISK-013 → 020, 051; RISK-014 → 004, 025, 033, 054 (added 2026-10-08: 024, 110, 114); RISK-015 → 086, 087, 088 (added 2026-10-08: 109, 113); RISK-016 → 045, 003; RISK-017 → 067, 070; RISK-018 → 009, 077, 084, 089; RISK-019 → 008, 073, 074 (added 2026-10-08: 108, 063); RISK-020 → 053, 061; RISK-021 → 018, 019, 021, 022, 024; RISK-022 → 103, 005, 059 (added 2026-10-08: 104, 105, 106, 107, 108, 060); RISK-023 → 111, 020; RISK-024 → 112, 040; RISK-025 → 107, 015 |
 
 ---
 
@@ -1651,14 +1667,14 @@ Rows H and I map the lists of [research/2026-10-08-hevc-audio-research.json](res
 
 ## Verified from sources (fact IDs)
 
-Every **Known so far** statement cites entries of [REFERENCES.md](REFERENCES.md) whose verdict is `CONFIRMED` or `CORRECTED`; no `UNVERIFIABLE` or `REFUTED` entry is cited. This register cites 391 distinct facts (301 from topics A–G, plus 43 from topic H and 47 from topic I added on 2026-10-08):
+Every **Known so far** statement cites entries of [REFERENCES.md](REFERENCES.md) whose verdict is `CONFIRMED` or `CORRECTED`; no `UNVERIFIABLE` or `REFUTED` entry is cited. This register cites 391 distinct facts (301 from topics A–G, plus 43 from topic H and 47 from topic I added on 2026-10-08). *(2026-10-08, later: OQ-115 adds [D-08], so the register now cites 392 distinct facts, 302 from topics A–G.)*
 
 | Topic | Fact IDs cited |
 |---|---|
 | A — TC358743 hardware | A-01, A-03, A-04, A-05, A-06, A-07, A-08, A-09, A-10, A-11, A-12, A-13, A-14, A-15, A-16, A-18, A-19, A-21, A-22, A-23, A-24, A-25, A-27, A-28, A-29, A-30, A-31, A-32, A-33, A-34, A-36, A-37, A-38, A-39, A-40, A-41, A-42, A-43, A-45, A-46, A-47, A-48, A-50 |
 | B — tc358743 Linux driver | B-02, B-07, B-09, B-10, B-11, B-12, B-13, B-14, B-15, B-16, B-18, B-19, B-20, B-21, B-22, B-23, B-24, B-25, B-26, B-27, B-28, B-31, B-32, B-34, B-36, B-37, B-38, B-39, B-40, B-41, B-42, B-43, B-44, B-45, B-46, B-47, B-49, B-50 |
 | C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13, C-16, C-17, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-30, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-38, C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53 |
-| D — Encoders | D-03, D-06, D-07, D-10, D-11, D-12, D-13, D-14, D-16, D-17, D-18, D-19, D-20, D-21, D-22, D-23, D-24, D-25, D-27, D-28, D-29, D-30, D-31, D-32, D-34, D-35, D-36, D-37, D-38, D-39, D-40, D-41, D-42, D-43, D-44, D-45, D-46, D-47, D-48, D-50, D-51, D-52, D-53, D-54 |
+| D — Encoders | D-03, D-06, D-07, D-08 (added 2026-10-08, OQ-115), D-10, D-11, D-12, D-13, D-14, D-16, D-17, D-18, D-19, D-20, D-21, D-22, D-23, D-24, D-25, D-27, D-28, D-29, D-30, D-31, D-32, D-34, D-35, D-36, D-37, D-38, D-39, D-40, D-41, D-42, D-43, D-44, D-45, D-46, D-47, D-48, D-50, D-51, D-52, D-53, D-54 |
 | E — Buildroot and kernel configuration | E-01, E-03, E-05, E-06, E-09, E-10, E-11, E-12, E-13, E-14, E-15, E-17, E-19, E-20, E-31, E-32, E-33, E-34, E-37, E-39, E-40, E-41, E-43, E-45, E-47, E-48, E-49, E-50, E-51, E-53 |
 | F — ATEM and streaming | F-01, F-02, F-04, F-06, F-07, F-09, F-10, F-11, F-13, F-14, F-15, F-16, F-17, F-18, F-19, F-20, F-21, F-22, F-23, F-24, F-25, F-26, F-27, F-28, F-29, F-30, F-31, F-32, F-33, F-34, F-35, F-36, F-37, F-38, F-39, F-40, F-41, F-42, F-43, F-44, F-45, F-46 |
 | G — Raspberry Pi OS and image tooling | G-01, G-03, G-04, G-05, G-06, G-07, G-08, G-09, G-10, G-12, G-13, G-14, G-15, G-16, G-17, G-18, G-19, G-20, G-21, G-22, G-26, G-27, G-28, G-29, G-31, G-32, G-33, G-34, G-37, G-39, G-40, G-41, G-42, G-43, G-44, G-45, G-46, G-47, G-48, G-49, G-50, G-51, G-52, G-53, G-54, G-55, G-56, G-59, G-60, G-61, G-63, G-64, G-67, G-68, G-69, G-70, G-71 |
@@ -1673,7 +1689,7 @@ Every **Known so far** statement cites entries of [REFERENCES.md](REFERENCES.md)
 
 ## Verified on PACSCORDER hardware
 
-Nothing (no hardware exists as of 2026-10-06). No open question has been answered by a test; 109 of 114 entries are `OPEN`; OQ-001, OQ-004, OQ-009, OQ-012 and OQ-102 were ANSWERED by owner statements on 2026-10-07, not by tests.
+Nothing (no hardware exists as of 2026-10-06). No open question has been answered by a test; 109 of 115 entries are `OPEN`; OQ-001, OQ-004, OQ-009, OQ-012 and OQ-102 were ANSWERED by owner statements on 2026-10-07, not by tests.
 
 # Change history
 
@@ -1691,3 +1707,6 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-08 | Citation verification of the topic H and I additions: OQ-112 bullet citing the reasoning-tier [I-18] now labelled "Reasoning from source"; OQ-109 bullet on the former Via LA programme corrected to [H-40]'s wording (page managed by Video Codec Licensing LLC, an Access Advance subsidiary; contact VCL Advance) instead of "managed as VCL Advance". All other [H-xx] and [I-xx] citations checked against the register; no change needed. Counts unchanged (114: 109 OPEN, 5 ANSWERED); no status changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | OQ-103 ANSWERED ("H.264 only for now"); scope notes added to OQ-104 to OQ-109 (H.265 deferred, REQ-ENC-002). Counts updated. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): verifier pass — superseded / deferred notes appended (no text removed, no status changed) to the dated H.265 bullets that still read as current scope: OQ-005 (H.265 parameters; owner input "H.264 and H.265"), OQ-006 ("REQ-ENC-001 requires H.265"), OQ-007 ("With H.265 required"), OQ-008 (H.265 in WebRTC), OQ-011 (H.265 cost per board), OQ-015 (HEVC over RTMP), OQ-057, OQ-059 ("H.265 (also required, REQ-ENC-001)"), OQ-060, OQ-063 (audio CPU cost alongside H.265); Appendix B REQ-ENC-001 mapping notes that OQ-104 to OQ-109 now belong to REQ-ENC-002 (DEFERRED). Counts unchanged (114: 108 OPEN, 6 ANSWERED). | Claude (session 2026-10-08) |
+| 2026-10-08 | Owner input on OQ-005 recorded ("Separate record + live": two H.264 encodes, recording + shared live); OQ-115 added (two concurrent encodes on the CM4 hardware encoder). | Claude (session 2026-10-08) |
+| 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): verifier pass — OQ-059 Known so far: dated bullet — the concurrency part of the question now means the two software H.264 encodes on CM5 (reasoning from [G-22]: roughly double, linear scaling not established; CM4 counterpart OQ-115); Appendix B: REQ-ENC-001 cell notes number of encodes answered and → 115 / 059, RISK-002 cell notes its owner-decision note names 115; Verification status: [D-08] (cited by OQ-115) added to the D list, with a dated note that the register now cites 392 distinct facts (302 from A–G). No question text, status or ID changed; counts unchanged (115: 109 OPEN, 6 ANSWERED). | Claude (session 2026-10-08) |
+| 2026-10-08 | Appendix B: RISK-002 → OQ-115 added. | Claude (session 2026-10-08) |

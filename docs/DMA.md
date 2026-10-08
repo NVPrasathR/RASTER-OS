@@ -4,7 +4,7 @@
 |---|---|
 | Document status | DRAFT — derived from source research only |
 | Last updated | 2026-10-08 |
-| Applies to | Capture buffers after the CSI-2 receiver, CMA, DMA-BUF heaps and the hand-off to the encoder (H.264 only, owner 2026-10-08: "H.264 only for now", OQ-103; REQ-ENC-001. H.265 was added on 2026-10-07 and is now deferred as REQ-ENC-002 — not in current scope; its buffer path is kept in §8A and §9.5 as evidence) on Raspberry Pi 4 Model B, CM4, Pi 5 and CM5; kernel sources as read on `rpi-6.18.y` [D-01], [E-37] |
+| Applies to | Capture buffers after the CSI-2 receiver, CMA, DMA-BUF heaps and the hand-off to the encoder (H.264 only, owner 2026-10-08: "H.264 only for now", OQ-103; REQ-ENC-001. H.265 was added on 2026-10-07 and is now deferred as REQ-ENC-002 — not in current scope; its buffer path is kept in §8A and §9.5 as evidence), including, since 2026-10-08, one capture feeding two simultaneous H.264 encodes — recording, and one live encode shared by RTMP and WebRTC (owner: "Separate record + live", OQ-005; CM4 OQ-115, CM5 OQ-059) — on Raspberry Pi 4 Model B, CM4, Pi 5 and CM5; kernel sources as read on `rpi-6.18.y` [D-01], [E-37] |
 | Implementation status | NOT STARTED |
 | Verification | Source research of 2026-10-06, plus research topics H (H.265) and I (timestamps) of 2026-10-08 ([REFERENCES.md](REFERENCES.md)). **Nothing in this document has been run or measured on PACSCORDER hardware. No hardware exists as of 2026-10-08.** |
 
@@ -16,6 +16,7 @@ This document covers what happens to a frame after the CSI-2 receiver has writte
 - what the Pi 4/CM4 hardware encoder requires of an imported buffer;
 - which userspace paths avoid a CPU copy;
 - what "zero-copy" can mean on Pi 5/CM5, where encoding runs in software;
+- *(added 2026-10-08)* how one capture buffer can reach both H.264 encodes, the recording encode and the live encode (owner, OQ-005) — §1, §2, §4.3, §6, §8, §9;
 - *(added 2026-10-08)* what H.265 requires of the frames on every platform, where it is always software-encoded (§8A) — *deferred — REQ-ENC-002; not in current scope (2026-10-08, OQ-103); kept as evidence*.
 
 HDMI audio is required (owner, 2026-10-07; REQ-CAP-006), but it does not use these buffers. The `tc358743-audio` overlay routes audio from the TC358743 over I2S to an ALSA card [I-03], [I-04]. That path is described elsewhere ([TC358743_DRIVER.md](TC358743_DRIVER.md), [HARDWARE.md](HARDWARE.md)); only the timestamps that align it with video are noted here (§6).
@@ -42,6 +43,7 @@ Conventions follow [README.md](README.md):
 | Encoder accepts TC358743 UYVY? | Reported yes by a Raspberry Pi engineer [D-18] (community). The firmware decides the list [D-16] (OQ-057). | No: `libx264` and `x264enc` do not accept packed UYVY [D-43], [D-40] |
 | Zero-copy capture → encoder | Possible by mechanism, subject to the constraints in §6. Unproven (OQ-058). | Does not apply to the encoder input. **Reasoning:** the encoder runs on the CPU [G-22], so the CPU reads every frame; packed UYVY must also be converted first [D-43], on the CPU unless a hardware converter is found (OQ-060). |
 | Paths that copy every frame | Upstream FFmpeg `h264_v4l2m2m` (MMAP only) [D-44] | **Reasoning:** every software-encode path reads each frame with the CPU [G-22] |
+| One capture, two H.264 encodes (recording + live) — added 2026-10-08 (owner, OQ-005) | Candidate (reasoning): the same Unicam capture buffer is imported as a DMABUF by two encode sessions on `/dev/video11` (§6, §9.1). Concurrent sessions: UNKNOWN (OQ-115). Sharing one DMABUF between two sessions: NEEDS VERIFICATION (OQ-058) | Candidate (reasoning): one CPU conversion feeds both software encodes, or each encode converts separately (§8, §9.4; OQ-060, ADR-007). CPU cost: OQ-059 |
 | H.265 encoder (added 2026-10-08; deferred — REQ-ENC-002; not in current scope) | No hardware HEVC encoder [D-24]. Software x265 (`x265enc` [H-11], `libx265` [H-09]) on the CPU | No hardware HEVC encoder [D-31]. Software x265, as Pi 4 / CM4 [H-09], [H-11] |
 | H.265 encoder accepts TC358743 UYVY? (added 2026-10-08; deferred — REQ-ENC-002) | **No.** Planar only, not UYVY or NV12 [H-10] (CORRECTED), [H-13] | **No**, as Pi 4 / CM4 [H-10], [H-13] |
 | Zero-copy for H.265 (added 2026-10-08; deferred — REQ-ENC-002) | Does not apply. **Reasoning:** x265 runs on the CPU and needs a planar copy of every frame. At 1080p60 the conversion reads ≈ 249 MB/s and writes ≈ 187 MB/s [H-43] (§8A) | as Pi 4 / CM4 (§8A) |
@@ -57,6 +59,8 @@ Conventions follow [README.md](README.md):
 - Four capture buffers therefore take about 16.6 MB (UYVY) or 24.9 MB (RGB888).
 
 The number of capture buffers is a design parameter of the capture application, which does not exist yet: **UNKNOWN — VERIFICATION REQUIRED (OWNER DECISION REQUIRED, together with ADR-007; size it from TEST-PERF-001 measurements; the CMA budget it drives is OQ-061).**
+
+*(Added 2026-10-08, two encodes; reasoning.)* With two consumers of each frame, the recording encode and the live encode (owner, OQ-005), a shared capture buffer can be returned to the capture queue only when both encodes have finished with it. More buffers may therefore be in flight than with one encode. How many is UNKNOWN — HARDWARE TEST REQUIRED (OQ-061, OQ-115; TEST-DMA-001, TEST-PERF-001); the table below covers 4 to 8 buffers.
 
 **Reasoning** (inputs: frame sizes [C-53]; 64 MiB DT CMA pool [E-47]). The percentages are of the base Device Tree pool only. Overlays can change the pool size (§4.2), and on Pi 5/CM5 it is not established that CFE buffers come from CMA at all (§3.2, OQ-053).
 
@@ -125,13 +129,14 @@ The number of capture buffers is a design parameter of the capture application, 
 - On Pi 4/CM4 the codec and ISP drivers select `BCM2835_VCHIQ_MMAL`, which selects `BCM_VC_SM_CMA` (the `vc-sm-cma` shared-memory driver) [D-03], [E-46]. How much CMA it consumes is not in the source register.
 - The encoder's queues also use `videobuf2-dma-contig` [D-19]. That its MMAP buffers come from CMA, as Unicam's do, is expected but **NEEDS VERIFICATION**.
 - The encoded (CAPTURE) buffers default to 768 KiB each above 720p [D-23]. **Reasoning:** four of them would take 3,145,728 bytes. The buffer count is a design choice.
+- *(Added 2026-10-08, two encodes.)* **Reasoning:** the recording encode and the live encode (OQ-005) each return their own bitstream, so each needs its own encoded buffers. Four per encode would take 2 × 3,145,728 = 6,291,456 bytes at the default size [D-23]. A lower-resolution live encode at or below 720p would get the 512 KiB default instead [D-23]; any scaling step (for example `/dev/video12` [D-25]) adds its own frame buffers, whose sizes are NEEDS VERIFICATION (OQ-115, OQ-061).
 
 ### 4.4 Budget and measurement
 
 **Recommendation — PROPOSED, Claude's recommendation; no ADR records it. OWNER DECISION REQUIRED.**
 
 - Set the CMA size explicitly in the product `config.txt` with an attested `cma-*` parameter [C-40].
-- Size it from a measurement of `CmaFree` in `/proc/meminfo` while capturing and encoding at the highest supported mode [C-53].
+- Size it from a measurement of `CmaFree` in `/proc/meminfo` while capturing and encoding at the highest supported mode [C-53]. *(2026-10-08: with both H.264 encodes, recording and live, running — OQ-005.)*
 - Do not rely on whichever default the loaded overlays happen to give.
 
 The measurement is part of TEST-PERF-001, which is **BLOCKED — HARDWARE REQUIRED**. Allocation failure at STREAMON is the RISK-020 failure mode. The per-platform budget is OQ-061.
@@ -206,6 +211,20 @@ Which input modes PACSCORDER supports is OQ-002. If capture and encoder strides 
 - `rpicam-apps` feeds the encoder YUV420 [D-34].
 - Whether direct UYVY input costs encoder throughput, compared with routing through the ISP: **UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED, VENDOR CONFIRMATION REQUIRED; OQ-057).**
 
+**Two encodes from one capture buffer (added 2026-10-08)**
+
+The owner requires two simultaneous H.264 encodes, a recording encode and one live encode shared by RTMP and WebRTC ("Separate record + live", OQ-005; REQ-ENC-001). On Pi 4/CM4 both would use the one encoder node `/dev/video11` [D-06], [D-08]. Candidate (Claude's reasoning; not decided, not run):
+
+1. Each Unicam capture buffer is imported as a DMABUF on the OUTPUT queue of **both** encode sessions, so that neither copies the frame. Every constraint in the table above then applies to both sessions.
+2. The capture buffer goes back to Unicam only after both sessions have released it (§2).
+3. The input timestamp is copied to the encoded buffers of both sessions [D-19], so the recording and the live encode carry the same `CLOCK_MONOTONIC` capture time [I-33].
+
+UNKNOWN — VERIFICATION REQUIRED:
+
+- Whether `bcm2835-codec` and the firmware run two encode sessions at once, and at what combined rate: KERNEL SOURCE INSPECTION REQUIRED, HARDWARE TEST REQUIRED (OQ-115; RISK-002). Reasoning: two 1080p30 encodes already need the macroblock rate of one 1080p60 encode, about 2.0× the 1080p30 specification [D-10], [D-52].
+- Whether one DMABUF can be queued on two encode sessions at the same time: NEEDS VERIFICATION (KERNEL SOURCE INSPECTION REQUIRED, HARDWARE TEST REQUIRED; OQ-058).
+- If the live encode runs at a lower resolution (one split OQ-115 names), it needs a scaled copy first; `/dev/video12` can resize and takes DMABUFs on both queues [D-25], [D-07] (path §9.2). Whether it does so at the required rate is UNKNOWN (OQ-057, OQ-115).
+
 ---
 
 ## 7. Userspace paths: which avoid a CPU copy
@@ -222,6 +241,8 @@ Which input modes PACSCORDER supports is OQ-002. If capture and encoder strides 
 | **Software H.265 encode** (`libx265` via FFmpeg, `x265enc` via GStreamer) — added 2026-10-08; deferred — REQ-ENC-002; not in current scope | **All four platforms**: no hardware HEVC encoder [D-24], [D-31] | The CPU reads each frame through a mapping, converts UYVY to a **planar** format (I420 or Y42B; NV12 is not accepted), then encodes | **Yes — the CPU reads every frame** and writes a planar copy (reasoning [H-43]) | [H-09], [H-10] (CORRECTED), [H-11], [H-13], [H-43] | See §8A. On Pi 4/CM4 it could run beside the DMABUF hardware H.264 path, from the same capture buffer (candidate; §8A) |
 
 The framework choice is **ADR-007 (OPEN)**, OQ-015. Encoder settings are in [VIDEO_ENCODER.md](VIDEO_ENCODER.md).
+
+*(Added 2026-10-08, two encodes.)* Each path above is described for one encoder. PACSCORDER needs two, the recording encode and the live encode (OQ-005). Reasoning: on a "No copy" path both encoders would take the same capture buffer (§6). On a copying path the copy happens once per encode, so twice per frame. On the software paths the CPU reads each frame for each encode, unless one conversion output is shared (§8). How each framework hands one capture buffer to two encoders is not in the source register: NEEDS VERIFICATION (ADR-007, OQ-015, OQ-058).
 
 ---
 
@@ -247,7 +268,7 @@ The framework choice is **ADR-007 (OPEN)**, OQ-015. Encoder settings are in [VID
 
 TC358743 UYVY frames must therefore be converted first, for example with FFmpeg's swscale [D-43].
 
-*(Added 2026-10-08.)* Reasoning (inputs: the table above): I420 is the one format that all five encoders accept. A conversion that outputs NV12 can feed `libx264` and `x264enc` but not x265. If H.264 and H.265 run together from one conversion, that conversion must output a planar format such as I420 (ADR-007; OQ-060). H.265 applies on Pi 4/CM4 too; see §8A. *(2026-10-08, later: H.265 is deferred — REQ-ENC-002; not in current scope. In the current scope the conversion feeds software H.264 only, so NV12 and I420 are both candidate outputs for `libx264` and `x264enc` [D-43], [D-40]; `openh264enc` needs I420 [D-41].)*
+*(Added 2026-10-08.)* Reasoning (inputs: the table above): I420 is the one format that all five encoders accept. A conversion that outputs NV12 can feed `libx264` and `x264enc` but not x265. If H.264 and H.265 run together from one conversion, that conversion must output a planar format such as I420 (ADR-007; OQ-060). H.265 applies on Pi 4/CM4 too; see §8A. *(2026-10-08, later: H.265 is deferred — REQ-ENC-002; not in current scope. In the current scope the conversion feeds software H.264 only, so NV12 and I420 are both candidate outputs for `libx264` and `x264enc` [D-43], [D-40]; `openh264enc` needs I420 [D-41].)* *(2026-10-08, two encodes; reasoning: the conversion now feeds two software H.264 encodes, recording and live (OQ-005). One conversion output can serve both only if both encodes use the same format and resolution; a lower-resolution live encode needs its own scaled output. Whether one conversion is shared: ADR-007, OQ-060.)*
 
 **Hardware conversion.** The PiSP back end is in the DT behind `iommu2` [D-51] and is built as a module [G-17]. Raspberry Pi engineers have stated that libcamera does not support the TC358743 [C-41] (community). Whether any BCM2712 block can do this conversion outside libcamera: **UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED, HARDWARE TEST REQUIRED; OQ-060).**
 
@@ -266,12 +287,12 @@ TC358743 UYVY frames must therefore be converted first, for example with FFmpeg'
 | 1080p50 | 207,360,000 B/s |
 | 1080p30 | 124,416,000 B/s |
 
-The converter's writes and the encoder's reads come on top. Their sizes are not in the source register. CPU load, temperature and latency: **UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED; OQ-059; TEST-ENC-001, TEST-PERF-001).** *(Superseded in part, 2026-10-08: for a conversion to I420, the write size is now in the register as reasoning fact [H-43]: 3,110,400 bytes per 1920×1080 frame, about 187 MB/s at 1080p60. The write rates for all three modes are in §8A. The encoder's own reads are still not in the register.)*
+The converter's writes and the encoder's reads come on top. Their sizes are not in the source register. *(2026-10-08, two encodes; reasoning: these read rates are for one conversion. If each of the two encodes converts the capture buffer separately, the read traffic doubles, for example 497,664,000 B/s at 1080p60; one shared conversion keeps it at the rates above (OQ-060).)* CPU load, temperature and latency: **UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED; OQ-059; TEST-ENC-001, TEST-PERF-001).** *(Superseded in part, 2026-10-08: for a conversion to I420, the write size is now in the register as reasoning fact [H-43]: 3,110,400 bytes per 1920×1080 frame, about 187 MB/s at 1080p60. The write rates for all three modes are in §8A. The encoder's own reads are still not in the register.)*
 
 **What "zero-copy" can mean on Pi 5/CM5** (Reasoning; candidates, not decisions):
 
 1. The converter reads directly from the mapped capture buffer, with no intermediate `memcpy` before conversion.
-2. One capture buffer is shared by several consumers (recording, RTMP and WebRTC encoders) instead of being copied per consumer. How many encodes are needed is OQ-005.
+2. One capture buffer is shared by several consumers (recording, RTMP and WebRTC encoders) instead of being copied per consumer. How many encodes are needed is OQ-005. *(Superseded in part, 2026-10-08, two encodes: the owner chose two encodes — recording, and one live encode shared by RTMP and WebRTC (OQ-005). The consumers are therefore the two encodes, or one shared conversion that feeds both (§9.4). CPU cost of two software encodes: OQ-059, RISK-003.)*
 3. If OQ-060 finds a usable hardware converter and a test shows it handling TC358743 frames, the capture buffer is handed to it as a DMABUF.
 
 REQ-DMA-001 applies "where the platform encoder supports DMABUF import". **Reasoning:** no Pi 5/CM5 encoder does, so the requirement's no-copy clause does not bind the encoder input there. The owner must confirm this reading when accepting REQ-DMA-001 (OWNER DECISION REQUIRED; OQ-017).
@@ -288,7 +309,7 @@ REQ-DMA-001 applies "where the platform encoder supports DMABUF import". **Reaso
 
 *(Section added 2026-10-08 from research topic H. The owner requires H.264 **and** H.265 (REQ-ENC-001, 2026-10-07). Which outputs use H.265 is OQ-103. Nothing here has been run.)*
 
-**Scope (2026-10-08, later): deferred — REQ-ENC-002; not in current scope.** The owner answered OQ-103 with "H.264 only for now": every output uses H.264 (REQ-ENC-001), and H.265 is recorded as REQ-ENC-002 (DEFERRED; no tests planned). This section is kept unchanged as the evidence for REQ-ENC-002 and applies only if the owner re-activates it. In the current scope the x265 conversion and the CM4 two-consumer case below (hardware H.264 plus software H.265 from one capture buffer) do not arise. RISK-022 and OQ-104 stay OPEN but are not in current scope.
+**Scope (2026-10-08, later): deferred — REQ-ENC-002; not in current scope.** The owner answered OQ-103 with "H.264 only for now": every output uses H.264 (REQ-ENC-001), and H.265 is recorded as REQ-ENC-002 (DEFERRED; no tests planned). This section is kept unchanged as the evidence for REQ-ENC-002 and applies only if the owner re-activates it. In the current scope the x265 conversion and the CM4 two-consumer case below (hardware H.264 plus software H.265 from one capture buffer) do not arise. RISK-022 and OQ-104 stay OPEN but are not in current scope. *(2026-10-08, two encodes: a different two-consumer case is now in the current scope — two H.264 encodes, recording and live, from one capture buffer (owner, OQ-005). It is described in §6 (Pi 4/CM4), §8 (Pi 5/CM5) and §9.)*
 
 **No hardware HEVC encoder anywhere.** Pi 4/CM4 has none [D-24], and Pi 5/CM5 has none [D-31]. Reasoning: H.265 is encoded by x265 on the CPU on all four platforms, through GStreamer `x265enc` [H-11] or FFmpeg `libx265` [H-09]. No V4L2 encoder device exists for H.265, so nothing imports a DMABUF for it.
 
@@ -338,7 +359,7 @@ TC358743 ──CSI-2──► Unicam (csi0 / csi1)                              
                       ▼
                CMA pool (DT linux,cma 64 MB; overlay may change size)      [E-47], [C-40]
                capture buffer: UYVY 1920x1080 = 4,147,200 B               [C-53]
-                      │ DMABUF fd
+                      │ DMABUF fd — the same buffer to both encode sessions (candidate, §6)
                       │ (how the fd is obtained from the capture queue:
                       │  NEEDS VERIFICATION — see §10)
                       ▼
@@ -346,13 +367,19 @@ TC358743 ──CSI-2──► Unicam (csi0 / csi1)                              
                V4L2_MEMORY_DMABUF, one contiguous plane,                   [D-19], [D-20], [D-21]
                bytesperline multiple of 64 (UYVY)                          [D-22]
                UYVY accepted? reported yes (community); OQ-057             [D-16], [D-18]
-                      │ VideoCore firmware H.264 encode
-                      ▼
-               CAPTURE queue: H.264, MMAP, 768 KiB default per buffer      [D-23], [D-34]
-               (input timestamp copied to the output buffer)               [D-19]
-                      ▼
-               recorder / RTMP / WebRTC  (RECORDING.md, STREAMING.md)
+               two encode sessions at once? UNKNOWN, OQ-115
+                      │ VideoCore firmware H.264 encode, per session
+           ┌──────────┴──────────────┐
+           ▼                         ▼
+   session 1: recording encode   session 2: live encode (PROPOSED: Constrained Baseline,
+                                  no B-frames, SPS/PPS repeated; VIDEO_ENCODER.md §7)
+   each: CAPTURE queue, H.264, MMAP, 768 KiB default above 720p   [D-23], [D-34]
+   each: input timestamp copied to the output buffer               [D-19]
+           ▼                         ▼
+       recorder                 RTMP / WebRTC   (RECORDING.md, STREAMING.md)
 ```
+
+*(2026-10-08, two encodes.)* Until the owner chose "Separate record + live" (OQ-005), this diagram showed one encode session feeding "recorder / RTMP / WebRTC". It now shows two sessions fed from the same capture buffer. Whether the encoder runs both is OQ-115 (RISK-002); whether one DMABUF can be queued on both is OQ-058.
 
 ### 9.2 Pi 4 Model B / CM4 — candidate B: through the ISP converter
 
@@ -367,6 +394,8 @@ Unicam capture buffer (UYVY, CMA)                                  [C-53]
    ▼
 H.264 CAPTURE (MMAP)
 ```
+
+*(Added 2026-10-08, two encodes; reasoning.)* With a recording encode and a live encode (OQ-005), the converted buffer would feed both encode sessions as in §9.1. If the live encode runs at a lower resolution (one split named in OQ-115), the ISP would also produce a resized copy for it, since `/dev/video12` can resize [D-07], [D-25]. Neither use is tested (OQ-057, OQ-115).
 
 ### 9.3 Pi 4 Model B / CM4 — for contrast: upstream FFmpeg
 
@@ -388,12 +417,19 @@ TC358743 ──CSI-2──► RP1 CFE "csi2" ──► rp1-cfe-csi2_ch0         
                       ▼
                CPU conversion UYVY → I420 / NV12 (e.g. swscale)          [D-43], [D-40]
                (hardware offload, e.g. PiSP back end: UNKNOWN, OQ-060)   [D-51]
-                      ▼
-               libx264 / x264enc software H.264                   [G-22], [D-43], [D-40]
-               (official figure for 1080p30 from ISP: ~30–40 % CPU)      [G-22]
-                      ▼
-               recorder / RTMP / WebRTC
+               (one conversion shared by both encodes, or one each: OQ-060, ADR-007)
+                      │
+           ┌──────────┴──────────────┐
+           ▼                         ▼
+   libx264 / x264enc            libx264 / x264enc               [G-22], [D-43], [D-40]
+   recording encode             live encode (PROPOSED settings: VIDEO_ENCODER.md §7)
+   (official figure, one 1080p30 encode from ISP: ~30–40 % CPU) [G-22]
+   (two encodes: roughly double, reasoning; UNKNOWN, OQ-059)
+           ▼                         ▼
+       recorder                 RTMP / WebRTC
 ```
+
+*(2026-10-08, two encodes.)* Until the owner chose "Separate record + live" (OQ-005), this diagram showed one software encoder feeding "recorder / RTMP / WebRTC". It now shows two software encodes on the same CPU (OQ-059, RISK-003).
 
 ### 9.5 All platforms — H.265 (added 2026-10-08; deferred — REQ-ENC-002; not in current scope)
 
@@ -413,7 +449,7 @@ capture buffer: UYVY 1920x1080 = 4,147,200 B                             [C-53]
                recorder / RTMP (Enhanced RTMP; FFmpeg) / SRT / WebRTC   (VIDEO_ENCODER.md §4A.7)
 ```
 
-On Pi 4/CM4 this flow can run in parallel with §9.1 or §9.2 for H.264 (candidate; §8A). On Pi 5/CM5 it can share one I420 conversion with §9.4 (candidate; §8, OQ-060). *(2026-10-08, later: this flow is kept as evidence for REQ-ENC-002 and applies only if it is re-activated; the current-scope flows are §9.1 to §9.4, H.264 only.)*
+On Pi 4/CM4 this flow can run in parallel with §9.1 or §9.2 for H.264 (candidate; §8A). On Pi 5/CM5 it can share one I420 conversion with §9.4 (candidate; §8, OQ-060). *(2026-10-08, later: this flow is kept as evidence for REQ-ENC-002 and applies only if it is re-activated; the current-scope flows are §9.1 to §9.4, H.264 only.)* *(2026-10-08, two encodes: in the current scope §9.1, §9.2 and §9.4 each carry two H.264 encodes, recording and live — OQ-005.)*
 
 ---
 
@@ -438,9 +474,10 @@ The full procedures belong in [TESTING.md](TESTING.md). Both tests are **BLOCKED
 - capture buffers imported into the encoder with no `contiguous chunk is too small` error [D-20];
 - capture and encoder strides that agree (§6);
 - frames that arrive intact;
-- that the chosen userspace path does not copy raw frames on Pi 4/CM4.
+- that the chosen userspace path does not copy raw frames on Pi 4/CM4;
+- *(added 2026-10-08, two encodes)* on Pi 4/CM4, that one capture buffer reaches both H.264 encode sessions, recording and live, without a copy, and how many capture buffers are then in flight (§2, §6; OQ-058, OQ-061, OQ-115). If the encoder cannot run both sessions (OQ-115), record which split was used.
 
-**TEST-PERF-001** must record `CmaFree` from `/proc/meminfo` during sustained capture and encode [C-53] (RISK-020, OQ-061). On Pi 5/CM5 it must also record CPU load of conversion and encode (OQ-059). *(Added 2026-10-08.)* With H.265 required, the CPU load of the UYVY → planar conversion and of x265 must be recorded on CM4 as well as CM5, the owner's bring-up pair (ADR-004; OQ-104). On CM4, also record the effect on capture buffers in flight when one buffer feeds both the hardware H.264 path and the H.265 conversion (§8A; OQ-058, OQ-061). *(Superseded 2026-10-08, later: H.265 is deferred — REQ-ENC-002; these H.265 measurements are deferred, not run in current scope. `CmaFree` on every platform under evaluation, and the conversion and encode CPU load on Pi 5/CM5 (OQ-059), are still recorded as above.)*
+**TEST-PERF-001** must record `CmaFree` from `/proc/meminfo` during sustained capture and encode [C-53] (RISK-020, OQ-061). On Pi 5/CM5 it must also record CPU load of conversion and encode (OQ-059). *(Added 2026-10-08.)* With H.265 required, the CPU load of the UYVY → planar conversion and of x265 must be recorded on CM4 as well as CM5, the owner's bring-up pair (ADR-004; OQ-104). On CM4, also record the effect on capture buffers in flight when one buffer feeds both the hardware H.264 path and the H.265 conversion (§8A; OQ-058, OQ-061). *(Superseded 2026-10-08, later: H.265 is deferred — REQ-ENC-002; these H.265 measurements are deferred, not run in current scope. `CmaFree` on every platform under evaluation, and the conversion and encode CPU load on Pi 5/CM5 (OQ-059), are still recorded as above.)* *(Added 2026-10-08, two encodes.)* TEST-PERF-001 records `CmaFree` with both H.264 encodes, recording and live, running (OQ-005, OQ-061). On CM5 it records the CPU load of the conversion (shared or one per encode, OQ-060) and of both software encodes together (OQ-059, RISK-003). On CM4 it records the capture buffers in flight while both encode sessions use them (OQ-115, RISK-002).
 
 > **NOT YET RUN ON PACSCORDER HARDWARE.** No command in this document has been run on PACSCORDER hardware. Exact command lines will be added to [TESTING.md](TESTING.md) only where a cited source attests them.
 
@@ -452,20 +489,20 @@ The full procedures belong in [TESTING.md](TESTING.md). Both tests are **BLOCKED
 |---|---|---|
 | REQ-DMA-001 (DRAFT) | Whole document; Pi 5/CM5 reading in §8 needs owner confirmation (OQ-017) | NOT STARTED; TEST-DMA-001 BLOCKED — HARDWARE REQUIRED |
 | REQ-ARCH-001 (DRAFT) | §9: the DMABUF stage of the mandated path | NOT STARTED |
-| REQ-ENC-001 (DRAFT) | §6, §8: encoder input constraints; *(added 2026-10-08)* §8A: H.265 planar input on every platform. *(2026-10-08, later: REQ-ENC-001 is H.264 only; §8A now traces to REQ-ENC-002)* | NOT STARTED |
+| REQ-ENC-001 (DRAFT) | §6, §8: encoder input constraints; *(added 2026-10-08)* §8A: H.265 planar input on every platform. *(2026-10-08, later: REQ-ENC-001 is H.264 only; §8A now traces to REQ-ENC-002)* *(2026-10-08, two encodes: REQ-ENC-001 requires two simultaneous H.264 encodes, recording and live (OQ-005); one capture buffer for both — §2, §4.3, §6, §7, §8, §9)* | NOT STARTED |
 | REQ-ENC-002 (DEFERRED; added to this table 2026-10-08) | §8A, §9.5: H.265 buffer path — evidence only, not in current scope | NOT STARTED; no tests planned (deferred) |
 | REQ-PERF-001 (PROPOSED) | §4.4, §8: CMA and CPU measurements | NOT STARTED; TEST-PERF-001 BLOCKED — HARDWARE REQUIRED |
 | ADR-003 (ACCEPTED) | §5: kernel series and toolchain differ between Raspberry Pi OS and Buildroot | — |
 | ADR-004 (OPEN) | §1, §9: flows differ per platform. *(2026-10-08: bring-up evaluates CM4 and CM5 side by side, owner 2026-10-07; still OPEN)* | — |
 | ADR-005 (PROPOSED) | §6, §8: UYVY at the encoder input; *(added 2026-10-08)* §8A: UYVY is never accepted by x265 (H.265 deferred — REQ-ENC-002) | — |
 | ADR-007 (OPEN) | §7, §10: framework and buffer-ownership model; *(added 2026-10-08)* §8, §8A: one planar conversion for both codecs, and one capture buffer for two consumers on CM4 (both H.265 cases deferred — REQ-ENC-002; not in current scope) | — |
-| RISK-002 | §6: Pi 4/CM4 encoder at 1080p60 (see [VIDEO_ENCODER.md](VIDEO_ENCODER.md)) | OPEN |
-| RISK-003 | §8 | OPEN |
+| RISK-002 | §6: Pi 4/CM4 encoder at 1080p60 (see [VIDEO_ENCODER.md](VIDEO_ENCODER.md)). *(2026-10-08: also two concurrent encode sessions from one capture buffer, §6, §9.1; OQ-115)* | OPEN |
+| RISK-003 | §8. *(2026-10-08: two software encodes on the CPU, §8, §9.4; OQ-059)* | OPEN |
 | RISK-020 | §2, §4 | OPEN |
 | RISK-022 (added 2026-10-08) | §8A: H.265 is software-only; the conversion cost comes before x265 [H-43]. *(2026-10-08, later: not in current scope — H.265 deferred, REQ-ENC-002)* | OPEN |
 | RISK-024 (added 2026-10-08) | §6: capture timestamps are `CLOCK_MONOTONIC` [I-33] (A/V alignment) | OPEN |
 
-**Open questions referenced:** OQ-002, OQ-005, OQ-015, OQ-017, OQ-048, OQ-053, OQ-055, OQ-056, OQ-057, OQ-058, OQ-059, OQ-060, OQ-061, OQ-062, OQ-064; added 2026-10-08: OQ-103, OQ-104, OQ-112. *(2026-10-08, later: OQ-103 ANSWERED — "H.264 only for now"; OQ-104 OPEN but not in current scope.)*
+**Open questions referenced:** OQ-002, OQ-005, OQ-015, OQ-017, OQ-048, OQ-053, OQ-055, OQ-056, OQ-057, OQ-058, OQ-059, OQ-060, OQ-061, OQ-062, OQ-064; added 2026-10-08: OQ-103, OQ-104, OQ-112. *(2026-10-08, later: OQ-103 ANSWERED — "H.264 only for now"; OQ-104 OPEN but not in current scope.)* Added 2026-10-08 (two encodes): OQ-115; OQ-005 now has the owner's answer on the number of encodes (two) but stays OPEN for bitrate, rate control and latency.
 
 ---
 
@@ -483,7 +520,9 @@ These are statements found in the cited sources, or arithmetic built on them. Th
 - **Receivers and kernel baseline:** [C-07], [C-08], [D-01], [E-37].
 - **H.265 (added 2026-10-08; deferred — REQ-ENC-002; kept as its evidence):** [D-24], [D-31], [H-01], [H-09], [H-10] (CORRECTED), [H-11], [H-13]; reasoning [H-43].
 - **Timestamps and audio path (added 2026-10-08):** [I-33], [I-03], [I-04].
+- **Two H.264 encodes from one capture (added 2026-10-08; owner decision on OQ-005):** [D-06], [D-07], [D-08], [D-10], [D-19], [D-23], [D-25], [D-40], [D-41], [D-43], [D-52], [G-22], [I-33]. The number of concurrent encode sessions on the CM4 encoder is not in the register (OQ-115).
 - **Claude's own reasoning in this document (not register facts):**
+  - *(added 2026-10-08, two encodes)* the shared-capture-buffer candidates in §1, §6, §9.1, §9.2 and §9.4; the buffers-in-flight note in §2; the two-sets encoded-buffer figure (6,291,456 bytes) in §4.3; the per-encode copy reading in §7; the doubled conversion read traffic in §8; the "roughly double" CPU reading of [G-22] in §9.4;
   - *(added 2026-10-08)* the 1080p50/1080p30 conversion rows and read + write totals in §8A, the single-format (I420) reading in §8, the two-consumer and REQ-DMA-001 readings in §8A, and the CMA note for conversion buffers;
   - the buffer-count table and line sizes in §2;
   - the stride table in §6;
@@ -492,7 +531,7 @@ These are statements found in the cited sources, or arithmetic built on them. Th
   - the ownership models in §10;
   - the CMA-heap contiguity and toolchain-header inferences in §5, and the Pi 5/CM5 CPU-read statements in §1.
 
-**Verified on PACSCORDER hardware:** nothing (no hardware exists as of 2026-10-06). *(Re-checked 2026-10-08: still nothing.)*
+**Verified on PACSCORDER hardware:** nothing (no hardware exists as of 2026-10-06). *(Re-checked 2026-10-08: still nothing.)* *(Re-checked 2026-10-08, two encodes: no two-encode buffer path has been run.)*
 
 Every hardware-dependent item is **BLOCKED — HARDWARE REQUIRED**.
 
@@ -509,3 +548,5 @@ Every hardware-dependent item is **BLOCKED — HARDWARE REQUIRED**.
 | 2026-10-08 | H.265 buffer path (research topic H) and capture timestamps (research topic I), plus the owner decisions of 2026-10-07 (second set). Changes: <br>• Header: "Applies to" and "Verification" updated. <br>• Scope: H.265 bullet added; note that HDMI audio (required, REQ-CAP-006) travels over I2S to ALSA, not through these buffers [I-03], [I-04]. <br>• §1: three H.265 rows (no hardware HEVC encoder; planar-only input; no zero-copy for H.265, [H-43] traffic). §6: capture timestamps are `CLOCK_MONOTONIC` at frame start [I-33]. §7: software H.265 path row. <br>• §8: `libx265` and `x265enc` input rows; I420 is the one format all five encoders accept; "converter writes not in register" marked superseded in part ([H-43]). <br>• New §8A: H.265 on every platform — planar input; the UYVY → I420 conversion traffic table (1080p60 from [H-43]; 1080p50 and 1080p30 by the same reasoning); I420 buffer size; hardware conversion candidates (OQ-057, OQ-060); the CM4 two-consumer capture buffer (OQ-058, OQ-061); the REQ-DMA-001 reading for H.265 (OQ-017). <br>• New §9.5 H.265 candidate flow. §11: TEST-PERF-001 note for CM4 and CM5. §12: REQ/ADR rows annotated (ADR-004 still OPEN, CM4 + CM5 side by side); RISK-022 and RISK-024 rows; OQ-103, OQ-104 and OQ-112 added. Verification lists updated. <br>New citations: D-24, H-01, H-09, H-10, H-11, H-13, H-43, I-03, I-04, I-33. No REQ or ADR status changed; nothing run or measured. | Claude (session 2026-10-08) |
 | 2026-10-08 | Citation verification of the topic H and I additions: §9.5 diagram — the two figures taken from the reasoning-tier entry [H-43] are now marked "(reasoning)". The §8A traffic table arithmetic (1080p60/50/30) was re-checked against the [H-43] inputs; all other [H-xx] and [I-xx] citations checked; no other change. No status changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): header "Applies to" (H.264 only; H.265 = REQ-ENC-002, not in current scope); scope bullet, §1 H.265 rows, §7 software-H.265 path row and §8 `libx265`/`x265enc` rows labelled deferred; §8 note that in the current scope the Pi 5/CM5 conversion feeds software H.264 only, so NV12 or I420 suit `libx264`/`x264enc` and `openh264enc` needs I420 [D-40], [D-41], [D-43]; §8A heading labelled "(deferred — REQ-ENC-002; not in current scope)" with a scope note (x265 conversion and CM4 two-consumer case do not arise now; RISK-022, OQ-104 OPEN, not in current scope); §9.5 heading labelled and note (current-scope flows are §9.1–§9.4, H.264 only); §11 TEST-PERF-001 H.265 measurements superseded (deferred, not run in current scope; `CmaFree` and Pi 5/CM5 CPU load still recorded); §12 REQ-ENC-001 row annotated, REQ-ENC-002 (DEFERRED) row added, ADR-005, ADR-007 and RISK-022 rows annotated (statuses unchanged), OQ-103 ANSWERED / OQ-104 not in current scope noted; Verification H.265 list labelled. H.265 research kept as REQ-ENC-002 evidence. No other decision or status changed; no ID added; no fact ID new to this document. | Claude (session 2026-10-08) |
+| 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): header "Applies to" (one capture feeding two encodes; OQ-115, OQ-059); scope bullet; §1 new row (CM4 same capture buffer imported by two encode sessions, OQ-115, OQ-058; CM5 shared or separate conversion, OQ-060, OQ-059); §2 buffers-in-flight note (OQ-061, OQ-115); §4.3 two sets of encoded buffers (6,291,456 bytes at four per encode, reasoning [D-23]; scaling buffers NEEDS VERIFICATION); §4.4 `CmaFree` with both encodes; §6 new "Two encodes from one capture buffer" subsection (candidate, timestamps copied to both bitstreams [D-19], [I-33]; concurrency OQ-115 with 2 × 1080p30 = 2.0× spec [D-10], [D-52]; one DMABUF on two sessions NEEDS VERIFICATION, OQ-058; lower-resolution live via `/dev/video12` [D-07], [D-25]); §7 per-encode copy note (NEEDS VERIFICATION, ADR-007); §8 conversion note, doubled read-traffic reasoning, zero-copy item 2 superseded in part; §8A scope note (two H.264 encodes are now the in-scope two-consumer case); §9.1 and §9.4 diagrams now show one capture feeding a recording encode and a live encode (old wording noted), §9.2 note, §9.5 note; §11 TEST-DMA-001 two-session item and TEST-PERF-001 two-encode measurements; §12 REQ-ENC-001, RISK-002 and RISK-003 rows annotated, OQ-115 added to the OQ list; Verification fact list, reasoning list and re-check note. New citations in this document: D-10, D-52. No status changed; no ID added; nothing run or measured. | Claude (session 2026-10-08) |
+| 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): verifier pass — §6 "both use the one encoder node" → "would use" (concurrency is OQ-115); §6 candidate item 3: timestamps are copied to the encoded buffers of both sessions [D-19] (was "into both bitstreams", which [D-19] does not state). No status changed; no ID added. | Claude (session 2026-10-08) |

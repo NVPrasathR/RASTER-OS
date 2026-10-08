@@ -37,6 +37,9 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-08: **Two H.264 encodes.** The owner answered OQ-005 with "Separate record + live": one recording encode, and one live encode shared by RTMP and WebRTC. REQ-ENC-001 now records this together with the WebRTC constraints on the live encode. OQ-115 was added (two concurrent encodes on the CM4 hardware encoder), and RISK-002 and RISK-003 were annotated. Technical documents updated.
+- 2026-10-08: Pushed `d2d217e` (H.265 deferral) to `origin/main`.
+
 - 2026-10-08: **H.265 deferred.** The owner answered OQ-103 with "H.264 only for now". REQ-ENC-001 is now H.264 only, and REQ-ENC-002 (H.265, new acceptance value DEFERRED) was added. OQ-104 to OQ-109, RISK-022 and RISK-025 are marked not in current scope. TEST-ENC-001 was retitled "Sustained real-time H.264 encode (H.265 deferred)". The technical documents were updated, with the H.265 evidence kept and labelled deferred.
 - 2026-10-08: Pushed `main` to `origin` (github.com/NVPrasathR/RASTER-OS) at the owner's request: `7107a39`, `df3591d`. The local backup branch was not pushed.
 
@@ -89,3 +92,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-07 | Second set of owner answers; Known Issues updated (ADR counts, RISK-022). | Claude (session 2026-10-07) |
 | 2026-10-08 | Topics H and I; propagation of the second owner decisions; commit squash recorded; Known Issues extended. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferral and push recorded. | Claude (session 2026-10-08) |
+| 2026-10-08 | Two-encode decision; push of `d2d217e`. | Claude (session 2026-10-08) |
