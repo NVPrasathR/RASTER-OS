@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 114 questions registered: 109 OPEN, 5 ANSWERED |
+| Document status | Active — 114 questions registered: 108 OPEN, 6 ANSWERED |
 | Last updated | 2026-10-08 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H and I) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -130,7 +130,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-100 | config.txt overlay-parameter syntax | 8 Build system & OS | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-101 | Command syntax used in procedures but not in the source register | 8 Build system & OS | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-102 | Which ATEM models and cameras must be supported as HDMI sources? | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
-| OQ-103 | Which outputs use H.265, and is software-only H.265 acceptable? | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
+| OQ-103 | Which outputs use H.265, and is software-only H.265 acceptable? | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-104 | Software H.265 encode throughput, latency and CPU headroom on CM4 and CM5 | 7 Encoding & DMA | HARDWARE TEST REQUIRED; BUILD TEST REQUIRED | OPEN |
 | OQ-105 | x265 SIMD paths active on CM4 and CM5, and x265 version | 7 Encoding & DMA | BUILD TEST REQUIRED; HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED | OPEN |
 | OQ-106 | HEVC over Enhanced RTMP: acceptance and signalling at the RTMP destinations | 9 Streaming & WebRTC | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
@@ -228,8 +228,8 @@ Product requirements and pending decisions that only the owner can make. Each on
   - Pi 4/CM4 hardware H.264 encoder: officially 1080p30 [D-10]; 25 kbit/s to 25 Mbit/s, VBR or CBR [D-13]; no B-frames [D-14]; Baseline, Constrained Baseline, Main and High profiles [D-11].
   - Pi 5/CM5 use software encoders with longer latency than the old hardware encoders [D-32]; BCM2712 1080p30 encode costs ~30–40 % CPU [G-22].
   - Browser WebRTC interoperability requires H.264 Constrained Baseline [F-36].
-  - *(Added 2026-10-08, research topic H.)* H.265 parameters: `x265enc` exposes speed-preset, tune, bitrate (kbit/s) and key-int-max [H-14]; `tune=zerolatency` disables B-frames and lookahead and sets one frame thread, so only wavefront row parallelism remains [H-16]. YouTube Live recommends 12 Mbps for 1080p60 H.265 versus 17 Mbps for H.264, with 2 s keyframes (not more than 4 s) and CBR [H-29].
-- **Owner input (2026-10-07):** codecs are H.264 **and** H.265 for recording and streaming (REQ-ENC-001). Which output uses which codec, and whether software-only H.265 is acceptable, is OQ-103. Bitrate, rate control, latency and the number of simultaneous encodes remain open here.
+  - *(Added 2026-10-08, research topic H.)* H.265 parameters: `x265enc` exposes speed-preset, tune, bitrate (kbit/s) and key-int-max [H-14]; `tune=zerolatency` disables B-frames and lookahead and sets one frame thread, so only wavefront row parallelism remains [H-16]. YouTube Live recommends 12 Mbps for 1080p60 H.265 versus 17 Mbps for H.264, with 2 s keyframes (not more than 4 s) and CBR [H-29]. *(2026-10-08, later: the H.265 parameters are deferred — REQ-ENC-002; not in current scope. The H.264 figures still apply.)*
+- **Owner input (2026-10-07):** codecs are H.264 **and** H.265 for recording and streaming (REQ-ENC-001). Which output uses which codec, and whether software-only H.265 is acceptable, is OQ-103. Bitrate, rate control, latency and the number of simultaneous encodes remain open here. *(Superseded 2026-10-08: OQ-103 ANSWERED — "H.264 only for now". Every output uses H.264 (REQ-ENC-001); H.265 is deferred (REQ-ENC-002, DEFERRED; not in current scope). Bitrate, rate control, latency and the number of simultaneous encodes remain open here.)*
 - **Resolution method:** OWNER DECISION REQUIRED.
 - **Resolving test:** TEST-ENC-001
 - **Status:** OPEN
@@ -243,7 +243,7 @@ Product requirements and pending decisions that only the owner can make. Each on
   - Raspberry Pi OS's `gstreamer1.0-plugins-good` ships the MP4 (isomp4), Matroska and FLV muxers [G-26]; Buildroot has an ISOMP4 option [E-34].
   - The raspi-config read-only option uses `overlayroot=tmpfs` [G-48], so root-filesystem writes do not persist across reboot (reasoning). rpi-image-gen's `image-rota` layout has a shared persistent data partition [G-40].
   - Recording behaviour on power loss was not researched; no source fact exists.
-  - *(Added 2026-10-08, research topic H.)* HEVC recording (REQ-ENC-001 requires H.265): GStreamer 1.26.2 `qtmux`/`mp4mux` and `matroskamux` accept H.265, with `h265parse` needed after `x265enc` [H-37]; FFmpeg 7.1.5's MP4 and Matroska muxers handle HEVC [H-38].
+  - *(Added 2026-10-08, research topic H.)* HEVC recording (REQ-ENC-001 requires H.265): GStreamer 1.26.2 `qtmux`/`mp4mux` and `matroskamux` accept H.265, with `h265parse` needed after `x265enc` [H-37]; FFmpeg 7.1.5's MP4 and Matroska muxers handle HEVC [H-38]. *(Superseded 2026-10-08, later: OQ-103 ANSWERED — recordings are H.264 only. HEVC recording is deferred — REQ-ENC-002; not in current scope; this note is kept as evidence for REQ-ENC-002.)*
 - **Resolution method:** OWNER DECISION REQUIRED.
 - **Resolving test:** TEST-REC-001
 - **Status:** OPEN
@@ -256,7 +256,7 @@ Product requirements and pending decisions that only the owner can make. Each on
   - Legacy RTMP/FLV carries H.264 (CodecID 7) and AAC; HEVC, AV1, VP9 and Opus need Enhanced RTMP [F-31].
   - GStreamer `rtmp2sink` publishes over RTMP and RTMPS [F-33]. FFmpeg's RTMP URL form uses default TCP port 1935 [F-32].
   - `flvmux` needs AVC-format H.264 and raw AAC (CORRECTED) [F-34]; reasoning: `v4l2h264enc` outputs byte-stream, so a parser is needed between them [F-35].
-  - *(Added 2026-10-08, research topic H.)* With H.265 required (REQ-ENC-001): YouTube Live lists H.264, H.265 and AV1 over RTMP/RTMPS with AAC or MP3 audio [H-29]; FFmpeg 7.1.5 can publish HEVC + AAC over Enhanced RTMP [H-26]; GStreamer 1.26.2 `flvmux` cannot carry H.265 [H-27]. Acceptance and signalling at each destination: OQ-106; muxing path: OQ-107.
+  - *(Added 2026-10-08, research topic H.)* With H.265 required (REQ-ENC-001): YouTube Live lists H.264, H.265 and AV1 over RTMP/RTMPS with AAC or MP3 audio [H-29]; FFmpeg 7.1.5 can publish HEVC + AAC over Enhanced RTMP [H-26]; GStreamer 1.26.2 `flvmux` cannot carry H.265 [H-27]. Acceptance and signalling at each destination: OQ-106; muxing path: OQ-107. *(Superseded 2026-10-08, later: OQ-103 ANSWERED — RTMP carries H.264 only. HEVC over RTMP is deferred — REQ-ENC-002; not in current scope; OQ-106 and OQ-107 stay OPEN, not in current scope.)*
 - **Resolution method:** OWNER DECISION REQUIRED.
 - **Resolving test:** TEST-STR-001
 - **Status:** OPEN
@@ -270,7 +270,7 @@ Product requirements and pending decisions that only the owner can make. Each on
   - Chromium's libwebrtc advertises H.264 at Level 3.1 [F-39]; reasoning: 1080p needs Level 4 or higher [F-40].
   - RFC 7874 requires WebRTC endpoints to implement Opus and G.711 audio; AAC is not a required WebRTC codec, so AAC audio has to be transcoded (typically to Opus) for browser playback [F-41].
   - `webrtcbin` has no built-in signalling [F-42]; `webrtcsink` includes a simple signalling server [F-43]; the MediaMTX project reports that it serves WebRTC readers through a browser page and WHEP [F-45].
-  - *(Added 2026-10-08, research topic H.)* H.265 in WebRTC: Chrome 136+ enables it only where the platform decodes it in hardware, with no software fallback [H-33]; Safari 18.0 supports the standard HEVC RTP payload [H-34]; no evidence of Firefox support was found [H-35]; a Microsoft Q&A answer reports that Edge 147 does not enable it by default (community source) [H-36]. RFC 7742 does not require H.265 [H-32]. See OQ-108.
+  - *(Added 2026-10-08, research topic H.)* H.265 in WebRTC: Chrome 136+ enables it only where the platform decodes it in hardware, with no software fallback [H-33]; Safari 18.0 supports the standard HEVC RTP payload [H-34]; no evidence of Firefox support was found [H-35]; a Microsoft Q&A answer reports that Edge 147 does not enable it by default (community source) [H-36]. RFC 7742 does not require H.265 [H-32]. See OQ-108. *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. WebRTC carries H.264 only (OQ-103 ANSWERED).)*
 - **Resolution method:** OWNER DECISION REQUIRED.
 - **Resolving test:** TEST-STR-002
 - **Status:** OPEN
@@ -316,7 +316,7 @@ Product requirements and pending decisions that only the owner can make. Each on
 - **Owner input (2026-10-07):** both 2-lane and 4-lane configurations are required (REQ-CAP-007), so the product spans more than one capture configuration. Which platform serves which configuration is still open (ADR-004).
 - **Owner input (2026-10-07, second answer):** bring-up evaluates CM4 and CM5 side by side ("CM4 + CM5 side by side"); the product platform is then decided from measurements (ADR-004 OPEN).
 - **Known so far, added 2026-10-08 (research topics H and I):**
-  - H.265 (software on both): x265's Neon DotProd kernels can apply only on CM5's Cortex-A76, not on CM4's Cortex-A72 [H-04], [H-05]. A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. Community benchmarks report Pi 5 ahead of a Cortex-A72 Pi 400 (10.00 versus 4.33 FPS) in a test that is not a 1080p60 live measurement [H-20], [H-21], [H-22] (measurement: OQ-104).
+  - H.265 (software on both): x265's Neon DotProd kernels can apply only on CM5's Cortex-A76, not on CM4's Cortex-A72 [H-04], [H-05]. A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. Community benchmarks report Pi 5 ahead of a Cortex-A72 Pi 400 (10.00 versus 4.33 FPS) in a test that is not a 1080p60 live measurement [H-20], [H-21], [H-22] (measurement: OQ-104). *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. With H.264 only (OQ-103 ANSWERED), H.265 cost does not inform the platform decision unless REQ-ENC-002 is re-activated.)*
   - HDMI audio: on CM4 the overlay drives the documented `bcm2835-i2s` path [I-10], [I-13]; on CM5 the overlay's labels resolve to RP1 I2S1, but operation there is unconfirmed [I-05], [I-06], [I-07], [I-08], [I-09] (OQ-054).
 - **Resolution method:** OWNER DECISION REQUIRED, informed by HARDWARE TEST REQUIRED on the candidate platforms.
 - **Resolving test:** TEST-PLT-001, TEST-CAP-002, TEST-ENC-001 (evidence for the decision)
@@ -374,7 +374,7 @@ Product requirements and pending decisions that only the owner can make. Each on
   - GStreamer covers RTMP (`rtmp2sink`) [F-33] and WebRTC (`webrtcbin`, no signalling) [F-42]; its V4L2 M2M elements support `dmabuf-import` [D-53]; official documentation gives a `v4l2h264enc` pipeline [D-37].
   - Upstream FFmpeg's V4L2 M2M code is MMAP-only, so each frame is copied [D-44]; Raspberry Pi OS's patched FFmpeg adds DMABUF input [D-45].
   - The `rpicam-apps` direct V4L2 path imports DMABUFs into `/dev/video11` [D-34].
-  - *(Added 2026-10-08, research topics H and I.)* HEVC over RTMP: GStreamer 1.26.2 `flvmux` cannot carry H.265 [H-27]; FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV [H-26] (OQ-107). A/V timestamps: in a `v4l2src` + `alsasrc` pipeline, `alsasrc` normally provides the pipeline clock and then does not use ALSA driver timestamps [I-35], [I-36], while `v4l2src` maps monotonic buffer timestamps through a measured delay [I-37]; FFmpeg's ALSA and V4L2 inputs use different clock bases by default [I-38] (OQ-112).
+  - *(Added 2026-10-08, research topics H and I.)* HEVC over RTMP: GStreamer 1.26.2 `flvmux` cannot carry H.265 [H-27]; FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV [H-26] (OQ-107). A/V timestamps: in a `v4l2src` + `alsasrc` pipeline, `alsasrc` normally provides the pipeline clock and then does not use ALSA driver timestamps [I-35], [I-36], while `v4l2src` maps monotonic buffer timestamps through a measured delay [I-37]; FFmpeg's ALSA and V4L2 inputs use different clock bases by default [I-38] (OQ-112). *(2026-10-08, later: the HEVC-over-RTMP part is deferred — REQ-ENC-002; not in current scope (OQ-103 ANSWERED: H.264 only), so it does not drive this decision; see the ADR-007 scope note. The A/V timestamp part is in current scope.)*
 - **Resolution method:** OWNER DECISION REQUIRED, after HARDWARE TEST REQUIRED (capture and encode proven on the candidate platforms).
 - **Resolving test:** TEST-DMA-001, TEST-ENC-001
 - **Status:** OPEN
@@ -484,7 +484,11 @@ Product requirements and pending decisions that only the owner can make. Each on
   - Licensing: x265 is GPLv2-or-later or commercially licensed, and neither licence covers HEVC patents [H-39]; HEVC patent-pool royalties are charged per unit [H-40], [H-41], [H-42] (OQ-109, OQ-087).
 - **Resolution method:** OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED (software H.265 encode on CM4 and CM5).
 - **Resolving test:** TEST-ENC-001, TEST-PERF-001
-- **Status:** OPEN
+- **Answer:** No output uses H.265 for now: H.264 only for recording, RTMP and WebRTC. H.265 is deferred and recorded as REQ-ENC-002 (DEFERRED). OQ-104 to OQ-109 remain OPEN but are not in the current scope until REQ-ENC-002 is re-activated.
+- **Evidence:** Owner answer, 2026-10-08: "H.264 only for now".
+- **Answered on:** 2026-10-08
+- **Answered by:** Owner
+- **Status:** ANSWERED
 - **Added:** 2026-10-07 (after the owner chose H.264 + H.265)
 
 ---
@@ -1062,7 +1066,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Input formats are read from the firmware at probe and filtered against a static table that includes UYVY [D-16]. A 2021 listing posted by a Raspberry Pi engineer (`v4l2-ctl --list-formats-out -d 11`) showed 13 formats including UYVY [D-17]; a Raspberry Pi engineer reported that both TC358743 formats are accepted directly [D-18].
   - `/dev/video12` is a simple ISP converter with DMABUF on both queues [D-25], [D-07]; `/dev/video18` is a deinterlacer [D-27]; node numbers [D-06].
   - GStreamer's V4L2 M2M elements are registered by probing devices at plugin load [D-38], [E-33].
-  - *(Added 2026-10-08, research topic H.)* Software H.265 on CM4 also needs planar input: FFmpeg `libx265` and GStreamer `x265enc` do not accept packed UYVY [H-10], [H-13]. Whether the ISP converter (`v4l2convert`) can convert TC358743 UYVY to I420 at 1080p60 for that path is unknown (research gap, topic H; OQ-060, OQ-104).
+  - *(Added 2026-10-08, research topic H.)* Software H.265 on CM4 also needs planar input: FFmpeg `libx265` and GStreamer `x265enc` do not accept packed UYVY [H-10], [H-13]. Whether the ISP converter (`v4l2convert`) can convert TC358743 UYVY to I420 at 1080p60 for that path is unknown (research gap, topic H; OQ-060, OQ-104). *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. With H.264 only (OQ-103 ANSWERED), this question concerns the H.264 encoder input above.)*
 - **Resolution method:** HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED (cost of UYVY input inside the firmware).
 - **Resolving test:** TEST-ENC-001, TEST-DMA-001
 - **Status:** OPEN
@@ -1091,6 +1095,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - `libx264` and `x264enc` do not accept UYVY [D-43], [D-40]. `rpicam-apps` low-latency `libx264` settings are recorded in [D-35].
   - *(Added 2026-10-08, research topic H.)* H.265 (also required, REQ-ENC-001) runs on the same CPU. A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. The community benchmarks reported for Pi 5 and a Pi 400 are not 1080p60 live measurements (community sources) [H-20], [H-21], [H-22]; reasoning: in one harness on Pi 5, `libx265` was about 6.6 times slower than `libx264` [H-23]. Research noted that this ratio combined with the two readings of the "~30–40 % CPU" figure (all cores or one core) points to opposite feasibility conclusions, so the question above about the figure's meaning matters for H.265 too (research open question, topic H). H.265 measurement: OQ-104.
   - BCM2712's Cortex-A76 includes DotProd, which x265 can use; BCM2711's Cortex-A72 does not [H-05] (OQ-105).
+  - *(Superseded 2026-10-08, later: OQ-103 ANSWERED — "H.264 only for now". H.265 is no longer required; the two H.265 notes above are deferred — REQ-ENC-002; not in current scope, and kept as evidence for REQ-ENC-002. This question now concerns software H.264 only.)*
 - **Resolution method:** HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED (meaning of the CPU figure; the "H264 accelerators" comment).
 - **Resolving test:** TEST-ENC-001, TEST-PERF-001
 - **Status:** OPEN
@@ -1103,7 +1108,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - The PiSP back end is in the BCM2712 DT [D-51] and is built as a module [G-17]. Reasoning: there is no `bcm2835-codec` ISP on Pi 5 [D-29].
   - Raspberry Pi engineers reported that libcamera does not support the TC358743 [C-41].
   - A GStreamer `pispconvert` route with DMABuf caps was reported in a community issue (research gap, topic C — not a register fact).
-  - *(Added 2026-10-08, research topic H.)* The same conversion is needed for software H.265: FFmpeg `libx265` and GStreamer `x265enc` accept only planar formats, not packed UYVY [H-10] (CORRECTED), [H-13]. Reasoning: on the CPU at 1080p60 the conversion reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43]. Claude's note (not a register fact): if H.264 and H.265 run at once, whether one conversion can feed both encoders is a pipeline design point for ADR-007.
+  - *(Added 2026-10-08, research topic H.)* The same conversion is needed for software H.265: FFmpeg `libx265` and GStreamer `x265enc` accept only planar formats, not packed UYVY [H-10] (CORRECTED), [H-13]. Reasoning: on the CPU at 1080p60 the conversion reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43]. Claude's note (not a register fact): if H.264 and H.265 run at once, whether one conversion can feed both encoders is a pipeline design point for ADR-007. *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. With H.264 only (OQ-103 ANSWERED), the conversion feeds the software H.264 encoder only.)*
 - **Resolution method:** KERNEL SOURCE INSPECTION REQUIRED (PiSP back-end input formats); HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-DMA-001, TEST-ENC-001
 - **Status:** OPEN
@@ -1140,7 +1145,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - GStreamer: `voaacenc` (plugins-bad) and `opusenc` (plugins-base) are shipped, `fdkaacenc` is not [I-44], [I-45]; `avenc_aac` (Debian's `gstreamer1.0-libav`) wraps FFmpeg's native encoder [I-46]. Sink-pad rates differ: `opusenc` only 48/24/16/12/8 kHz; `avenc_aac` 7.35–96 kHz; `voaacenc` 8–96 kHz with 1 or 2 channels; a 44.1 kHz source needs resampling before `opusenc` [I-47] (OQ-111).
   - `fdk-aac` is in Debian non-free under a licence Debian calls incompatible with every GPL version, and its licence grants no patent rights [I-43]. A GPL FFmpeg build can enable `libfdk_aac` only with `--enable-nonfree`, which makes the result unredistributable [I-42] (OQ-087, OQ-113).
   - FFmpeg 7.1.5's FLV muxer has no Opus [H-26], and WebRTC requires Opus or G.711 [F-41]. Reasoning: simultaneous RTMP (from FFmpeg) and WebRTC with audio therefore need two audio encodes, AAC and Opus.
-  - Still open (research gaps and open questions, topic I): the CPU cost of AAC/Opus alongside software H.264/H.265 on CM5 and alongside hardware H.264 on CM4; confirming the encoder list on the image itself (the FFmpeg configure flags were inferred from package dependencies); and whether the image's apt sources enable Debian non-free, which matters only if `fdk-aac` were wanted.
+  - Still open (research gaps and open questions, topic I): the CPU cost of AAC/Opus alongside software H.264/H.265 on CM5 *(2026-10-08, later: H.264 only in current scope; H.265 deferred — REQ-ENC-002)* and alongside hardware H.264 on CM4; confirming the encoder list on the image itself (the FFmpeg configure flags were inferred from package dependencies); and whether the image's apt sources enable Debian non-free, which matters only if `fdk-aac` were wanted.
 - **Resolution method:** HARDWARE TEST REQUIRED; LEGAL CLARIFICATION REQUIRED (encoder licences).
 - **Resolving test:** TEST-AUD-001, TEST-STR-001, TEST-STR-002
 - **Status:** OPEN
@@ -1160,6 +1165,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Trixie also packages kvazaar and the HM reference encoder, but neither is wired into the distribution's FFmpeg or GStreamer, HM is not suitable for real-time use, and SVT-HEVC is not packaged (CORRECTED) [H-18].
 - **Resolution method:** HARDWARE TEST REQUIRED (CM4 and CM5; both frameworks; with and without a concurrent H.264 encode and audio; sustained run); BUILD TEST REQUIRED (thread and latency settings).
 - **Resolving test:** TEST-ENC-001, TEST-PERF-001
+- **Scope note (2026-10-08):** not in current scope — H.265 is deferred (OQ-103 ANSWERED, REQ-ENC-002 DEFERRED). Kept OPEN for when H.265 is re-activated.
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic H)
 
@@ -1175,6 +1181,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Whether the trixie compiler built the DotProd kernels into the binary, and whether the CM5 kernel reports `asimddp`, were not checked (research open question and gap, topic H).
 - **Resolution method:** BUILD TEST REQUIRED (inspect the binary or the encoder's CPU-capability log on each board); HARDWARE TEST REQUIRED (`/proc/cpuinfo` on CM5); VENDOR CONFIRMATION REQUIRED (newer x265 for trixie).
 - **Resolving test:** TEST-ENC-001
+- **Scope note (2026-10-08):** not in current scope — H.265 is deferred (OQ-103 ANSWERED, REQ-ENC-002 DEFERRED). Kept OPEN for when H.265 is re-activated.
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic H)
 
@@ -1400,6 +1407,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Other ingest services (Twitch, Facebook, Vimeo, customer RTMP servers) were not checked (research gap, topic H).
 - **Resolution method:** VENDOR CONFIRMATION REQUIRED (each destination's ingest documentation); HARDWARE TEST REQUIRED (publish to each target and play back).
 - **Resolving test:** TEST-STR-001
+- **Scope note (2026-10-08):** not in current scope — H.265 is deferred (OQ-103 ANSWERED, REQ-ENC-002 DEFERRED). Kept OPEN for when H.265 is re-activated.
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic H)
 
@@ -1413,6 +1421,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - The distribution stacks contain the components for HEVC over SRT in MPEG-TS [H-30]; whether SRT is required is OQ-076.
 - **Resolution method:** BUILD TEST REQUIRED (whichever path is chosen); OWNER DECISION REQUIRED (with ADR-007).
 - **Resolving test:** TEST-STR-001, TEST-BLD-001
+- **Scope note (2026-10-08):** not in current scope — H.265 is deferred (OQ-103 ANSWERED, REQ-ENC-002 DEFERRED). Kept OPEN for when H.265 is re-activated.
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic H)
 
@@ -1430,6 +1439,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - MediaMTX's documentation lists H265 among WebRTC read codecs [H-28].
 - **Resolution method:** VENDOR CONFIRMATION REQUIRED (browser vendors' release documentation); HARDWARE TEST REQUIRED (per-browser receive on the target viewer devices).
 - **Resolving test:** TEST-STR-002
+- **Scope note (2026-10-08):** not in current scope — H.265 is deferred (OQ-103 ANSWERED, REQ-ENC-002 DEFERRED). Kept OPEN for when H.265 is re-activated.
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic H)
 
@@ -1589,6 +1599,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Which category PACSCORDER falls into, and whether licensors outside both pools assert HEVC patents, is not established (research gap, topic H).
 - **Resolution method:** LEGAL CLARIFICATION REQUIRED.
 - **Resolving test:** —
+- **Scope note (2026-10-08):** not in current scope — H.265 is deferred (OQ-103 ANSWERED, REQ-ENC-002 DEFERRED). Kept OPEN for when H.265 is re-activated.
 - **Status:** OPEN
 - **Added:** 2026-10-08 (from research topic H)
 
@@ -1630,7 +1641,7 @@ Rows H and I map the lists of [research/2026-10-08-hevc-audio-research.json](res
 
 | Source | Item → OQ |
 |---|---|
-| [REQUIREMENTS.md](REQUIREMENTS.md) UNDEFINED / owner-to-confirm items | REQ-CAP-001 (60 Hz mandatory, 59.94 Hz, 50 Hz, pixel format, audio) → 001, 002, 003, 004; REQ-CAP-007 (2-lane and 4-lane, all frame rates; owner 2026-10-07) → 001, 002, 021, 038, 040; REQ-CAP-008 (ATEM and camera sources; owner 2026-10-07) → 009, 102; REQ-BLD-002 (own OS image; owner 2026-10-07) → 012; REQ-CAP-003 (EDID contents) → 002 (provisioning trigger and ordering → 093); REQ-CAP-006 (audio required) → 004 (added 2026-10-08: sample-rate handling → 111; A/V synchronisation and tolerance → 112; compressed, multichannel and 24-bit input → 110; GPIO 18–21 allocation → 114); REQ-ENC-001 (codec, bitrate, latency, simultaneous encodes) → 005 (H.265 scope → 103; added 2026-10-08: H.265 throughput → 104; x265 build and version → 105); REQ-REC-001 (container, storage, duration, power loss) → 006; REQ-STR-001 (server targets, bitrate) → 007 (added 2026-10-08: HEVC over RTMP → 106, 107); REQ-STR-002 (browsers, latency, LAN/internet) → 008 (added 2026-10-08: H.265 in WebRTC → 108); REQ-ATEM-001 (kind of integration) → 009; REQ-PERF-001 (duration, drop threshold, temperature) → 010; REQ-PLT-001 (platform) → 011; REQ-BLD-001 (OS/build) → 012; acceptance of all DRAFT/PROPOSED requirements → 017 |
+| [REQUIREMENTS.md](REQUIREMENTS.md) UNDEFINED / owner-to-confirm items | REQ-CAP-001 (60 Hz mandatory, 59.94 Hz, 50 Hz, pixel format, audio) → 001, 002, 003, 004; REQ-CAP-007 (2-lane and 4-lane, all frame rates; owner 2026-10-07) → 001, 002, 021, 038, 040; REQ-CAP-008 (ATEM and camera sources; owner 2026-10-07) → 009, 102; REQ-BLD-002 (own OS image; owner 2026-10-07) → 012; REQ-CAP-003 (EDID contents) → 002 (provisioning trigger and ordering → 093); REQ-CAP-006 (audio required) → 004 (added 2026-10-08: sample-rate handling → 111; A/V synchronisation and tolerance → 112; compressed, multichannel and 24-bit input → 110; GPIO 18–21 allocation → 114); REQ-ENC-001 (codec, bitrate, latency, simultaneous encodes) → 005 (H.265 scope → 103; added 2026-10-08: H.265 throughput → 104; x265 build and version → 105) *(2026-10-08, later: OQ-103 ANSWERED — REQ-ENC-001 is H.264 only; the H.265 items 104 to 109 now belong to REQ-ENC-002 (DEFERRED) and are not in current scope)*; REQ-REC-001 (container, storage, duration, power loss) → 006; REQ-STR-001 (server targets, bitrate) → 007 (added 2026-10-08: HEVC over RTMP → 106, 107); REQ-STR-002 (browsers, latency, LAN/internet) → 008 (added 2026-10-08: H.265 in WebRTC → 108); REQ-ATEM-001 (kind of integration) → 009; REQ-PERF-001 (duration, drop threshold, temperature) → 010; REQ-PLT-001 (platform) → 011; REQ-BLD-001 (OS/build) → 012; acceptance of all DRAFT/PROPOSED requirements → 017 |
 | [DECISIONS.md](DECISIONS.md) OPEN / PROPOSED, and ADR-003 (ACCEPTED 2026-10-07) | ADR-002 → 013; ADR-003 → 012 (ANSWERED 2026-10-07; Buildroot alternative → 064, 065, 066; reproducibility → 067; image size and boot time → 068; hardening → 071; EDID provisioning at boot → 093); ADR-004 → 011 (added 2026-10-08: H.265 cost per board → 104, 105; CM5 audio → 054); ADR-005 → 003; ADR-006 → 014 (`config.txt` parameter syntax → 100; `v4l2-ctl -d` sub-device form → 101); ADR-007 → 015 (added 2026-10-08: HEVC-over-RTMP muxing path → 107; A/V clock handling → 112; audio rate policy → 111); ADR-008 → 099 |
 | [RISKS.md](RISKS.md) (each risk's **Open questions** line) | RISK-001 → 001, 011, 021, 038, 099; RISK-002 → 056, 096; RISK-003 → 059, 060; RISK-004 → 085, 034; RISK-005 → 027; RISK-006 → 035, 038, 095, 099; RISK-007 → 019, 013; RISK-008 → 028, 083; RISK-009 → 002; RISK-010 → 002, 032, 093; RISK-011 → 050, 095, 099; RISK-012 → 049, 050, 051, 052; RISK-013 → 020, 051; RISK-014 → 004, 025, 033, 054 (added 2026-10-08: 024, 110, 114); RISK-015 → 086, 087, 088 (added 2026-10-08: 109, 113); RISK-016 → 045, 003; RISK-017 → 067, 070; RISK-018 → 009, 077, 084, 089; RISK-019 → 008, 073, 074 (added 2026-10-08: 108, 063); RISK-020 → 053, 061; RISK-021 → 018, 019, 021, 022, 024; RISK-022 → 103, 005, 059 (added 2026-10-08: 104, 105, 106, 107, 108, 060); RISK-023 → 111, 020; RISK-024 → 112, 040; RISK-025 → 107, 015 |
 
@@ -1678,3 +1689,5 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-07 | Owner answers recorded: OQ-004 ANSWERED (audio required), OQ-102 ANSWERED (any HDMI camera, no model list); owner input added to OQ-005 (H.264 + H.265) and OQ-011 (evaluate CM4 and CM5 side by side); OQ-103 added (H.265 scope per output). Summary and counts updated. | Claude (session 2026-10-07) |
 | 2026-10-08 | Research topics H (H.265/HEVC, [H-01] to [H-43]) and I (HDMI audio, [I-01] to [I-47]) merged. **Known so far** extended with dated bullets (no status changed) in OQ-002, OQ-004, OQ-005, OQ-006, OQ-007, OQ-008, OQ-011, OQ-014, OQ-015, OQ-016, OQ-020, OQ-024, OQ-025, OQ-033, OQ-043, OQ-054, OQ-057, OQ-059, OQ-060, OQ-063, OQ-066, OQ-070, OQ-076, OQ-087 and OQ-103; superseded statements marked in OQ-063 (encoder availability and FDK-AAC licence now researched), OQ-076 (Raspberry Pi OS SRT components now researched) and OQ-103 (topic H complete; no official H.265 figure). Dated scope notes added to OQ-033, OQ-054, OQ-083 and OQ-097 for topic I items they carry. New entries OQ-104 to OQ-114 (H.265 throughput; x265 SIMD and version; HEVC over Enhanced RTMP acceptance; HEVC-over-RTMP muxing path; H.265 in WebRTC; HEVC patent licensing; TC358743 compressed/multichannel/24-bit audio output; audio sample-rate detection and rate policy; A/V synchronisation across clock domains; AAC patent licensing; GPIO 18–21 allocation). Header count (114: 109 OPEN, 5 ANSWERED), numbering note, research-gap convention, summary table, Appendix A (rows H and I), Appendix B (REQ-CAP-006, REQ-ENC-001, REQ-STR-001, REQ-STR-002, ADR-004, ADR-007, RISK-014, RISK-015, RISK-019, RISK-022 to RISK-025) and Verification status (391 distinct facts) updated. | Claude (session 2026-10-08) |
 | 2026-10-08 | Citation verification of the topic H and I additions: OQ-112 bullet citing the reasoning-tier [I-18] now labelled "Reasoning from source"; OQ-109 bullet on the former Via LA programme corrected to [H-40]'s wording (page managed by Video Codec Licensing LLC, an Access Advance subsidiary; contact VCL Advance) instead of "managed as VCL Advance". All other [H-xx] and [I-xx] citations checked against the register; no change needed. Counts unchanged (114: 109 OPEN, 5 ANSWERED); no status changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | OQ-103 ANSWERED ("H.264 only for now"); scope notes added to OQ-104 to OQ-109 (H.265 deferred, REQ-ENC-002). Counts updated. | Claude (session 2026-10-08) |
+| 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): verifier pass — superseded / deferred notes appended (no text removed, no status changed) to the dated H.265 bullets that still read as current scope: OQ-005 (H.265 parameters; owner input "H.264 and H.265"), OQ-006 ("REQ-ENC-001 requires H.265"), OQ-007 ("With H.265 required"), OQ-008 (H.265 in WebRTC), OQ-011 (H.265 cost per board), OQ-015 (HEVC over RTMP), OQ-057, OQ-059 ("H.265 (also required, REQ-ENC-001)"), OQ-060, OQ-063 (audio CPU cost alongside H.265); Appendix B REQ-ENC-001 mapping notes that OQ-104 to OQ-109 now belong to REQ-ENC-002 (DEFERRED). Counts unchanged (114: 108 OPEN, 6 ANSWERED). | Claude (session 2026-10-08) |

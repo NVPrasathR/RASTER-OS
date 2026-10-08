@@ -371,11 +371,111 @@ Run on 2026-10-08 after every file in this entry was written (`python3 doccheck.
 defined: facts=467 REQ=20 ADR=8 RISK=25 OQ=114 TEST(canon)=17 TEST(in TESTING.md)=17
 files=29 distinct facts cited=467/467
 PROBLEMS (0):
-WARNINGS (2):   (both the known "TDM is fixed" false positive; see the 2026-10-06 entry)
+WARNINGS (2):   (both the known false positive from a datasheet fact in REFERENCES.md; see the 2026-10-06 entry)
 ```
 
 - **Result: TESTED — PASS** for documentation consistency only. This is not a test of any product function.
 - The check now verifies IDs inside multi-ID brackets as well. All 467 register facts are cited at least once.
+
+---
+
+## 2026-10-08 (second entry) — H.265 deferred (OQ-103), commit and push
+
+### Objective
+
+Record the owner's answer to OQ-103 and the owner's commit and push instruction, then propagate the decision.
+
+### Starting State
+
+Uncommitted 2026-10-07/08 work on top of `7107a39`; documentation check passing.
+
+### Changes
+
+1. **Owner answers** (2026-10-08):
+   - OQ-103: "H.264 only for now".
+   - Commit: "Commit and push to GitHub".
+2. **Commit and push.**
+   - The 2026-10-07/08 work was committed as `df3591d` "docs: record owner decisions, accept ADR-003, add H.265 and audio research", using the message the owner approved.
+   - Before pushing, I amended the message to correct a file count I had got wrong: it said 25 Markdown files and the commit holds 26. The commit was unpushed at the time.
+   - Pushed with `git push -u origin main`. The push output showed `7107a39..df3591d`, so GitHub already had `7107a39`: it was pushed between the squash and this session's push, not by me. The earlier `git ls-remote` that found no branches ran before the squash.
+   - The local branch `backup/pre-squash-2026-10-07` was not pushed.
+3. **Decision recorded** in the canonical files:
+   - REQ-ENC-001 is now H.264 only for all outputs.
+   - New REQ-ENC-002, "H.265 (HEVC) encoding (deferred)", with a new acceptance value `DEFERRED` defined in REQUIREMENTS.md.
+   - OQ-103 ANSWERED, and scope notes added to OQ-104 to OQ-109.
+   - RISK-022 and RISK-025 marked not in current scope; they stay OPEN, and severities are unchanged.
+   - Scope note added to ADR-007.
+   - TEST-ENC-001 retitled "Sustained real-time H.264 encode (H.265 deferred)".
+4. **Propagation workflow:** 4 file-owned agents and a verifier made 105 changes and 6 fixes across the technical documents. The H.265 research is kept and labelled deferred, so it stays evidence for REQ-ENC-002.
+
+### Files Modified
+
+`docs/REQUIREMENTS.md`, `docs/OPEN_QUESTIONS.md`, `docs/RISKS.md`, `docs/README.md`, `docs/DECISIONS.md`, `docs/PROJECT_STATUS.md`, `docs/CHANGELOG.md`, `docs/DEVELOPMENT_LOG.md`, and 15 technical documents (`VIDEO_ENCODER`, `PERFORMANCE`, `DMA`, `STREAMING`, `RECORDING`, `ATEM`, `HARDWARE`, `DEVICE_TREE`, `ARCHITECTURE`, `SOFTWARE_ARCHITECTURE`, `BUILD_SYSTEM`, `RELEASE`, `TESTING`, `TRACEABILITY`, `TROUBLESHOOTING`).
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation and git only.
+
+### Commands Used
+
+```bash
+git commit                      # df3591d (message as approved, file count corrected before push)
+git push -u origin main         # 7107a39..df3591d
+git ls-remote --heads origin    # refs/heads/main = df3591d
+python3 doccheck.py docs/
+```
+
+### Test Results
+
+Documentation consistency check after all edits (exit code 0):
+
+```text
+defined: facts=467 REQ=21 ADR=8 RISK=25 OQ=114 TEST(canon)=17 TEST(in TESTING.md)=17
+files=29 distinct facts cited=467/467
+PROBLEMS (0):
+```
+
+- **Result: TESTED — PASS** for documentation consistency only. The remaining warnings are the known datasheet-phrase false positive.
+- No hardware or software test was possible.
+
+### Problems Found
+
+The file count in the approved commit message was wrong (25 instead of 26). It was corrected before the push.
+
+### Root Cause
+
+I wrote the count from an earlier status listing instead of counting the commit's contents.
+
+### Solution
+
+Counted with `git show --name-only` and amended the unpushed message. Counts are now taken from the commit itself.
+
+### Current Status
+
+- PARTIAL. Scope is H.264 only, documented and consistent.
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. The owner decides OQ-005 (bitrate, latency, number of simultaneous H.264 encodes) and the other owner-decision OQs.
+2. The owner obtains the CM4 + CM5 bring-up hardware.
+3. Commit and push this change once the owner approves. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: defer H.265 encoding, H.264 only for now (OQ-103)
+Commit description: Record the owner's answer to OQ-103 ("H.264 only for now"): REQ-ENC-001 is
+  H.264 only for all outputs; add REQ-ENC-002 (H.265, DEFERRED) and the DEFERRED acceptance
+  value; mark OQ-104..OQ-109, RISK-022 and RISK-025 not in current scope; retitle TEST-ENC-001;
+  label the H.265 research deferred across the technical documents (evidence kept).
+  No hardware or code exists; nothing is tested.
+Files changed: docs/** (23 Markdown files)
+Reason: Rules 1, 11, 13, 14, 21 — owner decision documented, deferred work recorded, not deleted
+Tests: documentation consistency check — 0 problems (DEVELOPMENT_LOG.md 2026-10-08, second entry)
+```
 
 ## Change history
 
@@ -384,3 +484,4 @@ WARNINGS (2):   (both the known "TDM is fixed" false positive; see the 2026-10-0
 | 2026-10-06 | Created with the Phase 0 bootstrap entry. | Claude (session 2026-10-06) |
 | 2026-10-07 | Entry added: owner decisions, ADR-003 accepted, commit squash (written 2026-10-08). | Claude (session 2026-10-07/08) |
 | 2026-10-08 | Entry added: topics H and I research and propagation. | Claude (session 2026-10-08) |
+| 2026-10-08 | Second 2026-10-08 entry added: H.265 deferred (OQ-103), commit `df3591d` and push. | Claude (session 2026-10-08) |

@@ -37,6 +37,9 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-08: **H.265 deferred.** The owner answered OQ-103 with "H.264 only for now". REQ-ENC-001 is now H.264 only, and REQ-ENC-002 (H.265, new acceptance value DEFERRED) was added. OQ-104 to OQ-109, RISK-022 and RISK-025 are marked not in current scope. TEST-ENC-001 was retitled "Sustained real-time H.264 encode (H.265 deferred)". The technical documents were updated, with the H.265 evidence kept and labelled deferred.
+- 2026-10-08: Pushed `main` to `origin` (github.com/NVPrasathR/RASTER-OS) at the owner's request: `7107a39`, `df3591d`. The local backup branch was not pushed.
+
 - 2026-10-08: **Source register extended** with topic H (H.265/HEVC software encoding and transport, 43 facts) and topic I (HDMI audio path, 47 facts): 90 facts, 86 CONFIRMED and 4 CORRECTED. The register now holds 467 facts; existing entries are unchanged. Raw data: `docs/research/2026-10-08-hevc-audio-research.json`.
 - 2026-10-08: Owner decisions of 2026-10-07 (second set) and the topic H/I facts propagated to the registers and technical documents.
   - OQ-104 to OQ-114 added: H.265 throughput, SIMD, RTMP, WebRTC and licensing; audio formats, sample rate, A/V sync, AAC licensing and GPIO allocation.
@@ -71,8 +74,8 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 - No hardware exists. Every hardware test is BLOCKED — HARDWARE REQUIRED.
 - No code exists. Every requirement is NOT STARTED.
-- No requirement is ACCEPTED (16 DRAFT, 4 PROPOSED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001 and ADR-003 are ACCEPTED.
-- H.265 is required but software-only on every candidate board. Real-time 1080p H.265 is unproven and doubtful on the evidence available (RISK-022, OQ-103, OQ-104).
+- No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001 and ADR-003 are ACCEPTED.
+- H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
 - HDMI audio on CM5 is unconfirmed (RISK-014). Audio sample-rate changes are not tracked by the kernel (RISK-023).
 - 1080p60 capture is not possible on a 2-lane link (RISK-001). Since 2026-10-07, 1080p60 is required on 4-lane configurations only, and Pi 4 Model B remains a 2-lane candidate (REQ-CAP-007). 1080p60 encode is unproven on every candidate platform (RISK-002, RISK-003).
 
@@ -85,3 +88,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-07 | ADR-003 acceptance, requirement-count correction, TEST-ATEM-001 retitle; RISK-001 known-issue line updated for REQ-CAP-007. | Claude (session 2026-10-07) |
 | 2026-10-07 | Second set of owner answers; Known Issues updated (ADR counts, RISK-022). | Claude (session 2026-10-07) |
 | 2026-10-08 | Topics H and I; propagation of the second owner decisions; commit squash recorded; Known Issues extended. | Claude (session 2026-10-08) |
+| 2026-10-08 | H.265 deferral and push recorded. | Claude (session 2026-10-08) |

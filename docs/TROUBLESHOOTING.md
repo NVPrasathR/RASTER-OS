@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER**. *(2026-10-08: 37 signatures — eight added from research topics H and I, entries 6.7 to 6.9 and 8.1 to 8.5.)* |
+| Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER**. *(2026-10-08: 37 signatures — eight added from research topics H and I, entries 6.7 to 6.9 and 8.1 to 8.5. Later on 2026-10-08: the H.265 entries 6.7 and 6.9 are deferred — REQ-ENC-002; not in current scope, and kept as reference.)* |
 | Last updated | 2026-10-08 |
-| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN) |
+| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport *(later on 2026-10-08: deferred — REQ-ENC-002; not in current scope, because the owner chose "H.264 only for now" (OQ-103 ANSWERED); entries 6.7 and 6.9 are kept as reference)*; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN) |
 | Verification | Every signature comes from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and, for the entries added on 2026-10-08, from the source research of topics H and I. No signature has been observed on PACSCORDER hardware, because none exists as of 2026-10-06. Diagnosis steps and remedies are source-derived and **NOT YET RUN ON PACSCORDER HARDWARE**. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 10 (status words), Rule 21 (record failures honestly), Rule 22 (unknowns), Rule 23 (source priority) |
 
@@ -72,9 +72,9 @@ For each failure it gives the exact log text where a source attests it, the like
 | 6.4 | Encoder disappears with the cut-down firmware | firmware | Pi 4, CM4 |
 | 6.5 | `flvmux` will not link to the hardware encoder output | userspace / RTMP | Pi 4, CM4 |
 | 6.6 | Buffer allocation fails at stream start (CMA exhausted) | memory | all |
-| 6.7 | H.265 will not link to `flvmux` (HEVC cannot be muxed into FLV with GStreamer 1.26.2) *(added 2026-10-08)* | userspace / RTMP | all (software H.265) |
+| 6.7 | H.265 will not link to `flvmux` (HEVC cannot be muxed into FLV with GStreamer 1.26.2) *(added 2026-10-08; deferred — REQ-ENC-002; not in current scope)* | userspace / RTMP | all (software H.265) |
 | 6.8 | `opusenc` rejects 44.1 kHz audio *(added 2026-10-08)* | userspace / WebRTC audio | all |
-| 6.9 | `x265enc` or `libx265` will not accept the UYVY capture format *(added 2026-10-08)* | userspace / encoder | all |
+| 6.9 | `x265enc` or `libx265` will not accept the UYVY capture format *(added 2026-10-08; deferred — REQ-ENC-002; not in current scope)* | userspace / encoder | all |
 | 7.1 | Damage from a wrongly sided FFC adapter | hardware | Pi 5 (reported); CM4 IO Board, CM5 IO Board (22-pin, reasoning) |
 | 7.2 | Bridge board unpowered or held in reset because CAM_GPIO stays low | hardware / DT | all |
 | 8.1 | Audio plays too fast or too slow, pitch is wrong, A/V drift grows — with no error (sample-rate mismatch) *(added 2026-10-08)* | audio / ALSA | CM4, CM5 |
@@ -631,9 +631,9 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - Use software encoding. Official documentation gives `x264enc speed-preset=1 threads=1` [D-37]. `rpicam-apps` switches to `libx264` on Pi 5 [D-33].
 - The software H.264 encoders researched, GStreamer `x264enc` and FFmpeg `libx264`, do not accept packed UYVY, so convert to a planar format first [D-40], [D-43] (OQ-060).
-- *(Added 2026-10-08.)* H.265 is software-only on **every** candidate, including Pi 4/CM4, whose `bcm2835-codec` has no HEVC encoder [D-24], [D-31]. The H.265 encoders also need planar input (see 6.9).
+- *(Added 2026-10-08.)* H.265 is software-only on **every** candidate, including Pi 4/CM4, whose `bcm2835-codec` has no HEVC encoder [D-24], [D-31]. The H.265 encoders also need planar input (see 6.9). *(Later on 2026-10-08: deferred — REQ-ENC-002; not in current scope. The owner chose "H.264 only for now" (OQ-103 ANSWERED), so in current scope this entry concerns H.264 only.)*
 
-**Related.** RISK-003 · OQ-059, OQ-060 · TEST-ENC-001 · *(added 2026-10-08)* RISK-022, OQ-104
+**Related.** RISK-003 · OQ-059, OQ-060 · TEST-ENC-001 · *(added 2026-10-08)* RISK-022, OQ-104 *(not in current scope — H.265 deferred, REQ-ENC-002)*
 
 ### 6.4 Encoder disappears with the cut-down firmware
 
@@ -669,7 +669,7 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Reasoning: insert `h264parse` between the encoder and `flvmux` [F-35]. The documented reference pipeline is `x264enc ! flvmux ! rtmp2sink location=rtmp://...` [F-33].
 
-*(Added 2026-10-08.)* This remedy applies to H.264 only. An H.265 stream cannot be linked to `flvmux` at all; see 6.7.
+*(Added 2026-10-08.)* This remedy applies to H.264 only. An H.265 stream cannot be linked to `flvmux` at all; see 6.7. *(Later on 2026-10-08: H.264 is the only codec in current scope (OQ-103 ANSWERED), and 6.7 is deferred — REQ-ENC-002; not in current scope.)*
 
 **Related.** RISK-003 · OQ-007, OQ-075 · TEST-STR-001
 
@@ -691,9 +691,11 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 
 **Related.** RISK-020 · OQ-053, OQ-061 · TEST-PERF-001
 
-### 6.7 H.265 will not link to `flvmux` (HEVC cannot be muxed into FLV with GStreamer 1.26.2)
+### 6.7 H.265 will not link to `flvmux` (HEVC cannot be muxed into FLV with GStreamer 1.26.2) (deferred — REQ-ENC-002; not in current scope)
 
 *Added 2026-10-08 (research topic H).*
+
+*Scope note (later on 2026-10-08): deferred — REQ-ENC-002; not in current scope.* The owner chose "H.264 only for now" (OQ-103 ANSWERED), so no H.265 stream is published over RTMP in the current scope and this signature is not expected. The entry is kept unchanged as reference for when REQ-ENC-002 is re-activated. RISK-025, OQ-106 and OQ-107 stay OPEN but are not in the current scope.
 
 **Symptom.** A GStreamer RTMP pipeline such as `… x265enc ! h265parse ! flvmux ! rtmp2sink …` fails to link or to negotiate caps between the H.265 stream and `flvmux`. The exact error text is not attested by any source: UNKNOWN.
 
@@ -715,7 +717,7 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 
 H.264 RTMP through `flvmux` is not affected (see 6.5).
 
-**Related.** RISK-022, RISK-025 · OQ-076, OQ-103, OQ-106, OQ-107 · TEST-STR-001
+**Related.** RISK-022, RISK-025 · OQ-076, OQ-103, OQ-106, OQ-107 · TEST-STR-001 *(later on 2026-10-08: RISK-022, RISK-025, OQ-106 and OQ-107 not in current scope; OQ-103 ANSWERED; the TEST-STR-001 H.265 run is deferred — REQ-ENC-002)*
 
 ### 6.8 `opusenc` rejects 44.1 kHz audio
 
@@ -738,9 +740,11 @@ H.264 RTMP through `flvmux` is not affected (see 6.5).
 
 **Related.** RISK-019, RISK-023 · OQ-063, OQ-111 · TEST-STR-002, TEST-AUD-001
 
-### 6.9 `x265enc` or `libx265` will not accept the UYVY capture format
+### 6.9 `x265enc` or `libx265` will not accept the UYVY capture format (deferred — REQ-ENC-002; not in current scope)
 
 *Added 2026-10-08 (research topic H).*
+
+*Scope note (later on 2026-10-08): deferred — REQ-ENC-002; not in current scope.* The owner chose "H.264 only for now" (OQ-103 ANSWERED), so no H.265 encoder is used in the current scope and this signature is not expected. The entry is kept unchanged as reference for when REQ-ENC-002 is re-activated. In the current scope, the software H.264 encoders on Pi 5/CM5 also reject packed UYVY and need a conversion stage (see 6.3; [D-40], [D-43]).
 
 **Symptom.** An H.265 pipeline fails to negotiate between the capture (UYVY) and `x265enc`, or FFmpeg refuses the input pixel format for `libx265`. The exact error text is not attested by any source: UNKNOWN.
 
@@ -757,7 +761,7 @@ H.264 RTMP through `flvmux` is not affected (see 6.5).
 - Convert UYVY to a planar format (for example I420 or Y42B) before the encoder [H-13], [H-10]. Reasoning: on the CPU at 1080p60 that conversion reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43]. Whether a hardware block can do it is OQ-060.
 - Related low-latency setting, not this signature: FFmpeg's wrapper copies its thread count into x265's frame threads after applying preset and tune (CORRECTED) [H-10], while `tune=zerolatency` sets one frame thread [H-16]. Reasoning from both: the FFmpeg thread count overrides zerolatency's setting, so set it explicitly and record it (OQ-104).
 
-**Related.** RISK-022 · OQ-060, OQ-104 · TEST-DMA-001, TEST-ENC-001
+**Related.** RISK-022 · OQ-060, OQ-104 · TEST-DMA-001, TEST-ENC-001 *(later on 2026-10-08: RISK-022 and OQ-104 not in current scope; the H.265 parts of TEST-DMA-001 and TEST-ENC-001 are deferred — REQ-ENC-002)*
 
 ---
 
@@ -980,3 +984,4 @@ Nothing (no hardware exists as of 2026-10-06). No signature in this document has
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: interlaced-input remedy no longer generalises "ATEM capture is not affected" from the ATEM Mini Pro [F-23] to all ATEM models; other ATEM models and directly connected cameras (REQ-CAP-008) are UNKNOWN per model (OQ-102). §3.1 remedy split by lane configuration (REQ-CAP-007): on the 2-lane configuration 1080p60 is beyond the link [C-37] and the EDID restriction applies; the `4lane` remedy is for the 4-lane configuration. No new fact ID cited. | Claude (session 2026-10-07) |
 | 2026-10-08 | Second set of owner decisions of 2026-10-07 and research topics H and I propagated; no entry rewritten or deleted. Header: status (37 signatures), "Applies to" (software H.265, `tc358743-audio` path, CM4 + CM5 bring-up) and "Verification" rows. Conventions: audio command attestation note (OQ-101). Symptom index: eight rows added. New entries: 6.7 H.265 will not link to `flvmux` (GStreamer 1.26.2 has no H.265 in `flvmux`, `eflvmux` only in 1.28; FFmpeg enhanced FLV, SRT or backport; OQ-107, RISK-025); 6.8 `opusenc` rejects 44.1 kHz audio ([I-47]; resample after capturing at the true rate); 6.9 `x265enc` / `libx265` reject UYVY (planar only; conversion cost; FFmpeg thread-count note); new section 8 HDMI audio: 8.1 sample-rate mismatch with no error (RISK-023, OQ-111), 8.2 missing or unusable `tc358743` card on CM5 (unconfirmed path, companion overlay, PCM name, OQ-054), 8.3 GPIO 18–21 conflicts (OQ-114), 8.4 silent capture or "Audio present" 0 (signal, wiring, VDDIO2 voltage, source format), 8.5 lip-sync offset and drift (RISK-024, OQ-112). Dated notes: 2.3 (OQ-102 answered, no model list), 6.3 (H.265 software-only on every candidate), 6.5 (H.265 see 6.7). Verification table: A-47, D-24, F-31, G-14, topic H and I rows; CORRECTED H-10; community I-16; reasoning H-43, I-17, I-18; 2026-10-08 research JSON items labelled. | Claude (session 2026-10-08) |
 | 2026-10-08 | Citation verification of the topic H and I additions: 8.2 Remedy — "Load both overlays [I-16]" now rests on the official statement [C-37] with the community report [I-16] labelled as such; the card-id bullet labels [I-17] as reasoning from source. All other [H-xx] and [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |
+| 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): header status and "Applies to" rows note that software H.265 / HEVC transport and entries 6.7 and 6.9 are deferred — REQ-ENC-002; not in current scope; symptom index rows 6.7 and 6.9 and their headings labelled "(deferred — REQ-ENC-002; not in current scope)"; dated scope notes added under 6.7 and 6.9 (signature not expected in current scope; entry kept unchanged as reference; 6.9 notes the H.264 software encoders also reject UYVY [D-40], [D-43]); 6.3 H.265 note and Related line, 6.5 H.265 pointer, and 6.7/6.9 Related lines annotated (RISK-022, RISK-025, OQ-104, OQ-106, OQ-107 not in current scope; OQ-103 ANSWERED). No entry text rewritten or deleted (the 6.7 and 6.9 headings only gained the label); signature count unchanged (37); no status changed. | Claude (session 2026-10-08) |

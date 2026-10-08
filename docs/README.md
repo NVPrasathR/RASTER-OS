@@ -163,7 +163,7 @@ Other documents must use exactly these IDs:
 | TEST-CAP-004 | Unsupported-mode rejection and supported-mode matrix | REQ-CAP-005, REQ-CAP-007, REQ-CAP-008 |
 | TEST-AUD-001 | HDMI audio capture over I2S | REQ-CAP-006 |
 | TEST-DMA-001 | DMABUF capture → encoder buffer sharing | REQ-DMA-001, REQ-ARCH-001 |
-| TEST-ENC-001 | Sustained real-time H.264 / H.265 encode | REQ-ENC-001 |
+| TEST-ENC-001 | Sustained real-time H.264 encode (H.265 deferred) | REQ-ENC-001 |
 | TEST-REC-001 | Recording integrity and duration | REQ-REC-001 |
 | TEST-STR-001 | RTMP publish and playback | REQ-STR-001 |
 | TEST-STR-002 | WebRTC browser playback | REQ-STR-002 |
@@ -182,3 +182,4 @@ Other documents must use exactly these IDs:
 | 2026-10-07 | TEST-ATEM-001 retitled "ATEM HDMI output capture (scope per OQ-009)" after OQ-009 was answered; ID unchanged. | Claude (session 2026-10-07) |
 | 2026-10-08 | ID schemes (convention 8): source-fact range extended from `A-NN` … `G-NN` to `A-NN` … `I-NN`, because REFERENCES.md gained topics H (H.265/HEVC, H-01 to H-43) and I (HDMI audio, I-01 to I-47) on 2026-10-08. No convention, test ID or title changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |
+| 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 encode (H.265 deferred)" after the owner deferred H.265 (OQ-103); ID unchanged. | Claude (session 2026-10-08) |
