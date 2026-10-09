@@ -16,7 +16,7 @@ Product work cannot start until the hardware and remaining decisions listed unde
 | Phase | Content | Exit evidence | Status |
 |---|---|---|---|
 | PHASE 0 — Bootstrap | Git repository, rules, documentation set, source research | Documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)) | Documentation baseline complete; owner review of DRAFT/PROPOSED items continues |
-| PHASE 1 — Decisions and hardware | Owner answers the owner-decision OQs; ADR-004 decided from bring-up measurements; bring-up hardware obtained and recorded in [HARDWARE.md](HARDWARE.md) | Accepted requirements; HW REV recorded | IN PROGRESS — ADR-003 and ADR-009 ACCEPTED; OQ-001, OQ-004, OQ-006, OQ-009, OQ-012, OQ-102, OQ-103, OQ-116 answered; no hardware yet |
+| PHASE 1 — Decisions and hardware | Owner answers the owner-decision OQs; ADR-004 decided from bring-up measurements; bring-up hardware obtained and recorded in [HARDWARE.md](HARDWARE.md) | Accepted requirements; HW REV recorded | IN PROGRESS — ADR-003 and ADR-009 ACCEPTED; OQ-001, OQ-004, OQ-006, OQ-009, OQ-012, OQ-102, OQ-103, OQ-116, OQ-129 answered; no hardware yet |
 | PHASE 2 — Bring-up | Stock Raspberry Pi OS on CM4 and CM5: I2C detection, driver probe, EDID / hot-plug, overlay and media graph, audio card | TEST-HW-001, TEST-DRV-001, TEST-DRV-002, TEST-PLT-001, TEST-CAP-001, TEST-AUD-001 | NOT STARTED |
 | PHASE 3 — Capture pipeline | 2-lane and 4-lane configurations, source changes, unsupported modes, DMABUF | TEST-CAP-002, TEST-CAP-003, TEST-CAP-004, TEST-DMA-001 | NOT STARTED |
 | PHASE 4 — Encode | Two real-time H.264 encodes on CM4 and CM5 (H.265 deferred); performance budget; ADR-004 decision | TEST-ENC-001, TEST-PERF-001 | NOT STARTED |
@@ -35,10 +35,12 @@ Product work cannot start until the hardware and remaining decisions listed unde
    - **Recording (ADR-009, ACCEPTED):** MP4 written **fragmented**, every recording **mirrored** to a PCIe NVMe SSD and a USB-to-SATA HDD, the HDD in a **self-powered** enclosure. ext4 on the recording volumes is Claude's proposal inside ADR-009, not an owner decision (OQ-120).
    - **Recording duration (2026-10-09):** no fixed limit — until stopped or the disk is full (OQ-006 ANSWERED).
    - **Bitrate and rate control (2026-10-09, later):** live encode (RTMP and WebRTC) CBR 17 Mbit/s; recording encode 25 Mbit/s VBR (OQ-005). Whether these fit the signalled H.264 profile and level is not in the register (OQ-073).
-   - **Drive failure (2026-10-09, later):** if one mirrored drive fills, is absent or fails, recording continues on the other drive and the operator is alerted (OQ-129).
+   - **Drive failure (2026-10-09, later):** if one mirrored drive fills, is absent or fails, recording continues on the other drive and the operator is alerted (OQ-129). A recording started with one drive missing runs on the available drive with an alert. A drive that returns is used again from the next 30-minute file (OQ-129 ANSWERED).
+   - **Viewers and browsers (2026-10-09, later):** up to 5 simultaneous WebRTC viewers on the LAN; Chrome (and Chromium-based browsers), Safari (macOS and iOS) and Firefox (OQ-008).
+   - **File splitting (2026-10-09, later):** recordings are split into a new file every 30 minutes, about 5.67 GB per file per drive at 25 Mbit/s (reasoning, [J-36]). The mechanism depends on ADR-007; fragmented-mode compatibility is OQ-118.
 2. **Owner decisions still open** ([OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)):
-   - OQ-008 (remainder): target browsers, number of viewers, and the sample count and run length of the 95th-percentile measurement.
-   - OQ-129 (remainder): whether and at what interval long recordings are split into files; how the operator is alerted (OQ-091); whether a returning drive is used again.
+   - OQ-008 (remainder): the sample count and run length of the 95th-percentile measurement.
+   - OQ-091: the operator interface, including how drive alerts are shown.
    - OQ-005 (remainder): the recording encode's profile, level and B-frame settings, and a capture-to-file latency target for recordings, if one is required.
    - OQ-118 to OQ-121 (in part): fragment duration and the acceptable loss on a power cut, recording filesystem, NVMe SSD and adapter choice.
    - OQ-007 (RTMP destinations), OQ-010 (sustained-operation envelope), OQ-113 (AAC licensing).
@@ -59,13 +61,14 @@ Product work cannot start until the hardware and remaining decisions listed unde
   - `54269bf` "update 9oct" (2026-10-09, committed under the owner's git identity without a Rule 15 proposal): research topics J and K, ADR-009, OQ-116 and the new OQs and risks, registers only. Its message does not follow Rule 15; it was left unchanged because it is already on `origin` (see [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md), 2026-10-08 fourth entry).
   - "docs: propagate ADR-009 and live-latency decision, verify topics J and K" (2026-10-09, approved by the owner): the 2026-10-09 documentation catch-up. *(Pushed 2026-10-09 at the owner's request: `54269bf..f39e661`.)*
   - `6ad83d4` docs: record latency criterion, LAN-only viewers and recording duration (2026-10-09; owner: "Commit and push"; pushed `f39e661..6ad83d4`).
-  - "docs: record live and recording bitrates and drive-failure policy" (2026-10-09; owner: "Commit and push"): the later 2026-10-09 decisions, committed and pushed.
+  - `b142871` docs: record live and recording bitrates and drive-failure policy (2026-10-09; owner: "Commit and push"; pushed `6ad83d4..b142871`).
+  - The OQ-129 decisions (start, file splitting, drive return) and the viewer and browser decisions (OQ-008) are uncommitted; the owner said "Not yet" on 2026-10-09. See Next Step.
 - [x] Owner's engineering rules stored verbatim in [ENGINEERING_RULES.md](ENGINEERING_RULES.md), loaded every session through `CLAUDE.md`.
 - [x] Source research: **557 facts in 11 topics (A–K)**, each independently fact-checked: 512 CONFIRMED, 45 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED ([REFERENCES.md](REFERENCES.md)). Topics J (recording storage and power loss) and K (live latency) were added on 2026-10-08.
 - [x] Requirements: 21 (16 DRAFT, 4 PROPOSED, 1 DEFERRED — REQ-ENC-002 H.265) — [REQUIREMENTS.md](REQUIREMENTS.md).
 - [x] Decisions: 9 ADRs (ACCEPTED: ADR-001, ADR-003, ADR-009; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-004, ADR-007) — [DECISIONS.md](DECISIONS.md).
 - [x] Risks: 34, all OPEN — [RISKS.md](RISKS.md).
-- [x] Open questions: 129 (121 OPEN; 8 ANSWERED by owner statements; OQ-129 added 2026-10-09) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+- [x] Open questions: 129 (120 OPEN; 9 ANSWERED by owner statements; OQ-129 added and answered 2026-10-09) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 - [x] Full Rule 2 documentation set, written from the source register and kept consistent with every owner decision up to 2026-10-08 (catch-up of 2026-10-09); the documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)).
 
 None of the above is product functionality. **Nothing in the product works yet, because nothing has been built or tested.**
@@ -91,6 +94,7 @@ These are known from sources; none has been observed on PACSCORDER hardware. See
 - **RISK-031:** the < 1 s WebRTC target is unproven. A labelled budget (reasoning, not a measurement) accounts for about 56–75 ms of documented terms on CM4; the rest of the path is undocumented [K-45] (OQ-125).
 - **RISK-026:** on CM4 the NVMe SSD takes the only PCIe lane, the HDD shares the IO Board's USB 2.0 hub, and the PCIe slot needs the 12 V input [J-01], [J-05], [J-06].
 - **RISK-028:** an HDD stall (one example drive needs up to 3.0 s from standby to ready [J-30]) could back-pressure the mirrored recording into the shared encoder and the live path unless the HDD writer is decoupled (OQ-117).
+- **Network egress (reasoning, OQ-098):** 5 WebRTC viewers at about 17 Mbit/s each plus one RTMP destination is about 102 Mbit/s of video leaving the board, above a 100 Mbit/s Fast Ethernet link. The Ethernet link speed of each board has not been researched.
 - **RISK-034:** the GStreamer WebRTC publishing elements (gst-plugins-rs) are not packaged for Raspberry Pi OS trixie [K-06], and WHEP is still an Internet-Draft [K-02].
 - **RISK-023:** HDMI audio at a sample rate other than the one ALSA opens is not detected by the kernel. The application must read the TC358743 sampling-rate control (reasoning from kernel source) [I-18].
 - **RISK-014:** HDMI audio on CM5 is unconfirmed. The overlay labels resolve on CM5, but no source shows it working [I-05], [I-06], [I-07].
@@ -120,8 +124,10 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 
 1. *(Done: the catch-up commit `f39e661` was pushed on 2026-10-09, and the owner-decision commit was committed and pushed on 2026-10-09.)*
 2. *(Done: the bitrate and drive-failure decisions were committed and pushed on 2026-10-09.)*
-3. The owner decides the remaining owner-decision items under Current Objective: OQ-129 file splitting and alert method, and the OQ-008 remainder.
-4. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
+3. Commit the uncommitted 2026-10-09 decisions (OQ-129; viewers and browsers) once the owner approves; the proposed commit is in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) (2026-10-09, fourth entry).
+4. The owner decides the remaining owner-decision items under Current Objective: the OQ-008 remainder and the OQ-005 remainder.
+5. Proposed (Claude): research the Ethernet facts of CM4, CM5 and their IO Boards (OQ-098), because the decided viewer count and bitrate put video egress near 100 Mbit/s.
+6. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
 
 ## Change history
 
@@ -137,3 +143,5 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 | 2026-10-09 | Brought up to date with commit `54269bf` (research topics J and K, ADR-009 ACCEPTED, OQ-116 ANSWERED) and the 2026-10-09 documentation catch-up: Current Phase reworded (PHASE 1 in progress); phase plan rows for PHASE 1, 4 and 5; Current Objective restructured into decided items, open owner decisions (OQ-008 now includes how the < 1 s target is judged) and hardware including recording storage; Completed (commits `6efadce` and `54269bf`, 557 facts, 9 ADRs, 34 risks, 128 OQs); Blocked (recording design items); Known Problems (RISK-026, RISK-028, RISK-031, RISK-034 added); Last Verified, Hardware and Next Step. The 2026-10-08 statement that the two-encode decision was uncommitted was stale: it was committed as `6efadce`. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 recorded: latency judged at the 95th percentile and LAN-only WebRTC viewers (OQ-008), recording until stopped or disk full (OQ-006 ANSWERED), new OQ-129; Current Phase, phase plan, Current Objective, Completed (push of `f39e661`; 129 OQs) and Next Step updated. | Claude (session 2026-10-09) |
 | 2026-10-09 | Later owner decisions of 2026-10-09 recorded: live encode CBR 17 Mbit/s and recording 25 Mbit/s VBR (OQ-005), drive-failure policy (OQ-129); commit `6ad83d4` and its push recorded; Current Objective and Next Step updated. | Claude (session 2026-10-09) |
+| 2026-10-09 | Commit `b142871` and its push recorded; OQ-129 decisions (start on the available drive; split every 30 minutes) added to Current Objective; Next Step renumbered. | Claude (session 2026-10-09) |
+| 2026-10-09 | Third set of 2026-10-09 decisions recorded (OQ-129 ANSWERED: drive return; OQ-008: up to 5 viewers, Chrome, Safari, Firefox); network-egress known problem (reasoning, OQ-098); counts 120 OPEN / 9 ANSWERED; owner's "Not yet" on the commit; Next Step renumbered with the proposed Ethernet research. | Claude (session 2026-10-09) |

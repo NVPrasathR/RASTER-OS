@@ -1054,7 +1054,7 @@ Register text corrected before propagation finished. The question wording and th
 
 ### Next Step
 
-1. Commit this change once the owner approves. *(Done: owner, 2026-10-09: "Commit and push"; committed with this message and pushed.)* Proposed commit (Rule 15):
+1. Commit this change once the owner approves. *(Done: owner, 2026-10-09: "Commit and push"; committed with this message and pushed — `b142871`, `6ad83d4..b142871`.)* Proposed commit (Rule 15):
 
 ```text
 Commit title: docs: record live and recording bitrates and drive-failure policy
@@ -1076,8 +1076,136 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
   (DEVELOPMENT_LOG.md 2026-10-09, third entry)
 ```
 
-2. The owner decides the OQ-129 remainder (file splitting; a drive absent at the start) and the OQ-008 remainder (browsers, viewer count, sample count and run length).
+2. The owner decides the OQ-129 remainder (file splitting; a drive absent at the start) and the OQ-008 remainder (browsers, viewer count, sample count and run length). *(OQ-129 items decided later on 2026-10-09 — see the fourth entry. The OQ-008 remainder is still open.)*
 3. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
+
+---
+
+## 2026-10-09 (fourth entry) — Commit and push of the bitrate update; drive missing at start, 30-minute file splitting, drive return, viewers and browsers
+
+### Objective
+
+Commit and push the third 2026-10-09 change as approved, record the owner's answers on the remaining OQ-129 items and on WebRTC viewers and browsers (OQ-008), and propagate them.
+
+### Starting State
+
+The third 2026-10-09 change was complete and uncommitted. The documentation check passed.
+
+### Changes
+
+1. **Commit and push.** The owner answered "Commit and push". The change was committed as `b142871` "docs: record live and recording bitrates and drive-failure policy" (18 files) and pushed `6ad83d4..b142871`; `git ls-remote` confirmed it.
+2. **Owner decisions** (2026-10-09, on OQ-129):
+
+   | Question | Owner's choice | Recorded as |
+   |---|---|---|
+   | One recording drive is already missing when a recording is started | "Start on the available drive" (recommended; alert the operator) | OQ-129 owner input; REQ-REC-001 and ADR-009 notes. The earlier labels "absent at start is Claude's reading" are marked superseded. |
+   | Should long recordings be split into several files? | "Split every 30 minutes" (no option was recommended) | OQ-129 owner input; OQ-118 note |
+   | Commit the update so far? | "Not yet" | Not committed; the next decisions were added to the same change |
+   | A drive drops out during a recording and comes back: use it again? | "Resume at the next 30-min file" (recommended) | OQ-129 owner input; **OQ-129 ANSWERED**; full-disk muxer behaviour carried to OQ-118; RISK-027 note |
+   | How many simultaneous WebRTC viewers? (OQ-008) | "Up to 5 viewers" (no option was recommended) | OQ-008 owner input |
+   | Which browsers? (OQ-008, multiple choice) | Firefox, Safari, Chrome | OQ-008 owner input; REQ-STR-002 acceptance "target browsers" superseded; RISK-019 note. OQ-008 stays OPEN only for the sample count and run length of the measurement. |
+
+3. **Consequences recorded:**
+   - **File size.** Reasoning from [J-36]: about 5.67 GB per 30-minute file per drive, at 25 Mbit/s plus the research's assumed 192 kbit/s AAC.
+   - **Splitting mechanism.** GStreamer `splitmuxsink` is a candidate, not a decision (ADR-007 OPEN). It starts a new file at a video keyframe before `max-size-time` is crossed, and it can request keyframes upstream [J-44]. Whether it works with `mp4mux` in fragmented mode, and how FFmpeg would split, is NEEDS VERIFICATION (OQ-118).
+   - **What stays open.** OQ-129 is ANSWERED; the muxers' behaviour on a full disk is a build test under OQ-118, and the alert method belongs to OQ-091.
+   - **Network egress.** Reasoning (not a measurement): 5 viewers at about 17 Mbit/s each plus one RTMP destination at about 17 Mbit/s is about 102 Mbit/s of video egress before audio and overhead. That is above a 100 Mbit/s Fast Ethernet link, so each board's Ethernet speed matters; it has not been researched (OQ-098 note). Register: 129 OQs, 120 OPEN, 9 ANSWERED.
+4. **Propagation.** Three file-owned agents added dated notes:
+   - `RECORDING`, `VIDEO_ENCODER`, `PERFORMANCE` and `HARDWARE`;
+   - `ARCHITECTURE`, `SOFTWARE_ARCHITECTURE` and `STREAMING`;
+   - `TESTING`, `TRACEABILITY` and `TROUBLESHOOTING`.
+
+   TEST-REC-001 step 8 now has a defined expectation (the recording starts on the available drive, with an alert). Step 9 c checks a new file about every 30 minutes on each drive, each decodable, with no frames lost or duplicated at a boundary; the boundary tolerance is UNDEFINED (OQ-017). Three test additions are labelled as Claude's proposals:
+   - starting with the NVMe SSD missing, where the board can still boot;
+   - recording for more than 60 minutes;
+   - noting frame drops at file boundaries during the soak.
+
+   No new fact IDs were cited.
+5. **Main session.** I updated the registers (`OPEN_QUESTIONS`, `REQUIREMENTS`, `DECISIONS`) and `PROJECT_STATUS.md`, reviewed the agents' diffs, and added the full-disk muxer item to OQ-129's open list.
+
+### Files Modified
+
+All in `docs/`: `ARCHITECTURE.md`, `CHANGELOG.md`, `DECISIONS.md`, `DEVELOPMENT_LOG.md`, `HARDWARE.md`, `OPEN_QUESTIONS.md`, `PERFORMANCE.md`, `PROJECT_STATUS.md`, `RECORDING.md`, `REQUIREMENTS.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `TESTING.md`, `TRACEABILITY.md`, `TROUBLESHOOTING.md`, `VIDEO_ENCODER.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation and git only.
+
+### Commands Used
+
+```bash
+git add docs/ && git commit -F -          # b142871, approved message
+git push origin main                      # 6ad83d4..b142871
+python3 -I doccheck.py docs
+git diff -U0 --word-diff=plain -- docs    # Rule 21 audit against b142871
+```
+
+### Test Results
+
+Documentation consistency check after all edits (`python3 doccheck.py docs`, exit code 0):
+
+```text
+defined: facts=557 REQ=21 ADR=9 RISK=34 OQ=129 TEST(canon)=17 TEST(in TESTING.md)=17
+files=29 distinct facts cited=557/557
+PROBLEMS (0):
+WARNINGS (7):
+```
+
+- The seven warnings are the same known false positives.
+- Rule 21 audit against `b142871`: no committed change-history row was modified. In the registers and technical documents, every deleted word chunk is an in-place extension.
+- **Result: TESTED — PASS** for documentation consistency only. No hardware or software test was possible.
+
+### Problems Found
+
+None new.
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PARTIAL. The recording behaviour is decided except for drive return; the documentation check passes.
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Commit this change once the owner approves. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: record mirror-drive handling, file splitting, viewers and browsers
+Commit description: Record the owner decisions of 2026-10-09. OQ-129
+  ANSWERED: a recording started with one mirrored drive missing runs on the
+  available drive with an operator alert; recordings are split into a new
+  file every 30 minutes (about 5.67 GB per file per drive at 25 Mbit/s,
+  reasoning from J-36; splitmuxsink is a candidate, J-44; fragmented-mode
+  compatibility and full-disk muxer behaviour NEEDS VERIFICATION, OQ-118);
+  a returning drive is used again from the next file. OQ-008: up to 5 LAN
+  viewers; Chrome, Safari and Firefox; video egress about 102 Mbit/s with one
+  RTMP destination (reasoning; Ethernet speed not researched, OQ-098).
+  Propagate to the technical documents (TEST-REC-001 steps 8, 9 c, 9 d;
+  TEST-STR-002 browsers and viewers). Record the push of b142871.
+  No hardware or code exists; nothing is tested.
+Files changed: docs/** (<N> Markdown files)
+Reason: Rules 1, 11, 13, 21, 22 - owner decisions and their consequences
+  documented, outdated text marked, not deleted
+Tests: documentation consistency check - 0 problems, 557/557 facts cited
+  (DEVELOPMENT_LOG.md 2026-10-09, fourth entry)
+```
+
+2. The owner decides the remaining owner-decision items:
+   - OQ-008: the sample count and run length of the measurement;
+   - OQ-005: the recording encode's profile, level and B-frames, and a capture-to-file target if one is needed.
+3. Proposed (Claude): research the Ethernet facts of CM4, CM5 and their IO Boards (OQ-098).
+4. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
 
 ## Change history
 
@@ -1091,3 +1219,4 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
 | 2026-10-09 | Fourth 2026-10-08 entry added (storage and latency research, ADR-009, OQ-116; reconstructed from evidence because that session wrote none). 2026-10-09 entry added: documentation catch-up and verification. The third 2026-10-08 entry's Next Step items annotated as done or done in part. | Claude (session 2026-10-09) |
 | 2026-10-09 | Second 2026-10-09 entry added: commit and push of `f39e661`; owner decisions on latency criterion, viewer reach and recording duration; OQ-129. The first 2026-10-09 entry's Next Step items annotated (pushed; decided in part). | Claude (session 2026-10-09) |
 | 2026-10-09 | Third 2026-10-09 entry added: commit and push of `6ad83d4`; owner decisions on bitrate (OQ-005) and mirrored-drive failure (OQ-129). | Claude (session 2026-10-09) |
+| 2026-10-09 | Fourth 2026-10-09 entry added: commit and push of `b142871`; owner decisions on a drive missing at start and 30-minute file splitting (OQ-129). Third entry's Next Step items annotated. Extended the same day (uncommitted, owner "Not yet") with the drive-return, viewer and browser decisions. | Claude (session 2026-10-09) |

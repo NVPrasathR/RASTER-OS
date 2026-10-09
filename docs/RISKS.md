@@ -245,6 +245,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 
 ## RISK-019 — WebRTC profile/level and audio constraints
 
+- **Owner decision (2026-10-09):** target browsers are Chrome, Safari and Firefox, with up to 5 simultaneous LAN viewers (OQ-008). The profile and level each must decode remain OQ-073. No change to likelihood or severity.
 - **Evidence:**
   - Reasoning: the common `42e01f` decodes as Constrained Baseline Level 3.1 [F-38], which cannot describe 1080p; 1080p needs Level 4.0 or above, 1080p60 Level 4.2 [F-40].
   - The MediaMTX project reports that browsers do not accept H.264 B-frames in WebRTC (community source) [F-45].
@@ -362,6 +363,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 
 ## RISK-027 — USB-to-SATA bridge UAS firmware faults (hangs, resets, data loss)
 
+- **Owner decision (2026-10-09):** a drive that drops out and returns is used again from the next 30-minute file (OQ-129). A bridge that drops out repeatedly would therefore cause repeated gaps in the HDD copy and repeated operator alerts (reasoning). No change to likelihood or severity.
 - **Added:** 2026-10-08, from research topic J.
 - **Evidence:**
   - A sticky forum post by a Raspberry Pi engineer reports that some UAS devices that do not fully implement the UAS specification stop responding, or in rare cases throw write data away, which can corrupt the filesystem; the workaround is `usb-storage.quirks=VID:PID:u` in `cmdline.txt` (community source, CORRECTED) [J-27].
@@ -505,3 +507,4 @@ Nothing (no hardware exists as of 2026-10-06). No risk has been confirmed or ret
 | 2026-10-09 | Verifier pass for the topic J/K additions of 2026-10-08: dated correction notes added, original text kept — RISK-024 Impact: the "10–23 ms" undercount mixes the 720p community figure [K-33] and its 1080p extrapolation; [K-45] worst case is about 42 ms, and the recording encode would share the CM4 encoder (OQ-115). RISK-026: "the highest recording rate" is the top of the research's assumed 8–25 Mbit/s range (bitrate open, OQ-005). RISK-028 Severity: [J-30] documents only one Seagate 2.5-inch family's standby-to-ready time, not stall durations in general. RISK-030: "a fragmented MP4 stays decodable" is FFmpeg's documentation of its own muxer [J-45], not stated for GStreamer `mp4mux` (Evidence and Severity). RISK-031: "the recording encode shares it" → would share it (OQ-115); "Other outputs cannot carry the target" overstates [K-15], [K-18], [K-26]; Severity's "documented terms" are "documented or extrapolated" [K-45]. RISK-032: `x264enc` B-frame removal needs `tune=zerolatency`, explicit `bframes=0` or `profile=baseline` in caps, not any tune or profile [K-29]. Verification status: [K-18] noted as cited. Header "Last updated" set to 2026-10-09. No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09: RISK-033 marked not in current scope (LAN-only WebRTC viewers, OQ-008); summary row annotated. No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |
 | 2026-10-09 | RISK-028: owner decision of 2026-10-09 on the drive-failure policy noted (OQ-129). No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |
+| 2026-10-09 | Owner decisions of 2026-10-09 (third set) noted on RISK-019 (browsers, viewer count) and RISK-027 (drive return). No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |

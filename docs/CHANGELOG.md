@@ -37,6 +37,16 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-09: **Owner decisions: drive return, viewers and browsers.**
+  - OQ-129 ANSWERED: a drive that drops out and returns is used again from the next 30-minute file. Full-disk muxer behaviour moves to OQ-118.
+  - OQ-008: up to 5 simultaneous LAN viewers; Chrome, Safari and Firefox. OQ-008 stays open only for the sample count and run length of the measurement.
+  - Reasoning: about 102 Mbit/s of video egress with one RTMP destination, above a 100 Mbit/s Fast Ethernet link. The Ethernet speed is not researched (OQ-098).
+- 2026-10-09: **Owner decisions: drive missing at start, 30-minute file splitting (OQ-129).**
+  - A recording started with one mirrored drive missing runs on the available drive with an operator alert.
+  - Recordings are split into a new file every 30 minutes, about 5.67 GB per file per drive at 25 Mbit/s (reasoning, [J-36]). `splitmuxsink` is a candidate mechanism [J-44]; fragmented-mode compatibility is NEEDS VERIFICATION (OQ-118).
+  - OQ-129 stays open for drive return and full-disk muxer behaviour.
+  - Propagated to 10 technical documents; TEST-REC-001 steps 8 and 9 c have defined expectations.
+- 2026-10-09: Pushed `b142871` (bitrates and drive-failure policy) to `origin/main`.
 - 2026-10-09: **Owner decisions: bitrate and drive failure.**
   - Bitrates (OQ-005): live encode (RTMP and WebRTC) CBR 17 Mbit/s; recording encode 25 Mbit/s VBR. OQ-005 stays open for the recording encode's profile, level and B-frames and a capture-to-file latency target. Profile/level bitrate fit is NEEDS VERIFICATION (OQ-073).
   - Drive failure (OQ-129): if one mirrored drive fills, is missing or fails during a recording, recording continues on the other drive and the operator is alerted. OQ-129 stays open for file splitting, alert method, drive return and a drive absent at the start.
@@ -116,7 +126,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001, ADR-003 and ADR-009 are ACCEPTED.
 - H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
 - The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125). It is judged at the 95th percentile (owner, 2026-10-09); the sample count and run length are not yet defined (OQ-008).
-- Mirror behaviour when one recording drive fills, is absent or fails is undecided (OQ-129).
+- Network egress with 5 WebRTC viewers and one RTMP destination is about 102 Mbit/s of video (reasoning); the boards' Ethernet link speed has not been researched (OQ-098).
 - Recording storage (ADR-009): on CM4 the NVMe SSD takes the only PCIe lane and the HDD shares USB 2.0 (RISK-026); UAS bridge faults (RISK-027); HDD stalls could back-pressure the shared encoder and live path (RISK-028); fragmented MP4 compatibility (RISK-029); residual loss on a power cut (RISK-030).
 - The GStreamer WebRTC publishing elements are not packaged for Raspberry Pi OS trixie, and WHEP is still a draft (RISK-034).
 - Commit `54269bf` has a non-Rule-15 message ("update 9oct"); it is on the shared remote and was not rewritten.
@@ -137,3 +147,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-09 | Storage and latency (topics J and K, ADR-009, OQ-116; commit `54269bf`) and the `6efadce` commit recorded; Known Issues updated (ADR-009 ACCEPTED, RISK-026 to RISK-031, RISK-034, commit message). 2026-10-09 documentation catch-up and verification entry added. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 (latency criterion, LAN-only viewers, recording duration; OQ-006 ANSWERED; OQ-129) and the push of `f39e661` recorded; Known Issues updated. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions on bitrate (OQ-005) and drive failure (OQ-129), and the push of `6ad83d4`, recorded. | Claude (session 2026-10-09) |
+| 2026-10-09 | OQ-129 decisions (drive missing at start; 30-minute file splitting) and the push of `b142871` recorded. Drive-return, viewer and browser decisions added; Known Issues: mirror item replaced by the network-egress item. | Claude (session 2026-10-09) |
