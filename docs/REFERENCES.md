@@ -1,9 +1,9 @@
 # PACSCORDER Source Register (REFERENCES.md)
 | | |
 |---|---|
-| Document status | Active — topics A–G generated 2026-10-06; topics H and I appended 2026-10-08 (existing entries unchanged) |
+| Document status | Active — topics A–G generated 2026-10-06; topics H, I, J and K appended 2026-10-08 (existing entries unchanged) |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 22 (unknowns), Rule 23 (source priority) |
-| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I) |
+| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I), [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json) (J, K) |
 
 Every technical fact used in the PACSCORDER documentation is cited by an ID from this register, for example `[C-37]`.
 
@@ -34,6 +34,7 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 - **2026-10-06 — "Applies to" is the researcher's tag, not a verified support statement.** For example, [A-47] tags the `tc358743-audio` overlay "Pi4, CM4", while [G-14] tags the same overlay "Pi 4 Model B, CM4, Pi 5, CM5". Neither entry shows the overlay working on Pi 5/CM5; that remains open (OQ-054). Read each entry's **Fact** text, not its tag, to decide what it supports.
 - **2026-10-06 — Statements not in this register.** Some documents quote material from the research `open_questions` and `gaps` lists in the raw JSON. Those items are labelled *research gap* or *research open question*. They are leads, not verified facts.
 - **2026-10-08 — Topics H and I appended.** Researched after the owner decisions of 2026-10-07 (H.264 + H.265 required; HDMI audio required). Two earlier attempts on 2026-10-07/08 failed (network loss, then host sleep) and produced no results.
+- **2026-10-08 — Topics J and K appended.** Researched after the owner decisions of 2026-10-08 (recording to PCIe NVMe and USB-to-SATA HDD in MP4; live latency under 1 s).
 
 ## Source tiers
 
@@ -60,7 +61,9 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 | [G — Raspberry Pi OS and official image tooling](#topic-g) | 71 | 63 | 8 | 0 | 0 |
 | [H — H.265/HEVC software encoding and transport (research of 2026-10-08)](#topic-h) | 43 | 40 | 3 | 0 | 0 |
 | [I — HDMI audio capture path: TC358743 → I2S → ALSA → AAC/Opus (research of 2026-10-08)](#topic-i) | 47 | 46 | 1 | 0 | 0 |
-| **Total** | 467 | 434 | 33 | 0 | 0 |
+| [J — Recording storage on CM4/CM5: PCIe NVMe, USB-to-SATA HDD, filesystems, power-loss-safe MP4 (research of 2026-10-08)](#topic-j) | 45 | 39 | 6 | 0 | 0 |
+| [K — Sub-second live latency: WebRTC/WHEP, RTMP/HLS, encoder and capture latency (research of 2026-10-08)](#topic-k) | 45 | 39 | 6 | 0 | 0 |
+| **Total** | 557 | 512 | 45 | 0 | 0 |
 
 Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); the raw lists are kept in the JSON file linked above.
 
@@ -4435,3 +4438,860 @@ Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIO
 - **Fact:** GStreamer encoders accept different sample rates on their sink pads. opusenc accepts only 48000, 24000, 16000, 12000 or 8000 Hz (F32LE/S16LE, 1-255 channels) and defaults to bitrate 64000 with bitrate-type constrained-vbr. avenc_aac accepts F32LE at 7350-96000 Hz including 44100 and 48000, with 1-16 channels. voaacenc accepts S16LE at 8000-96000 Hz with 1 or 2 channels, rank secondary. fdkaacenc (plugin fdkaac, gst-plugins-bad) accepts S16LE at 8000-96000 Hz and offers profiles lc, he-aac-v1, he-aac-v2 and ld. A 44.1 kHz HDMI source needs audioresample before opusenc.
 - **Source:** GStreamer documentation: opusenc, avenc_aac, voaacenc, fdkaacenc — <https://gstreamer.freedesktop.org/documentation/opus/opusenc.html>
 - **Evidence:** opusenc sink: 'format: { F32LE, S16LE } ... rate: { (int)48000, (int)24000, (int)16000, (int)12000, (int)8000 } channels: [ 1, 255 ]'; bitrate 'Default value : 64000'; bitrate-type 'Default value : constrained-vbr (2)'. avenc_aac sink: 'rate: { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350 } format: F32LE'. voaacenc sink: 'format: S16LE ... rate: {8000 ... 96000} channels: 1 / channels: 2', 'Rank – secondary'. fdkaacenc: 'profile: { lc, he-aac-v1, he-aac-v2, ld }'.
+
+---
+
+## Topic J
+
+**Recording storage on CM4/CM5: PCIe NVMe, USB-to-SATA HDD, filesystems, power-loss-safe MP4 (research of 2026-10-08)** — <a id="topic-j"></a>45 claims. Added 2026-10-08 (workflow wf_2f325497-f51; researcher + independent adversarial verifier).
+
+### J-01
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4
+- **Fact:** CM4 exposes exactly one PCIe lane: an internal PCIe 2.0 x1 host controller (Gen 2, 5 Gbps). Its only USB is one USB 2.0 High-Speed port with up to 480 Mbps signalling.
+- **Source:** Raspberry Pi Compute Module 4 Datasheet (Release 4, build date 30/06/2026), sections 1 / 2.3 / 2.4 — <https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf>
+- **Evidence:** "1 × PCIe 1-lane Host, Gen 2 (5Gbps)" / "1 × USB 2.0 port (high speed)" / "The CM4 has an internal PCIe 2.0 x1 host controller. While on the Raspberry Pi 4 Model B this has been connected to a USB 3 host controller (using the Via Labs VLI805), on the CM4 the product designer is free to choose how the interface is used." / "The USB 2.0 interface supports up to 480Mbps signalling."
+
+### J-02
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, CM4IO
+- **Fact:** The two official CM4 sources disagree on MSI-X. The CM4 datasheet (Release 4, 2026) says kernels 5.10 and newer support MSI-X with up to 32 IRQs, and suggests pci=nomsi in cmdline.txt as a workaround. The CM4IO datasheet (build-date 2022-06-07) says the PCIe interface does not support MSI-X and devices typically fall back to MSI. The CM4 datasheet also says the PCIe host controller does not support 64-bit accesses from the ARM; they must be split into two 32-bit accesses.
+- **Source:** CM4 Datasheet section 2.3 Tip; CM4 IO Board Datasheet (build-date 2022-06-07) section 2.8 Note — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** CM4 datasheet: "5.10 kernels and newer have had support for MSI-X added. There is a limit of up to 32 IRQs available. If the device has problems with interrupts then adding pci=nomsi to cmdline.txt (and rebooting) often fixes the issue." CM4IO datasheet: "The PCIe interface doesn't support MSI-X. Typically PCIe devices will fall back to MSI." CM4 datasheet also: "The on-board PCIe Host controller doesn't support 64-bit accesses from the ARM".
+
+### J-03
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4IO
+- **Fact:** The CM4 IO Board has one 'PCIe Gen 2 x1 socket' that is designed to take standard PC PCIe cards (the compute-module docs call it a 'PCIe Gen 2 socket'). Raspberry Pi states it has been used successfully with an NVMe drive through a passive PCIe adaptor.
+- **Source:** Raspberry Pi Compute Module 4 IO Board Datasheet, section 2.8 'PCIe Gen 2 x1 socket' — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** "2.8. PCIe Gen 2 x1 socket — The PCIe socket is designed to take standard PC PCIe cards. You should ensure that there is a suitable OS driver for your card." ... "The PCIe link has been successfully used with an NVMe drive via a passive PCIe adaptor." Schematic block label: "PCIe x1".
+
+### J-04
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4IO
+- **Fact:** On the CM4 IO Board, booting is not supported through a PCIe switch.
+- **Source:** CM4 IO Board Datasheet, section 2.8 Note — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** "NOTE Booting isn't supported via a PCIe switch."
+
+### J-05
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4IO
+- **Fact:** CM4IO PCIe slot power comes from the +12 V DC barrel input (J19). The +12 V feeds the slot's +12 V pins directly, and an on-board +12 V-to-+3.3 V DC-DC converter is used only for the PCIe slot. With a typical PoE HAT (+5 V only), PCIe expansion cards and the fan do not work. Raspberry Pi recommends budgeting 9 W for the CM4.
+- **Source:** CM4 IO Board Datasheet, sections 2.2 PSU input and 2.4 Gigabit Ethernet — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** "The main PSU input (J19) is a 2.1mm DC tip positive +12V input... There is also an on-board +12V to +3.3V DC-DC converter PSU which is only used for the PCIe slot. The +12V input feeds the +12V PCIe slot..." / "As a typical PoE HAT doesn't generate a +12V power rail, PCIe expansion cards and the fan will not function." / "We recommend budgeting 9W for CM4."
+
+### J-06
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4IO
+- **Fact:** CM4IO USB goes through an on-board USB 2.0 hub (USB2514B in the schematic) attached to the single CM4 USB 2.0 port. Two hub ports go to the stacked Type-A connector and two go to an internal header. One current-limit switch (AP22653W6, set to about 1.2 A) supplies VBUS to the USB connectors. Plugging in the micro-USB cable disables the hub.
+- **Source:** CM4 IO Board Datasheet, section 2.5 USB 2.0 hub and Figure 7 — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** "The Raspberry Pi Compute Module 4 IO Board has an on-board USB 2.0 hub. This connects to the CM4 USB 2.0 port. Two ports from the hub are connected to a connector. The other two ports are connected to a header... There is an internal current limit switch to provide VBUS to the USB connectors. The current limit is set to approximately 1.2A." Schematic: "USB2514B-I/M2", "AP22653W6", "Current Limit switch".
+
+### J-07
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM4IO
+- **Fact:** CM4 USB is off by default. The CM4IO datasheet enables it with dtoverlay=dwc2,dr_mode=host. The config.txt docs describe otg_mode=1, which selects a 'more capable XHCI USB 2.0 controller', and state that Raspberry Pi OS enables otg_mode by default on CM4. The CM4 datasheet also says the firmware disables USB by default and Raspberry Pi OS enables it through otg_mode=1.
+- **Source:** CM4 IO Board Datasheet section 2.5; Raspberry Pi documentation config.txt 'otg_mode (Raspberry Pi 4 only)' — <https://www.raspberrypi.com/documentation/computers/config_txt.html#otg_mode-raspberry-pi-4-only>
+- **Evidence:** CM4IO: "The USB interface is disabled to save power by default on the CM4. To enable it you need to add the following to the config.txt file: dtoverlay=dwc2,dr_mode=host". Docs: "otg_mode=1 requests that a more capable XHCI USB 2.0 controller is used as an alternative host controller on that USB-C connector. NOTE: By default, Raspberry Pi OS includes a line in /boot/firmware/config.txt that enables this setting on Compute Module 4."
+
+### J-08
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM4IO
+- **Fact:** CM4 has no USB 3.0 controller. USB 3.0 on a CM4 carrier needs an external xHCI controller (for example a VLI805) on the PCIe link.
+- **Source:** Raspberry Pi documentation config.txt otg_mode; CM4 IO Board Datasheet section 2.8 — <https://www.raspberrypi.com/documentation/computers/config_txt.html#otg_mode-raspberry-pi-4-only>
+- **Verifier's best source:** <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** Docs: "Raspberry Pi Compute Module 4 and earlier do not include the USB 3.0 controller." CM4IO datasheet: "If the application requires USB 3.0 interface then an external XHCI controller is required like the VLI805."
+
+### J-09
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM4IO
+- **Fact:** On CM4IO the single PCIe Gen 2 x1 socket is the only PCIe link. CM4 has no USB 3 controller at all, so USB 3 would need an external xHCI (such as a VLI805) on that same link. Fitting the NVMe SSD therefore leaves no PCIe for an xHCI unless a PCIe switch is added. With a switch, NVMe and xHCI would share one 5 GT/s (~4 Gbit/s) link, booting through the switch is unsupported (boot from eMMC or SD instead), and enumeration behind a switch depends on the device. Without a switch, the USB-to-SATA HDD runs at USB 2.0 High-Speed (480 Mbit/s signalling) through the on-board USB2514B hub, shared with every other CM4IO USB device.
+- **Source:** Reasoning from J-01, J-03, J-04, J-06, J-08 — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** Inputs: CM4 has 1 × PCIe x1 Gen2 (J-01); CM4IO has one PCIe x1 socket (J-03); USB 3 requires an external xHCI on PCIe (J-08); CM4 USB is one 480 Mbps port fanned out by a hub (J-06); no boot via a PCIe switch (J-04).
+- **Original claim (before verification):** Implication for CM4IO: the NVMe SSD would use the board's only PCIe x1 link, so no PCIe is left for a USB 3 xHCI unless a PCIe switch is added, and booting through a switch is unsupported. The USB-to-SATA HDD would therefore run at USB 2.0 High-Speed (480 Mbit/s signalling), shared through the on-board hub with every other USB device. Native NVMe and native USB 3 cannot coexist on CM4.
+- **Verifier note:** The inputs (J-01, J-03, J-04, J-06, J-08) are all verified. The original sentence 'Native NVMe and native USB 3 cannot coexist' is misleading, because CM4 never has native USB 3. The real constraint is one x1 link plus no boot through a switch. Switch enumeration caveat: Raspberry Pi pcie.adoc NOTE (firmware issue 1833).
+
+### J-10
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** BOOT_ORDER nibble 0x6 (NVME) boots from an NVMe SSD on the PCIe interface and is documented for CM4, CM5, Raspberry Pi 5 and 500+ only. For Compute Modules, Raspberry Pi says to edit usbboot recovery/boot.conf with BOOT_ORDER=0xf6 for NVMe boot, run update-pieeprom.sh, and flash with rpiboot. CM4 Lite automatically boots from NVMe when the SD slot is empty, and eMMC CM4s must put NVMe first in the boot order.
+- **Source:** Raspberry Pi documentation: Bootloader configuration BOOT_ORDER; Compute Module EEPROM bootloader — <https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#BOOT_ORDER>
+- **Evidence:** BOOT_ORDER table: "0x6 | NVME | CM4, CM5, Raspberry Pi 5, and 500+ only: boot from an NVMe SSD connected to the PCIe interface." cm-bootloader: "Edit the default boot.conf ... For NVMe boot, use BOOT_ORDER=0xf6." NVMe boot page: "For CM4, use rpiboot to update the bootloader... For versions of CM4 with an eMMC, make sure you have set NVMe first in the boot order... CM4 Lite automatically boots from NVMe when the SD card slot is empty."
+
+### J-11
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4IO, CM5IO
+- **Fact:** Raspberry Pi's NVMe boot documentation names the PCIe slot on the CM4 IO Board and the M.2 slot on the CM5 IO Board as NVMe attachment points. For CM4 it suggests searching for a 'PCI-E 3.0 ×1 lane to M.2 NGFF M-Key SSD NVMe PCI Express adapter card'. In Linux the SSD appears as /dev/nvme0 with namespace /dev/nvme0n1.
+- **Source:** Raspberry Pi documentation: NVMe SSD boot — <https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#nvme-ssd-boot>
+- **Evidence:** "You can connect NVMe drives to the PCIe slot on Compute Module 4 IO Board, the M.2 slot on Compute Module 5 IO Board, and Raspberry Pi 5 using an M.2 HAT+... For the CM4, search for a \"PCI-E 3.0 ×1 lane to M.2 NGFF M-Key SSD NVMe PCI Express adapter card\"". In Linux the SSD appears as /dev/nvme0 with namespace /dev/nvme0n1.
+
+### J-12
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM5
+- **Fact:** CM5 provides one-lane PCIe Gen 2 (5 Gb/s) for NVMe and other peripherals. Raspberry Pi says Gen 3.0 operation 'is possible in some cases, but is unsupported and might not function reliably'. PCIe_nWAKE is 'currently unsupported in software'.
+- **Source:** Raspberry Pi Compute Module 5 Datasheet (Release 3, build date 08/06/2026), sections 1 and 2.3 — <https://datasheets.raspberrypi.com/cm5/cm5-datasheet.pdf>
+- **Evidence:** "PCIe expansion. One-lane PCIe Gen 2 (5 Gb/s) host interface for high-speed peripherals." / "CM5 has an internal PCIe 2.0 host controller, offering high-speed expansion options for NVMe storage... Operation in PCIe Gen 3.0 mode is possible in some cases, but is unsupported and might not function reliably."
+
+### J-13
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM5IO
+- **Fact:** The CM5 IO Board's M.2 M-key connector runs at PCIe Gen 2 ×1 (5 Gb/s) by default. Gen 3 ×1 (8 Gb/s) is described as 'possible, but experimental and therefore unsupported'.
+- **Source:** Raspberry Pi Compute Module 5 IO Board Datasheet (Release 3, build date 11/09/2026), section 4.1 — <https://datasheets.raspberrypi.com/cm5/cm5io-datasheet.pdf>
+- **Evidence:** "The CM5IO includes an M.2 M key connector, designed for standard M.2 M key cards. This connector is typically used for NVMe SSDs... By default, the M.2 M key connector runs at PCIe Gen 2 ×1, which provides 5 Gb/s. PCIe Gen 3 ×1 (which provides 8 Gb/s) is possible, but experimental and therefore unsupported."
+
+### J-14
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM5IO
+- **Fact:** The CM5 IO Board M.2 M-key PCIe socket accepts the 2230, 2242, 2260 and 2280 form factors.
+- **Source:** Raspberry Pi documentation: Compute Module hardware, CM5IO — <https://www.raspberrypi.com/documentation/computers/compute-module.html>
+- **Evidence:** "A M.2 M key PCIe socket compatible with the 2230, 2242, 2260, and 2280 form factors."
+
+### J-15
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5, CM5IO
+- **Fact:** For BCM2712, the dtparams pciex1 (alias nvme) and pciex1_gen control the external PCIe link. pciex1 defaults to 'off' and pciex1_gen defaults to '2'. In the rpi-6.18.y device tree, pciex1_gen maps to max-link-speed on &pcie1, so dtparam=pciex1_gen=3 raises the link-speed cap. pciex1_no_l0s and pciex1_tperst_clk_ms are also available.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/overlays/README and arch/arm64/boot/dts/broadcom/bcm2712-rpi.dtsi — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/overlays/README>
+- **Evidence:** README: "nvme Alias for \"pciex1\" (2712 only)"; "pciex1 Set to \"on\" to enable the external PCIe link (2712 only, default \"off\")"; "pciex1_gen Sets the PCIe \"GEN\"/speed for the external PCIe link (2712 only, default \"2\")". bcm2712-rpi.dtsi: "pciex1 = <&pciex1>, \"status\"; pciex1_gen = <&pciex1> , \"max-link-speed:0\";" and "pciex1: &pcie1 { };"
+
+### J-16
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM5
+- **Fact:** Raspberry Pi's PCIe documentation warns that 'The Raspberry Pi 5 isn't certified for Gen 3.0 speeds' and that Gen 3.0 connections might be unstable. It enables Gen 3 (8 GT/s) with dtparam=pciex1_gen=3 or through raspi-config > Advanced Options > PCIe Speed. This 'not certified' wording is about Pi 5; the CM5 documents use 'unsupported' instead (J-12, J-13).
+- **Source:** Raspberry Pi documentation: Raspberry Pi connector for PCIe — PCIe Gen 3.0 — <https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#pcie-gen-3-0>
+- **Evidence:** "WARNING: The Raspberry Pi 5 isn't certified for Gen 3.0 speeds. PCIe Gen 3.0 connections might be unstable. By default, Raspberry Pi 5 uses Gen 2.0 speeds (5 GT/s)... To enable PCIe Gen 3.0 speeds, add the following line to /boot/firmware/config.txt: dtparam=pciex1_gen=3"
+
+### J-17
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5, CM5IO
+- **Fact:** In the rpi-6.18.y device tree (kernel 6.18.55), BCM2712 pcie1 (the external pciex1 used by the M.2 slot) is num-lanes=1, max-link-speed=2 and status 'disabled'. Neither bcm2712-rpi-cm5.dtsi nor the CM5IO board files (bcm2712-rpi-cm5-cm5io.dts, bcm2712-rpi-cm5io.dtsi) set it to okay. RP1 sits on a separate controller, pcie2 (num-lanes=4), which the CM5 dtsi enables, so the NVMe link and the RP1-attached USB 3 HDD do not share a PCIe root port.
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2712.dtsi, bcm2712-rpi-cm5.dtsi, bcm2712-rpi.dtsi — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm64/boot/dts/broadcom/bcm2712.dtsi>
+- **Evidence:** bcm2712.dtsi: "pcie1: pcie@1000110000 {... max-link-speed = <2>; num-lanes = <1>; ... status = \"disabled\";" and "pcie2: pcie@1000120000 {... max-link-speed = <2>; num-lanes = <4>;". bcm2712-rpi-cm5.dtsi: "rp1_target: &pcie2 {... status = \"okay\";}" and "&pcie1 { brcm,fifo-qos-map = ...; };" (no status). bcm2712-rpi.dtsi: "pciex1: &pcie1 { }; pciex4: &pcie2 { };" Makefile: VERSION 6, PATCHLEVEL 18, SUBLEVEL 55.
+
+### J-18
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM5
+- **Fact:** CM5 has two USB 3.0 SuperSpeed interfaces, each able to signal at up to 5 Gb/s at the same time, plus one USB 2.0 interface (480 Mb/s). The USB 2.0 interface needs dtoverlay=dwc2,dr_mode=host in config.txt.
+- **Source:** CM5 Datasheet sections 1 and 2.4 — <https://datasheets.raspberrypi.com/cm5/cm5-datasheet.pdf>
+- **Evidence:** "Two USB 3.0 (SuperSpeed) ports, supporting simultaneous 5 Gb/s data transfer." / "CM5 includes two USB 3.0 interfaces, each supporting up to 5 Gb/s signalling simultaneously." / "The USB 2.0 interface supports up to 480 Mb/s signalling... To enable USB 2.0 functionality, add the dtoverlay=dwc2,dr_mode=host overlay setting to your config.txt file."
+
+### J-19
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM5IO
+- **Fact:** The CM5 IO Board has two USB 3.0 Type-A ports, and their VBUS is limited to approximately 1.2 A combined by an internal current switch. It also has one USB 2.0 Type-C port intended mainly for data transfer and rpiboot flashing.
+- **Source:** CM5 IO Board Datasheet sections 2.3 and 3.4 — <https://datasheets.raspberrypi.com/cm5/cm5io-datasheet.pdf>
+- **Evidence:** "USB 3.0 (Type A) connectors. The two USB 3.0 ports are limited to approximately 1.2 A combined through an internal current switch." / "USB 2.0 (Type-C). Primarily intended for data transfer and enabling board updates through rpiboot."
+
+### J-20
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM5IO
+- **Fact:** CM5IO is powered through a USB-C input (J11) and negotiates 5 V at 5 A over USB PD by default. Raspberry Pi documents 5 V/5 A (25 W), or 5 V/3 A (15 W) with a 600 mA peripheral limit. PSU_MAX_CURRENT=5000 in the EEPROM configuration suppresses the low-current warning.
+- **Source:** Raspberry Pi documentation: Compute Module hardware (CM5IO); CM5 IO Board Datasheet section 2.1 — <https://www.raspberrypi.com/documentation/computers/compute-module.html>
+- **Verifier's best source:** <https://datasheets.raspberrypi.com/cm5/cm5io-datasheet.pdf>
+- **Evidence:** Docs: "USB-C power using the same standard as Raspberry Pi 5: 5 V at 5 A (25 W) or 5 V at 3 A (15 W) with a 600 mA peripheral limit." Datasheet: "the CM5IO negotiates 5 V at 5 A using USB Power Delivery (PD). If the connected PSU for CM5IO doesn't provide 5 A, CM5 displays a warning; you can disable this warning by adding PSU_MAX_CURRENT=5000 to the EEPROM configuration".
+
+### J-21
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM5
+- **Fact:** RP1 has two identical USB 3.0 xHCI host controllers (Synopsys dwc_usb3 v3.30b). Each has one USB 3.0 PHY and one USB 2.0 PHY, every downstream port has independent, uncontended bandwidth, and together they support more than 10 Gbps of downstream USB traffic.
+- **Source:** RP1 Peripherals datasheet (build-date 2023-11-07), Chapter 1 and Chapter 5 USB — <https://datasheets.raspberrypi.com/rp1/rp1-peripherals.pdf>
+- **Evidence:** "USB. Two independent XHCI controllers are each connected to a single USB 3.0 PHY, and a single USB 2.0 PHY. Together, they support more than 10Gbps of downstream USB traffic." / "The USB Host subsystem is based on Synopsys IP dwc_usb3, v3.30b... so every downstream port has independent and uncontended bandwidth."
+
+### J-22
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM5
+- **Fact:** RP1 connects to the BCM2712 over a PCIe 2.0 x4 link (pcie2, num-lanes=4 in the DT) with a maximum unidirectional bandwidth of 14.7 Gbit/s. Both RP1 USB controllers (rp1_usb0/rp1_usb1, compatible 'snps,dwc3', dr_mode host) are enabled in the CM5 device tree.
+- **Source:** RP1 Peripherals datasheet Chapter 6; raspberrypi/linux rpi-6.18.y bcm2712-rpi-cm5.dtsi / rp1.dtsi — <https://datasheets.raspberrypi.com/rp1/rp1-peripherals.pdf>
+- **Evidence:** "RP1 supports up to a Gen 2.0 4-lane link configuration... The maximum unidirectional link bandwidth is 14.7Gbit/s, and close to full-duplex bidirectional bandwidth can be achieved." DT: "&rp1_usb0 {... status = \"okay\";}; &rp1_usb1 { status = \"okay\"; };" rp1.dtsi: "compatible = \"snps,dwc3\"; dr_mode = \"host\";"
+
+### J-23
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM5
+- **Fact:** Reasoning: on CM5 the RP1 x4 link carries CSI-2 capture (RP1 to host), Ethernet egress and USB-HDD writes (host to RP1) together, which is well under its 14.7 Gbit/s unidirectional limit. With 1080p60 UYVY capture (1920×1080×2 B×60 = 248.8 MB/s ≈ 1.99 Gbit/s), Gigabit Ethernet at 1 Gbit/s and HDD recording at about 0.025 Gbit/s, the sum is about 3.02 Gbit/s, or about 20.5% of 14.7 Gbit/s. If the bridge delivered 1080p60 RGB888 (3 B/px) instead, capture would be about 2.99 Gbit/s and the sum about 4.0 Gbit/s (about 27%). The conclusion is unchanged. Counting both directions against one unidirectional limit is conservative, because the link is near full duplex.
+- **Source:** Reasoning from J-22 (RP1 link bandwidth) and J-34 (recording rate) — <https://datasheets.raspberrypi.com/rp1/rp1-peripherals.pdf>
+- **Evidence:** Inputs: 1920*1080*2*60 = 248,832,000 B/s = 1.99 Gbit/s (assumed upper bound for the TC358743 output); 1 Gbit/s Ethernet; 25.192 Mbit/s recording. Total ≈ 3.02 Gbit/s / 14.7 Gbit/s ≈ 20.5%.
+- **Original claim (before verification):** Reasoning: on CM5 the RP1 x4 link carries CSI-2 capture, Ethernet egress and USB-HDD writes together, which is well under 14.7 Gbit/s. Worst-case inputs: 1080p60 UYVY capture = 1920×1080×2 B×60 = 248.8 MB/s ≈ 1.99 Gbit/s; Gigabit Ethernet ≤ 1 Gbit/s; HDD recording ≈ 0.025 Gbit/s. The sum (≈ 3.0 Gbit/s) is about 21% of 14.7 Gbit/s.
+- **Verifier note:** The arithmetic checks out: 248,832,000 B/s × 8 = 1.9907 Gbit/s; 1.9907 + 1 + 0.0252 = 3.016 Gbit/s; 3.016 / 14.7 = 20.5%. Calling UYVY 1080p60 the 'worst case' is not established, because the TC358743 can also output RGB888. RGB888 at 1080p60 = 1920×1080×3×60×8 = 2.986 Gbit/s; with 4 lanes it may fit, but I have not verified that. NVMe is on pcie1, not the RP1 link (J-17).
+
+### J-24
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4
+- **Fact:** The Linux uas driver refuses to bind when the USB host controller driver reports sg_tablesize == 0, and usb-storage then handles the device. The dwc2 host driver hard-codes sg_tablesize = 0. On CM4 using the dwc2 host controller (dtoverlay=dwc2,dr_mode=host), a UASP bridge therefore runs under usb-storage (Bulk-Only), not uas. Caveat: under Raspberry Pi OS defaults, CM4 uses otg_mode=1 (the XHCI USB 2.0 controller) instead, and there uas can bind.
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/usb/storage/uas-detect.h and drivers/usb/dwc2/hcd.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/usb/storage/uas-detect.h>
+- **Evidence:** uas-detect.h: "if (udev->bus->sg_tablesize == 0) { dev_warn(... \"The driver for the USB controller %s does not support scatter-gather which is\\n\" ... \"required by the UAS driver. Please try an other USB controller if you wish to use UAS.\\n\"); return 0; }". dwc2/hcd.c: "/* Don't support SG list at this point */ hcd->self.sg_tablesize = 0;"
+
+### J-25
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The kernel's UAS detection applies built-in bridge quirks before binding. For ASMedia 0x174c:0x5106/0x55aa, bMaxPower==0 (ASM1153) gets no quirk. If the device is connected below SuperSpeed, or reports 32 streams, it is treated as a possible ASM1051 and gets IGNORE_UAS; otherwise it is treated as ASM1053 and gets MAX_SECTORS_240. All Seagate enclosures (VID 0x0bc2) get NO_ATA_1X, and a HIKSEMI MD202 RTL9210 (0bda:9210) gets IGNORE_UAS. User-supplied usb-storage.quirks are then merged through usb_stor_adjust_quirks().
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/usb/storage/uas-detect.h — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/usb/storage/uas-detect.h>
+- **Evidence:** "ASM1051 - no uas support version / ASM1051 - with broken (*) uas support / ASM1053 - with working uas support, but problems with large xfers / ASM1153 - with working uas support" ... "flags |= US_FL_IGNORE_UAS;" ... "flags |= US_FL_MAX_SECTORS_240;" ... "/* All Seagate disk enclosures have broken ATA pass-through support */ if (... idVendor) == 0x0bc2) flags |= US_FL_NO_ATA_1X;" ... "usb_stor_adjust_quirks(udev, &flags);"
+
+### J-26
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** The kernel parameter usb-storage.quirks takes comma-separated VID:PID:Flags entries (4-digit hex IDs). Flag 'u' = IGNORE_UAS (don't bind to the uas driver), 'g' = MAX_SECTORS_240 (uas only), 't' = NO_ATA_1X (uas only), 'f' = NO_REPORT_OPCODES (uas only).
+- **Source:** raspberrypi/linux rpi-6.18.y Documentation/admin-guide/kernel-parameters.txt — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/Documentation/admin-guide/kernel-parameters.txt>
+- **Evidence:** "usb-storage.quirks= [UMS] A list of quirks entries to supplement or override the built-in unusual_devs list. List entries are separated by commas. Each entry has the form VID:PID:Flags ... f = NO_REPORT_OPCODES (don't use report opcodes command, uas only); g = MAX_SECTORS_240 ... uas only ... t = NO_ATA_1X ... uas only; u = IGNORE_UAS (don't bind to the uas driver); ... Example: quirks=0419:aaf5:rl,0421:0433:rc"
+
+### J-27
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM4, CM5
+- **Fact:** A sticky forum post by Raspberry Pi engineer jdb (16 July 2019) says that because the Pi 4 xHCI driver supports scatter-gather, UAS was enabled by default. It says some UAS devices 'don't fully implement the UAS specification'. These typically stop responding when sent UAS commands they don't like, or in rare cases throw write data away, which can cause filesystem corruption. As a workaround it gives usb-storage.quirks=aaaa:bbbb:u (aaaa = idVendor, bbbb = idProduct) in cmdline.txt (the post says /boot/cmdline.txt; current OS uses /boot/firmware/cmdline.txt). For several devices the form is usb-storage.quirks=0123:4567:u,2109:0715:u.
+- **Source:** Raspberry Pi Forums STICKY: 'If you have a Raspberry Pi 4 and are getting bad speeds transferring data to/from USB3.0 SSDs, read this' (jdb, Raspberry Pi Engineer) — <https://forums.raspberrypi.com/viewtopic.php?t=245931>
+- **Evidence:** Workaround syntax given: "usb-storage.quirks=aaaa:bbbb:u" (aaaa = idVendor, bbbb = idProduct, hex); multiple devices: "usb-storage.quirks=0123:4567:u,2109:0715:u". Post by jdb, labelled Raspberry Pi Engineer & Forum Moderator, Tue Jul 16, 2019.
+- **Original claim (before verification):** A Raspberry Pi engineer's sticky forum post (jdb, 16 July 2019) explains that UAS is enabled by default on Pi 4-class xHCI hosts. It says many USB 3.0 devices do not fully implement UAS, which can cause hangs or filesystem corruption, and recommends adding usb-storage.quirks=aaaa:bbbb:u (idVendor:idProduct) to cmdline.txt to force usb-storage.
+- **Verifier note:** Fetched the thread. The post says 'UAS devices that don't fully implement the UAS specification', not 'many USB 3.0 devices', and describes them as 'stop responding' rather than 'hangs'. It does mention filesystem corruption, 'in rare cases'. It is sticky and labelled Raspberry Pi Engineer & Forum Moderator. Per the task rules, staff forum posts count as community.
+
+### J-28
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** Raspberry Pi's USB mass-storage documentation warns that USB SATA adapters can be supported by the bootloader in mass-storage mode but fail if Linux selects UAS mode. It also says HDDs typically need a powered USB hub, and that without one intermittent failures can occur even when everything appears to work. More than one disk typically needs external power from a powered enclosure or hub.
+- **Source:** Raspberry Pi documentation: USB mass storage boot — Hardware compatibility — <https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#usb-mass-storage-boot>
+- **Evidence:** "This is especially important with USB SATA adapters, which can be supported by the bootloader in mass storage mode, but fail if Linux selects USB Attached SCSI-UAS mode. Hard disk drives (HDDs) typically require a powered USB hub. Even if everything appears to work, you might encounter intermittent failures without a powered USB hub."
+
+### J-29
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** In rpi-6.18.y, both arch/arm64 bcm2711_defconfig (CM4) and bcm2712_defconfig (CM5) set CONFIG_USB_STORAGE=y, CONFIG_USB_UAS=y, CONFIG_BLK_DEV_NVME=y, CONFIG_EXT4_FS=y, CONFIG_VFAT_FS=y, CONFIG_EXFAT_FS=m (kernel exFAT driver as module 'exfat') and CONFIG_NTFS3_FS=m. Both also have F2FS=y, XFS=m, BTRFS=m and FUSE=m.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm64/configs/bcm2711_defconfig and bcm2712_defconfig; fs/exfat/Kconfig — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm64/configs/bcm2712_defconfig>
+- **Evidence:** Both defconfigs contain: CONFIG_BLK_DEV_NVME=y, CONFIG_USB_STORAGE=y, CONFIG_USB_UAS=y, CONFIG_EXT4_FS=y, CONFIG_VFAT_FS=y, CONFIG_EXFAT_FS=m, CONFIG_NTFS3_FS=m. fs/exfat/Kconfig: "This allows you to mount devices formatted with the exFAT file system... To compile this as a module, choose M here: the module will be called exfat."
+
+### J-30
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** USB-SATA HDD
+- **Fact:** A Seagate BarraCuda 2.5-inch SATA HDD (ST2000LM015/ST1000LM048/ST500LM030 family) draws up to 1.0 A at +5 V during spin-up and averages 1.70 W (1-disk) or 1.80 W (2-disk) when writing. Standby-to-ready is 2.5 s typical and 3.0 s maximum (not 1-disk vs 2-disk), and power-on-to-ready is 2.8/3.3 s typical and 3.0/3.5 s maximum (1-disk/2-disk). Maximum sustained OD read is 140 MB/s. The drive takes +5 V only, through a native SATA power connector.
+- **Source:** Seagate BarraCuda 2.5" SATA Product Manual 100807728 Rev. G (August 2018), Tables 1, 3, 4 — <https://www.seagate.com/www-content/product-content/seagate-laptop-fam/barracuda_25/en-us/docs/100807728g.pdf>
+- **Evidence:** "Startup current, Max (+5V) 1.0 A"; Table 4: "Spinup (max) 1.00A; Write average 1.70W 1.80W"; Table 3: "Standby to ready (sec) 2.5 3.0"; "Maximum sustained data rate, OD read 140 MB/s"; "The drive receives DC power (+5V) through a native SATA power connector".
+- **Original claim (before verification):** A Seagate BarraCuda 2.5-inch SATA HDD (ST2000LM015/ST1000LM048/ST500LM030 family) draws up to 1.0 A at +5 V during spin-up and averages 1.70–1.80 W when writing. Standby-to-ready takes 2.5 s (1-disk) to 3.0 s (2-disk), and maximum sustained OD read is 140 MB/s.
+- **Verifier note:** Extracted Table 3 with a layout-preserving extractor. The Standby-to-ready values 2.5 and 3.0 sit under the 'Typical' and 'Max @ 25°C' column groups, so the claim's 1-disk/2-disk reading was wrong. Table 1 (Startup current, Max (+5V) 1.0 A; 140 MB/s) and Table 4 (Spinup (max) 1.00A; Write average 1.70W/1.80W) are confirmed. Document is 100807728 Rev. G, August 2018.
+
+### J-31
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4IO, CM5IO
+- **Fact:** Reasoning: a bus-powered 2.5-inch HDD that needs 1.0 A to spin up exceeds the 600 mA peripheral limit of a CM5IO on a 3 A supply. It fits nominally under the ~1.2 A limits on CM4IO (one switch shared by all four hub ports) and on CM5IO with a 5 A supply (combined across both USB 3 ports). That leaves only about 0.2 A for the USB-SATA bridge and any other USB devices, so a self-powered enclosure or powered hub is the safe choice, as Raspberry Pi advises.
+- **Source:** Reasoning from J-06, J-19, J-20, J-28, J-30 — <https://datasheets.raspberrypi.com/cm5/cm5io-datasheet.pdf>
+- **Evidence:** Inputs: HDD spin-up 1.0 A @5 V (J-30); CM4IO VBUS switch ≈1.2 A (J-06); CM5IO USB 3 ports ≈1.2 A combined (J-19); CM5IO on a 3 A PSU = 600 mA peripheral limit (J-20); Raspberry Pi says HDDs typically need a powered hub (J-28). 1.2 A − 1.0 A = 0.2 A margin, bridge current not included.
+
+### J-32
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** USB-SATA HDD
+- **Fact:** A Seagate BarraCuda 3.5-inch desktop HDD (ST3000DM008/ST2000DM006/ST1000DM010/ST500DM009) takes +5 V and +12 V through its SATA power connector. Its power tables list current on both rails, for example Operating 0.510 A at 5 V and 0.462 A at 12 V on the 3-disk models. 12 V startup current is 2.0 A or 2.5 A (3 TB/2 TB) and 2.0 A (1 TB/500 GB). USB VBUS supplies only 5 V, so a 3.5-inch HDD always needs an external 12 V supply, such as a self-powered dock.
+- **Source:** Seagate BarraCuda 3.5" Product Manual 100804187 Rev. A (July 2016), Table 1 and section 2.8 — <https://www.seagate.com/www-content/product-content/barracuda-fam/barracuda-new/en-us/docs/100804187a.pdf>
+- **Evidence:** "Startup current 12V 2.0A or 2.5A 2.0A"; "The drive receives DC power (+5V or +12V) through a native SATA power connector."; "Voltage tolerance (including noise) 5V: ±5% 12V: +10% / -7.5%". The external-12 V conclusion is reasoning: USB VBUS is 5 V only.
+
+### J-33
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, CM5
+- **Fact:** Raspberry Pi's external-storage guide says to run 'sudo apt install exfat-fuse' for exFAT devices (and ntfs-3g for NTFS writes). Its fstab example uses 'defaults,auto,users,rw,nofail'. It warns that an absent disk adds 90 s to boot, and that appending ',x-systemd.device-timeout=30' after nofail shortens that wait to 30 s rather than removing it. It notes that Raspberry Pi OS Lite does not automount.
+- **Source:** Raspberry Pi documentation: Configuration — External storage — <https://www.raspberrypi.com/documentation/computers/configuration.html#external-storage>
+- **Evidence:** "If your storage device uses an exFAT file system, install the exFAT driver: $ sudo apt install exfat-fuse" / "UUID=5C24-1453 /mnt/mydisk fstype defaults,auto,users,rw,nofail 0 0" / "If you do not have the storage device attached when the Raspberry Pi starts, it will take an extra 90 seconds to start up. You can shorten this by adding ,x-systemd.device-timeout=30" / "NOTE: Raspberry Pi OS Lite does not implement automounting."
+- **Original claim (before verification):** Raspberry Pi's external-storage guide says to run 'sudo apt install exfat-fuse' for exFAT devices. Its fstab example uses 'defaults,auto,users,rw,nofail', adding ',x-systemd.device-timeout=30' to avoid a 90 s boot delay when the disk is absent. It notes that Raspberry Pi OS Lite does not automount.
+- **Verifier note:** Fetched external-storage.adoc from raspberrypi/documentation. The doc's word is 'shorten', not 'avoid'. Note the doc recommends the FUSE driver even though the kernel ships the native exfat module (J-29). The guide gives no robustness mount options (sync, commit, and so on) for recording.
+
+### J-34
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM4, CM5
+- **Fact:** Debian trixie (stable), which Raspberry Pi OS trixie is based on, ships exfatprogs 1.2.9-1+deb13u1 for arm64. It provides mkfs.exfat, fsck.exfat, tune.exfat, exfatlabel, dump.exfat and exfat2img in /usr/sbin. The FUSE driver exfat-fuse is 1.4.0-3 and recommends exfatprogs.
+- **Source:** Debian packages: exfatprogs (trixie), exfatprogs arm64 file list, exfat-fuse (trixie) — <https://packages.debian.org/trixie/exfatprogs>
+- **Evidence:** "Package: exfatprogs (1.2.9-1+deb13u1) ... exFAT file system utilities"; arm64 file list: /usr/sbin/dump.exfat, /usr/sbin/exfat2img, /usr/sbin/exfatlabel, /usr/sbin/fsck.exfat, /usr/sbin/mkfs.exfat, /usr/sbin/tune.exfat. exfat-fuse: "Package: exfat-fuse (1.4.0-3 and others) ... rec: exfatprogs".
+
+### J-35
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, CM5
+- **Fact:** ext4 defaults to data=ordered, barrier=1 and commit=5. The kernel documentation says that with the 5 s commit interval a power loss loses at most the last 5 seconds of metadata changes, and the filesystem itself is not damaged thanks to the journal. The same paragraph warns that because of delayed allocation, even older data can be lost on power failure, since writeback of that data starts only after /proc/sys/vm/dirty_expire_centisecs. data=ordered writes data blocks before the related metadata is committed.
+- **Source:** raspberrypi/linux rpi-6.18.y Documentation/admin-guide/ext4.rst — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/Documentation/admin-guide/ext4.rst>
+- **Evidence:** "data=ordered (*) All data are forced directly out to the main file system prior to its metadata being committed to the journal." / "commit=nrsec (*) ... The default value is 5 seconds. This means that if you lose your power, you will lose as much as the latest 5 seconds of metadata changes (your filesystem will not be damaged though, thanks to the journaling)." / "barrier=<0|1(*)> ... Write barriers enforce proper on-disk ordering of journal commits, making volatile disk write caches safe to use".
+- **Original claim (before verification):** ext4 defaults to data=ordered, barrier=1 and commit=5. The kernel documentation says that with the 5 s commit interval a power loss loses at most the last 5 seconds of metadata changes, and the filesystem itself is not damaged thanks to the journal.
+- **Verifier note:** Read lines 177-210 of the fetched rpi-6.18.y ext4.rst. The original claim left out the delayed-allocation caveat in the same paragraph, which matters for recording files: the data-loss window can be longer than 5 s unless the application calls fsync (compare J-41).
+
+### J-36
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM5
+- **Fact:** Reasoning: per recording destination, H.264 at 8 / 12 / 25 Mbit/s plus 192 kbit/s AAC writes about 1.02 / 1.52 / 3.15 MB/s, or about 3.69 / 5.49 / 11.34 GB per hour (container overhead excluded, decimal units). Writing the same stream to both NVMe and HDD doubles the system total to about 2.05–6.30 MB/s. A 1 TB disk holds about 271 h at 8 Mbit/s and about 88 h at 25 Mbit/s.
+- **Source:** Reasoning (bitrate inputs: task-supplied 8–25 Mbit/s range, YouTube figures per H-29; AAC 192 kbit/s assumed) — <https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf>
+- **Evidence:** (8+0.192)/8 = 1.024 MB/s ×3600 = 3.686 GB/h; (12+0.192)/8 = 1.524 MB/s → 5.486 GB/h; (25+0.192)/8 = 3.149 MB/s → 11.336 GB/h. 1e12 B / 1.024e6 B/s = 976,562 s = 271.3 h; 1e12 / 3.149e6 = 317,560 s = 88.2 h. Decimal units.
+
+### J-37
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM5
+- **Fact:** Reasoning: even the highest recording rate (25.192 Mbit/s) is a small share of every interface involved. It is about 5.2% of USB 2.0's 480 Mbit/s signalling rate (the shared CM4IO hub uplink), and about 0.63% of the ~4 Gbit/s left after 8b/10b coding on PCIe Gen 2 x1 (5 GT/s) or USB 3.0 (5 Gb/s). Interface bandwidth is not the recording bottleneck on either module. On CM4 the bus (60 MB/s raw, less in practice) limits the 2.5-inch HDD (140 MB/s OD read), which matters only for offload and copy times.
+- **Source:** Reasoning from J-01, J-12, J-18, J-30, J-36 — <https://datasheets.raspberrypi.com/cm5/cm5-datasheet.pdf>
+- **Evidence:** 25.192/480 = 0.0525; 5 GT/s × 8/10 = 4.0 Gbit/s; 25.192/4000 = 0.0063. 480 Mbit/s = 60 MB/s raw signalling, below the 140 MB/s HDD OD read rate. Protocol overheads beyond line coding are not included.
+
+### J-38
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** In GStreamer 1.26.2 qtmux/mp4mux's default 'normal' (moov-at-end) mode, the moov index (sample tables) is written only at EOS, and the mdat size at the start of the file is fixed up then. A file whose mdat header was never fixed up and that has no moov is not playable, so an unclean stop (power loss) leaves an unplayable MP4 unless fragmented or robust mode is used. Recovery is possible only with extra measures, such as the experimental moov-recovery-file property.
+- **Source:** GStreamer 1.26.2 gst-plugins-good gst/isomp4/gstqtmux.c (hacker notes and robust-mode comments) — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26.2/subprojects/gst-plugins-good/gst/isomp4/gstqtmux.c>
+- **Evidence:** "Normal mp4: ... At EOS it will then write the moov header with track headers and sample tables at the end of the file, and rewrite the start of the file to fix up the mdat box size at the beginning. It has to wait for EOS to write the moov". "an MDAT with 0 as the size covers the rest of the file. A file with no moov is not playable".
+
+### J-39
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** GStreamer 1.26.2 mp4mux/qtmux 'fragment-duration' is in milliseconds, defaults to 0 (2000 for ismlmux), and produces a fragmented file when > 0. If fragment-duration > 0, the muxer picks fragmented mode before it checks fast-start or reserved-max-duration, so setting both silently disables robust muxing. 'fragment-mode' (since 1.20) is 'dash-or-mss' (default) or 'first-moov-then-finalise'. On mp4mux, 'streamable' defaults to FALSE and is deprecated ('only valid for fragmented MP4').
+- **Source:** GStreamer 1.26.2 gstqtmux.c property specs and mode selection — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26.2/subprojects/gst-plugins-good/gst/isomp4/gstqtmux.c>
+- **Evidence:** g_param_spec_uint ("fragment-duration", ... "Fragment durations in ms (produce a fragmented file if > 0)", ... DEFAULT_FRAGMENT_DURATION 0). Mode logic: "if (qtmux->fragment_duration > 0) { qtmux->mux_mode = GST_QT_MUX_MODE_FRAGMENTED; ... } else if (qtmux->fast_start) {...} else if (reserved_max_duration != GST_CLOCK_TIME_NONE) {...ROBUST_RECORDING}". fragment-mode doc: "'first-moov-then-finalise' is a fragmented mode that will start with a self-contained 'moov' atom for the first fragment, then produce fragments. When the file is finalised, the initial 'moov' is invalidated and a new 'moov' is written covering the entire file. Since: 1.20". streamable: "(DEPRECATED, only valid for fragmented MP4)", default FALSE for non-ISML.
+
+### J-40
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** GStreamer robust muxing is enabled by setting reserved-max-duration (ns) and reserved-moov-update-period (ns). The muxer reserves header space at the start of the file and periodically rewrites the moov there in a ping-pong scheme, so the file stays playable after an unclean stop. It needs a seekable output such as filesink and raises an error ('Not enough free reserved space') if the moov outgrows the reserved space. reserved-bytes-per-sec defaults to 550 bytes per second per track, and reserved-duration-remaining can be monitored. If reserved-moov-update-period is unset, the muxer only logs a warning.
+- **Source:** GStreamer qtmux documentation ('Robust Muxing'); GStreamer 1.26.2 gstqtmux.c — <https://gstreamer.freedesktop.org/documentation/isomp4/qtmux.html>
+- **Evidence:** Docs: "In robust muxing mode, space for the headers are reserved at the start of muxing, and rewritten at a configurable interval, so that the output file is always playable, even if the recording is interrupted uncleanly by a crash. Robust muxing mode requires a seekable output, such as filesink... To enable robust muxing mode, set the reserved-moov-update-period and reserved-max-duration property." Source: "If the moov header grows larger than the reserved space, an error is generated"; "#define DEFAULT_RESERVED_BYTES_PER_SEC_PER_TRAK 550"; on a non-seekable output: "Downstream is not seekable - will not be able to create a playable file".
+
+### J-41
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** In GStreamer 1.26.2 robust mode, every moov rewrite (and its free-atom padding) and the final mdat-size update carry GST_BUFFER_FLAG_SYNC_AFTER. filesink calls fsync() after writing a buffer with that flag, so each periodic index update is forced to stable storage. During recording the mdat size stays 0 ('rest of the file') until finalisation. filesink also has an 'o-sync' property (default FALSE) that opens the file with O_SYNC.
+- **Source:** GStreamer 1.26.2 gstqtmux.c (gst_qt_mux_robust_recording_rewrite_moov) and gstreamer/plugins/elements/gstfilesink.c — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26.2/subprojects/gstreamer/plugins/elements/gstfilesink.c>
+- **Evidence:** qtmux: robust rewrite calls "gst_qt_mux_send_moov (qtmux, NULL, qtmux->reserved_moov_size, FALSE, TRUE)" where the last arg is fsync_after → "if (fsync_after) GST_BUFFER_FLAG_SET (buf, GST_BUFFER_FLAG_SYNC_AFTER);". filesink: "sync_after = GST_BUFFER_FLAG_IS_SET (buffer, GST_BUFFER_FLAG_SYNC_AFTER); ... fsync_ret = fsync (fileno (filesink->file));"; g_param_spec_boolean ("o-sync", ..., "Open the file with O_SYNC for enabling synchronous IO", DEFAULT_O_SYNC FALSE).
+
+### J-42
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** GStreamer's 'Robust Prefill Muxing' (reserved-prefill) works only with fixed-sample-size inputs (such as raw audio and ProRes) that have no reordered samples. It is therefore not applicable to H.264 + AAC recording.
+- **Source:** GStreamer qtmux documentation — <https://gstreamer.freedesktop.org/documentation/isomp4/qtmux.html>
+- **Evidence:** "Note that this mode is only possible with input streams that have a fixed sample size (such as raw audio and Prores Video) and that don't have reordered samples."
+
+### J-43
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** Reasoning: robust-mode header reservation per moov copy is base_moov + reserved-max-duration(s) × 550 B/s × track count. Two ping-pong copies plus 16 bytes are reserved in total. A 4-hour maximum with 2 tracks (H.264 + AAC) at the default rate reserves about 2 × 15.84 MB ≈ 31.7 MB (plus 2 × base_moov) at the start of each file.
+- **Source:** Reasoning from GStreamer 1.26.2 gstqtmux.c reservation formula — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26.2/subprojects/gst-plugins-good/gst/isomp4/gstqtmux.c>
+- **Evidence:** Source: "qtmux->reserved_moov_size = qtmux->base_moov_size + gst_util_uint64_scale (reserved_max_duration, reserved_bytes_per_sec_per_trak * atom_moov_get_trak_count (qtmux->moov), GST_SECOND);" and "reserving header area of size %u", 2 * reserved_moov_size + 16. Inputs: 14400 s × 550 × 2 = 15,840,000 B per copy (base_moov excluded).
+
+### J-44
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2
+- **Fact:** splitmuxsink (gst-plugins-good multifile) wraps a muxer (mp4mux by default) and a sink (filesink by default). It starts a new file at a video keyframe when the contents are about to cross max-size-time or max-size-bytes; the minimum file is one GOP. use-robust-muxing (default FALSE) sets the muxer's reserved-max-duration to the split time threshold, watches reserved-duration-remaining, and can also split when reserved header space is about to overflow. For mp4mux/qtmux, reserved-moov-update-period must be set manually. Other relevant properties: async-finalize (default FALSE), max-files (default 0 = unlimited), and send-keyframe-requests (default FALSE, effective only when max-size-bytes = 0).
+- **Source:** GStreamer splitmuxsink documentation; GStreamer 1.26.2 gst/multifile/gstsplitmuxsink.c — <https://gstreamer.freedesktop.org/documentation/multifile/splitmuxsink.html>
+- **Evidence:** Docs: "This element wraps a muxer and a sink, and starts a new file when the mux contents are about to cross a threshold of maximum size of maximum time, splitting at video keyframe boundaries... By default, it uses mp4mux and filesink". Source: use-robust-muxing "... splitmuxsink may then also create new fragments if the reserved header space is about to overflow. Note that for mp4mux and qtmux, reserved-moov-update-period must be set manually by the app to a non-zero value for robust muxing to have an effect." DEFAULT_USE_ROBUST_MUXING FALSE; DEFAULT_ASYNC_FINALIZE FALSE; send-keyframe-requests "Needs max-size-bytes to be 0 in order to be effective."
+
+### J-45
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg 7.1
+- **Fact:** FFmpeg 7.1's mov/mp4 muxer documentation says a fragmented file stays decodable if writing is interrupted, while a normal MOV/MP4 is undecodable if not properly finished; the downside is lower compatibility. movflags +frag_keyframe starts a new fragment at each video keyframe. movflags empty_moov ('Make the initial moov atom empty') exists in 7.1 movenc.c and implicitly turns on fragmentation, but n7.1 doc/muxers.texi does not describe it. 7.1 also documents movflags hybrid_fragmented, which writes a fragmented file and converts it to non-fragmented at the end; an aborted file can be remuxed by hand.
+- **Source:** FFmpeg n7.1 doc/muxers.texi (mov, mp4, ismv — Fragmentation); FFmpeg release/7.1 (RELEASE 7.1.5) libavformat/movenc.c — <https://github.com/FFmpeg/FFmpeg/blob/n7.1/doc/muxers.texi>
+- **Evidence:** muxers.texi: "Writing a fragmented file has the advantage that the file is decodable even if the writing is interrupted (while a normal MOV/MP4 is undecodable if it is not properly finished)... The downside is that it is less compatible with other applications." / "frag_keyframe start a new fragment at each video keyframe" / "hybrid_fragmented For recoverability - write the output file as a fragmented file... When writing is finished, the file is converted to a regular, non-fragmented file". movenc.c: { "empty_moov", "Make the initial moov atom empty", ... } and "if (mov->max_fragment_duration || mov->max_fragment_size || mov->flags & (FF_MOV_FLAG_EMPTY_MOOV | FF_MOV_FLAG_FRAG_KEYFRAME | ...)) mov->flags |= FF_MOV_FLAG_FRAGMENT;"
+
+---
+
+## Topic K
+
+**Sub-second live latency: WebRTC/WHEP, RTMP/HLS, encoder and capture latency (research of 2026-10-08)** — <a id="topic-k"></a>45 claims. Added 2026-10-08 (workflow wf_2f325497-f51; researcher + independent adversarial verifier).
+
+### K-01
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC, WHIP, live path
+- **Fact:** WHIP is published as RFC 9725 (Standards Track / Proposed Standard, March 2025). It covers ingest only: unidirectional WebRTC media into a streaming service or CDN. It does not cover playback.
+- **Source:** RFC 9725: WebRTC-HTTP Ingestion Protocol (WHIP) — <https://www.rfc-editor.org/rfc/rfc9725.html>
+- **Verifier's best source:** <https://www.rfc-editor.org/rfc/rfc9725.txt>
+- **Evidence:** Abstract: 'This document describes a simple HTTP-based protocol that will allow WebRTC-based ingestion of content into streaming services and/or Content Delivery Networks (CDNs).' Text: 'WHIP only supports the ingestion use case with unidirectional media.' IETF datatracker std_level = ps (Proposed Standard).
+
+### K-02
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC, WHEP, MediaMTX /whep endpoint
+- **Fact:** WHEP (WebRTC-HTTP Egress Protocol) is not an RFC as of 2026-10-08. The latest version is draft-ietf-wish-whep-04 (22 June 2026). Its WG state is 'Waiting for WG Chair Go-Ahead' (since 26 Aug 2026), and a document shepherd write-up was submitted on 6 Oct 2026.
+- **Source:** IETF Datatracker: draft-ietf-wish-whep history — <https://datatracker.ietf.org/doc/draft-ietf-wish-whep/history/>
+- **Evidence:** History: 2026-06-22 'New version available: draft-ietf-wish-whep-04.txt'; 2026-08-26 'IETF WG state changed to Waiting for WG Chair Go-Ahead from In WG Last Call'; 2026-10-06 shepherd write-up submitted. IESG state: I-D Exists.
+
+### K-03
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX, WebRTC, HLS
+- **Fact:** MediaMTX's current documentation gives no numeric WebRTC latency figure. It says only that HLS has higher latency than WebRTC, with fewer server-client connectivity problems.
+- **Source:** MediaMTX docs: Read > Web browsers (docs/4-read/07-web-browsers.md) — <https://github.com/bluenviron/mediamtx/blob/main/docs/4-read/07-web-browsers.md>
+- **Evidence:** 'The HLS protocol has a higher latency with respect to WebRTC, but there are fewer problems related to connectivity between server and clients.' A grep of docs/ for 'latenc' found no numeric WebRTC latency figure.
+
+### K-04
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** live encode (shared RTMP+WebRTC), WebRTC, Opus
+- **Fact:** MediaMTX documents that browsers deliberately do not support H.264 with B-frames over WebRTC. For broad browser compatibility it recommends H.264 Baseline profile (no B-frames) with Opus audio. MediaMTX's WebRTC audio codecs are Opus, G722 and G711 only; AAC is not listed.
+- **Source:** MediaMTX docs: WebRTC-specific features / Read > WebRTC — <https://github.com/bluenviron/mediamtx/blob/main/docs/2-features/25-webrtc-specific-features.md>
+- **Evidence:** 'H264, when the stream contains B-frames. These are not part of the WebRTC specification and support for them has been intentionally left out by every browser.' 'In order to support most browsers, you can re-encode the stream by using the H264 codec with the baseline profile (which does not produce B-frames) and the Opus codec'. docs/4-read/03-webrtc.md audio row: 'Opus, G722, G711 (PCMA, PCMU)'.
+
+### K-05
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2, MediaMTX, live path
+- **Fact:** MediaMTX documents RTSP-client publishing as the recommended way for GStreamer to publish. If GStreamer publishes over WebRTC instead (whipclientsink), MediaMTX requires GStreamer 1.22 or later and, for H.264, the Baseline profile.
+- **Source:** MediaMTX docs: Publish > GStreamer (docs/3-publish/18-gstreamer.md) — <https://github.com/bluenviron/mediamtx/blob/main/docs/3-publish/18-gstreamer.md>
+- **Evidence:** 'GStreamer can publish a stream to the server by acting as a RTSP client, RTMP client, SRT client, WebRTC client ... The recommended way is acting as a RTSP client.' 'Make sure that GStreamer version is at least 1.22, and that if the codec is H264, the profile is baseline. Use the whipclientsink element'.
+
+### K-06
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** Raspberry Pi OS trixie, GStreamer 1.26.2, webrtcsink, whipclientsink
+- **Fact:** No Debian trixie package contains libgstrswebrtc.so, the gst-plugins-rs plugin that provides webrtcsink and whipclientsink. No package named gstreamer1.0-plugins-rs exists in any Debian suite. The Raspberry Pi apt archive (archive.raspberrypi.com, trixie main arm64) also has no gst-plugins-rs package as of 2026-10-08.
+- **Source:** packages.debian.org contents search (trixie, libgstrswebrtc.so) — <https://packages.debian.org/search?searchon=contents&keywords=libgstrswebrtc.so&mode=exactfilename&suite=trixie&arch=any>
+- **Evidence:** Search result: 'Sorry, your search gave no results' for the file name libgstrswebrtc.so in trixie (all architectures). The package-name search for gstreamer1.0-plugins-rs in trixie gave the same result. GStreamer docs list whipclientsink as plugin rswebrtc, package gst-plugin-webrtc (gst-plugins-rs). The Raspberry Pi apt archive was not checked.
+
+### K-07
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2, webrtcbin
+- **Fact:** GStreamer webrtcbin has a 'latency' property, 'Default duration to buffer in the jitterbuffers (in ms)', with a default of 200.
+- **Source:** GStreamer docs: webrtcbin — <https://gstreamer.freedesktop.org/documentation/webrtc/index.html>
+- **Verifier's best source:** <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-bad/ext/webrtc/gstwebrtcbin.c>
+- **Evidence:** Property latency: 'Default duration to buffer in the jitterbuffers (in ms)'; Default value: 200. Also bundle-policy default none (0) and ice-transport-policy default all (0).
+
+### K-08
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2, rtpbin, rtpjitterbuffer
+- **Fact:** GStreamer rtpbin 'latency' defaults to 200 ms ('Default amount of ms to buffer in the jitterbuffers'). rtpjitterbuffer 'latency' also defaults to 200 ms: packets are held for at most this time, and the element adds that much latency to the pipeline.
+- **Source:** GStreamer docs: rtpbin; rtpjitterbuffer — <https://gstreamer.freedesktop.org/documentation/rtpmanager/rtpjitterbuffer.html>
+- **Verifier's best source:** <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/gst/rtpmanager/gstrtpjitterbuffer.c>
+- **Evidence:** rtpbin latency: 'Default amount of ms to buffer in the jitterbuffers', default 200 (https://gstreamer.freedesktop.org/documentation/rtpmanager/rtpbin.html). rtpjitterbuffer latency: 'The maximum latency of the jitterbuffer. Packets will be kept in the buffer for at most this time.' Default 200. mode default slave (1).
+
+### K-09
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2, rtspclientsink, rtspsrc, MediaMTX
+- **Fact:** The GStreamer RTSP elements default to 2000 ms latency: rtspclientsink and rtspsrc both have 'latency' = 'Amount of ms to buffer', default 2000. MediaMTX's own GStreamer reader examples set rtspsrc latency=0.
+- **Source:** GStreamer docs: rtspclientsink / rtspsrc; MediaMTX docs: Read > GStreamer — <https://gstreamer.freedesktop.org/documentation/rtspclientsink/index.html>
+- **Verifier's best source:** <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-rtsp-server/gst/rtsp-sink/gstrtspclientsink.c>
+- **Evidence:** rtspclientsink latency: 'Amount of ms to buffer', default 2000; protocols default 'tcp+udp-mcast+udp'. rtspsrc latency: 'Amount of ms to buffer', default 2000 (https://gstreamer.freedesktop.org/documentation/rtsp/rtspsrc.html). MediaMTX docs/4-read/09-gstreamer.md: 'gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/mystream latency=0 ! decodebin ! autovideosink'.
+
+### K-10
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** live path, WebRTC
+- **Fact:** REASONING: the webrtcbin, rtpbin and rtpjitterbuffer latency values (K-07, K-08) are jitterbuffer sizes, which only apply to received RTP. If PACSCORDER only sends media and the viewer is a browser, the viewer-side jitter buffer is the browser's own adaptive buffer, not these GStreamer defaults. The defaults only matter if a GStreamer element receives RTP inside the live path, e.g. an rtspsrc relay.
+- **Source:** Reasoning from GStreamer webrtcbin/rtpjitterbuffer docs — <https://gstreamer.freedesktop.org/documentation/rtpmanager/rtpjitterbuffer.html>
+- **Verifier's best source:** <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/gst/rtpmanager/gstrtpjitterbuffer.c>
+- **Evidence:** Inputs: webrtcbin latency is described as 'Default duration to buffer in the jitterbuffers' (K-07); rtpjitterbuffer 'reorders and removes duplicate RTP packets received from network sources' (K-08). Whether rtspclientsink's 2000 ms latency adds delay on the sending side is not documented (see open questions).
+
+### K-11
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC viewer (browser)
+- **Fact:** Browsers expose RTCRtpReceiver.jitterBufferTarget, a hint (in ms, at most 4000) for how long the receiver jitter buffer should hold media. It influences the user agent's target but does not set it directly. MDN marks it Baseline 2026 (newly available since September 2026).
+- **Source:** MDN: RTCRtpReceiver.jitterBufferTarget (spec: W3C webrtc-pc) — <https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/jitterBufferTarget>
+- **Evidence:** 'indicates the application's preferred duration, in milliseconds, for which the jitter buffer should hold media before playing it out' ... 'positive value of no greater than 4000 milliseconds' ... 'the attribute "influences" the jitter buffer target of the user agent, but does not directly set it.' Compatibility: 'Baseline 2026 - Newly available since September 2026'. Spec link: w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-jitterbuffertarget.
+
+### K-12
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC viewer (browser), latency measurement
+- **Fact:** The W3C WebRTC Statistics API (Candidate Recommendation Draft, 25 September 2025) defines inbound-rtp metrics a browser viewer can read to measure its own buffering and decode delay: jitterBufferDelay, jitterBufferEmittedCount, jitterBufferTargetDelay, jitterBufferMinimumDelay and totalProcessingDelay. roundTripTime on remote-inbound-rtp stats is a sender-side metric: it maps to the local outbound RTP stream and is computed from RTCP Receiver Reports. It is therefore available on the sending side (MediaMTX), not in a receive-only browser. A viewer can read RTT from candidate-pair currentRoundTripTime (STUN checks) or remote-outbound-rtp roundTripTime.
+- **Source:** W3C: Identifiers for WebRTC's Statistics API — <https://www.w3.org/TR/webrtc-stats/>
+- **Evidence:** jitterBufferDelay: 'Sum of time each audio sample or video frame takes from ingest to emit timestamp'; totalProcessingDelay: 'Sum of time each audio sample or video frame takes from first RTP packet reception to decoding completion'; roundTripTime: 'Estimated round trip time for this SSRC based on RTCP timestamps in Receiver Report, measured in seconds'.
+- **Original claim (before verification):** The W3C WebRTC Statistics API (Candidate Recommendation Draft, 25 Sep 2025) defines receiver-side metrics for measuring viewer buffering and decode delay: jitterBufferDelay, jitterBufferEmittedCount, jitterBufferTargetDelay and totalProcessingDelay on inbound RTP stats, and roundTripTime on remote-inbound stats.
+- **Verifier note:** Status line: 'W3C Candidate Recommendation Draft 25 September 2025'. The jitterBufferDelay and totalProcessingDelay definitions match. RTCRemoteInboundRtpStreamStats.localId 'is used for looking up the local RTCOutboundRtpStreamStats object for the same SSRC', so it describes media this endpoint sends. The original claim put it among viewer-side metrics, which is wrong for a recvonly viewer.
+
+### K-13
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** webrtcsink, GStreamer
+- **Fact:** The GStreamer webrtcsink (gst-plugins-rs) docs give no latency figure. Its documented defaults are congestion-control=gcc, do-fec=true, do-retransmission=true, enable-mitigation-modes=downsampled+downscaled, min-bitrate=1000, start-bitrate=2048000 and max-bitrate=8192000 bps.
+- **Source:** GStreamer docs: webrtcsink (rswebrtc) — <https://gstreamer.freedesktop.org/documentation/rswebrtc/webrtcsink.html>
+- **Evidence:** Element: 'An element that can be used to serve media streams to multiple consumers through WebRTC' using a configurable signaller. Property defaults as stated; the page has no latency figure.
+
+### K-14
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC (reference figure only)
+- **Fact:** Cloudflare Stream (a third-party CDN; reference only, not the PACSCORDER stack) documents sub-second WebRTC: WHEP playback 'with less than 500 milliseconds of latency'.
+- **Source:** Cloudflare Stream docs: WebRTC (WHIP/WHEP) — <https://developers.cloudflare.com/stream/webrtc-beta/>
+- **Evidence:** 'ultra-low latency (sub-second) live streaming (using WHIP) and playback (using WHEP)'; viewers can 'watch the broadcast in their browsers with less than 500 milliseconds of latency.' This applies to Cloudflare's own network and does not cover MediaMTX on a Pi.
+
+### K-15
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** RTMP output to YouTube
+- **Fact:** YouTube Live offers three latency modes. Normal has no stated figure and supports all resolutions and features. Low: 'Most viewers ... will experience latency less than 10 seconds', no 4K. Ultra-low: 'Most viewers ... will experience latency less than 5 seconds', no 4K, and more viewer buffering.
+- **Source:** YouTube Help: Understand live streaming latency — <https://support.google.com/youtube/answer/7444635?hl=en>
+- **Evidence:** Latency is defined as 'the delay between your camera capturing an event and the event being displayed to viewers.' Low: 'latency less than 10 seconds'; Ultra-low: 'latency less than 5 seconds', 'may increase the chances that your viewers get buffering.'
+
+### K-16
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** RTMP output to YouTube
+- **Fact:** The YouTube Live Streaming API's contentDetails.latencyPreference accepts normal, low and ultraLow. ultraLow does not support closed captions or resolutions above 1080p.
+- **Source:** YouTube Live Streaming API: LiveBroadcasts resource — <https://developers.google.com/youtube/v3/live/docs/liveBroadcasts>
+- **Evidence:** ultraLow: 'An ultra-low-latency stream further reduces the time it takes for video to be visible to viewers, making interaction with viewers easier, but ultra-low latency does not support closed captions, or resolutions higher than 1080p.'
+
+### K-17
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** live encode (shared RTMP+WebRTC), RTMP output to YouTube
+- **Fact:** YouTube's live encoder settings recommend a 2-second keyframe frequency ('Do not exceed 4 seconds') and CBR. Under advanced settings they recommend '2 B-Frames', '1 Reference Frame' and 'CABAC'. The B-frame recommendation conflicts with the B-frame-free stream WebRTC requires (K-04).
+- **Source:** YouTube Help: Choose live encoder settings, bitrates, and resolutions — <https://support.google.com/youtube/answer/2853702?hl=en>
+- **Evidence:** Keyframe frequency: 'Recommended 2 seconds' / 'Do not exceed 4 seconds'; Bitrate encoding 'CBR'; Advanced: 'Progressive Scan', '2 B-Frames', '1 Reference Frame', 'CABAC'. Audio: 'AAC or MP3'.
+
+### K-18
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** RTMP output to YouTube, latency target <1 s
+- **Fact:** REASONING: YouTube documents no sub-second mode. Its lowest mode, ultra-low, says only that most viewers see latency under 5 s; that is an upper bound for most viewers, not a minimum. YouTube also says the player's read-ahead buffer is the main source of stream latency. The RTMP-to-YouTube output therefore cannot be planned or claimed to meet the under-1 s target, and encoder settings on PACSCORDER cannot remove the player-side buffer.
+- **Source:** Reasoning from YouTube Help latency page — <https://support.google.com/youtube/answer/7444635?hl=en>
+- **Evidence:** Input: K-15 (ultra-low latency 'less than 5 seconds'). 5 s is more than 5x the 1 s target, and the encoder cannot change this, because the delay is set by YouTube's player buffer.
+- **Original claim (before verification):** REASONING: the RTMP-to-YouTube output cannot meet the under-1 s camera-to-viewer target. YouTube's lowest documented mode, ultra-low, states under 5 s for most viewers.
+- **Verifier note:** Two fixes. (1) Arithmetic: 5 s is exactly 5x the 1 s target, not 'more than 5x'. (2) Logic: '<5 s for most viewers' does not prove sub-second is impossible; what is documented is that no mode promises it. The player-buffer argument is now backed by YouTube's own text. The conclusion (don't count on <1 s via YouTube) stands.
+
+### K-19
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** LL-HLS
+- **Fact:** Apple's Low-Latency HLS documentation gives no numeric latency. It says LL-HLS 'lowers video latencies over public networks into the range of standard television broadcasts', and its example uses 200 ms Partial Segments with 6 s parent segments.
+- **Source:** Apple Developer: Enabling Low-Latency HTTP Live Streaming (HLS) — <https://developer.apple.com/documentation/http-live-streaming/enabling-low-latency-http-live-streaming-hls>
+- **Evidence:** 'The new low-latency mode lowers video latencies over public networks into the range of standard television broadcasts.' 'While regular Media Segments might be 6 seconds each, an example Partial Segment might be only 200 milliseconds.' Low-latency extensions are in HLS 'revision 7 and later'.
+
+### K-20
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** LL-HLS, HLS
+- **Fact:** The HLS 2nd Edition draft (draft-pantos-hls-rfc8216bis-22) requires PART-HOLD-BACK to be at least 2x the Part Target Duration and recommends at least 3x (SHOULD). HOLD-BACK must be at least 3x the Target Duration.
+- **Source:** draft-pantos-hls-rfc8216bis-22: HTTP Live Streaming 2nd Edition — <https://datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis>
+- **Verifier's best source:** <https://www.ietf.org/archive/id/draft-pantos-hls-rfc8216bis-22.txt>
+- **Evidence:** PART-HOLD-BACK: 'the server-recommended minimum distance from the end of the Playlist at which clients should begin to play ... when playing in Low-Latency Mode. Its value MUST be at least twice the Part Target Duration. Its value SHOULD be at least three times the Part Target Duration.' HOLD-BACK: 'MUST be at least three times the Target Duration.' Datatracker: rev 22, intended status Informational.
+
+### K-21
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX v1.21.1, LL-HLS, HLS
+- **Fact:** MediaMTX v1.21.1 (latest release, 2026-09-20) defaults to hlsVariant: lowLatency, hlsSegmentDuration: 1s, hlsPartDuration: 200ms and hlsSegmentCount: 7. The config notes that segment count 'doesn't influence latency', that segments stretch to include at least one IDR frame, and that 'A player usually puts 3 parts in a buffer'.
+- **Source:** MediaMTX mediamtx.yml (tag v1.21.1) — <https://github.com/bluenviron/mediamtx/blob/v1.21.1/mediamtx.yml>
+- **Evidence:** '# Their number doesn't influence latency.' 'hlsSegmentCount: 7'; '# A player usually puts 3 segments in a buffer before reproducing the stream. # The final segment duration is also influenced by the interval between IDR frames, since the server changes the duration in order to include at least one IDR frame in each segment.' 'hlsSegmentDuration: 1s'; '# A player usually puts 3 parts in a buffer before reproducing the stream.' 'hlsPartDuration: 200ms'. Release tag v1.21.1 published 2026-09-20 (GitHub releases API).
+
+### K-22
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX v1.21.1, LL-HLS
+- **Fact:** gohlslib v2.4.5 is the HLS library MediaMTX v1.21.1 depends on (go.mod at tag v1.21.1 and on main). In Low-Latency mode it advertises PART-HOLD-BACK = 2.5 x the Part Target Duration, which gohlslib sets to the longest actual part in the playlist. hlsPartDuration (200 ms by default) is a minimum, so PART-HOLD-BACK is at least 500 ms, and exactly 500 ms only when every part lasts 200 ms. 2.5x meets the draft's 2x MUST but not its 3x SHOULD (K-20). gohlslib emits no HOLD-BACK, so the spec's implied 3x Target Duration applies.
+- **Source:** bluenviron/gohlslib muxer_stream.go (v2.4.5) — <https://github.com/bluenviron/gohlslib/blob/v2.4.5/muxer_stream.go>
+- **Evidence:** Line 468: 'partHoldBack := (s.partTargetDuration * 25) / 10' then 'ServerControl = &playlist.MediaServerControl{CanBlockReload: true, PartHoldBack: &partHoldBack, ...}'. MediaMTX go.mod (main): 'github.com/bluenviron/gohlslib/v2 v2.4.5'.
+- **Original claim (before verification):** gohlslib v2.4.5 is the HLS library MediaMTX depends on (go.mod on MediaMTX main as fetched 2026-10-08; not separately confirmed at the v1.21.1 tag). In Low-Latency mode it advertises PART-HOLD-BACK = 2.5 x the part target duration, which is 500 ms with MediaMTX's 200 ms default parts. That meets the draft's 2x MUST but not its 3x SHOULD (K-20).
+- **Verifier note:** Line 468: 'partHoldBack := (s.partTargetDuration * 25) / 10'. ServerControl sets only CanBlockReload, PartHoldBack and CanSkipUntil. partTargetDuration() returns the maximum part.getDuration() across segments and the next segment's parts. The v1.21.1 tag go.mod has 'github.com/bluenviron/gohlslib/v2 v2.4.5', which settles the 'not separately confirmed' caveat.
+
+### K-23
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** LL-HLS viewer (browser)
+- **Fact:** hls.js (the library MediaMTX's docs use for browser HLS playback) defaults to lowLatencyMode: true, which starts live streams at the playlist's PART-HOLD-BACK instead of HOLD-BACK. liveSyncDurationCount defaults to 3 target durations.
+- **Source:** hls.js API.md — <https://github.com/video-dev/hls.js/blob/master/docs/API.md>
+- **Evidence:** lowLatencyMode (default: true): 'Enable Low-Latency HLS part playlist and segment loading, and start live streams at playlist PART-HOLD-BACK rather than HOLD-BACK.' liveSyncDurationCount (default: 3): 'edge of live delay, expressed in multiple of EXT-X-TARGETDURATION'. maxLiveSyncPlaybackRate default 1.
+
+### K-24
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX, LL-HLS, Safari/iOS viewers
+- **Fact:** MediaMTX's configuration says HTTPS (hlsEncryption) is required for Low-Latency HLS to work correctly on Apple devices.
+- **Source:** MediaMTX mediamtx.yml (tag v1.21.1) — <https://github.com/bluenviron/mediamtx/blob/v1.21.1/mediamtx.yml>
+- **Evidence:** '# Enable HTTPS. # This is required for Low-Latency HLS to function correctly on Apple devices. hlsEncryption: false'.
+
+### K-25
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX, LL-HLS, HLS
+- **Fact:** Historical only: the pre-rename docs (rtsp-simple-server v0.21.6, March 2023) put HLS latency at 1-15 s depending on segment duration and at 500 ms-3 s with the Low-Latency variant. Current MediaMTX docs no longer state these figures.
+- **Source:** pkg.go.dev: github.com/aler9/rtsp-simple-server v0.21.6 README — <https://pkg.go.dev/github.com/aler9/rtsp-simple-server>
+- **Verifier's best source:** <https://github.com/bluenviron/mediamtx/blob/v0.21.6/README.md>
+- **Evidence:** 'in HLS, latency is introduced since a client must wait for the server to generate segments before downloading them. This latency amounts to 1-15secs depending on the duration of each segment, and to 500ms-3s if the Low-Latency variant is enabled.' The figure is not present in current docs/4-read/06-hls.md.
+
+### K-26
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** LL-HLS, HLS, latency target <1 s
+- **Fact:** REASONING: LL-HLS through MediaMTX defaults is unlikely to reliably reach under 1 s glass-to-glass, and regular HLS cannot. LL-HLS: a player that always stays at least PART-HOLD-BACK (at least 0.5 s, K-22) behind the playlist end has to run at least PART-HOLD-BACK plus one part duration (at least 0.2 s, K-21) behind capture. The playlist end only advances when a part completes. Adding about 33 ms of capture readout (K-34/K-35) gives about 0.73 s before encode, blocking-reload and part-fetch HTTP round trips, player buffer, decode and render. Regular HLS: segments are at least 1 s and are stretched to the IDR interval (2 s with the bcm2835-codec default GOP of 60 at 30 fps, K-30). The Target Duration is then at least 2 s, and HOLD-BACK must be at least 3x the Target Duration (K-20), so at least 6 s; hls.js liveSyncDurationCount 3 gives the same. Even a 1 s GOP gives at least 3 s.
+- **Source:** Reasoning from MediaMTX config, gohlslib and HLS spec — <https://github.com/bluenviron/gohlslib/blob/v2.4.5/muxer_stream.go>
+- **Evidence:** LL-HLS inputs: PART-HOLD-BACK of 0.5 s (K-22), which hls.js uses as its start point (K-23), plus at least one 0.2 s part that must be complete before it is published (K-21), plus 33 ms capture of one frame at 30p (K-34), plus encode time, plus HTTP round trips and decode. Lower bound before network and decoder: about 0.73 s or more. Regular HLS: 3 x 1 s segments are buffered (K-21). Segments are also stretched to the IDR interval, which is 2 s with the bcm2835-codec default GOP of 60 at 30 fps (K-29). That gives about 6 s or more.
+- **Original claim (before verification):** REASONING: LL-HLS through MediaMTX defaults is unlikely to reliably reach under 1 s glass-to-glass. Regular (non-LL) HLS cannot get under 1 s.
+- **Verifier note:** Arithmetic checks: 0.5 + 0.2 + 0.033 = 0.733 s. Fixes: the GOP-60 input is K-30, not K-29. PART-HOLD-BACK is at least, not exactly, 0.5 s (K-22). The 'PART-HOLD-BACK plus one part' bound assumes the player always honours PART-HOLD-BACK; how hls.js's latency controller estimates the live edge was not verified. The regular-HLS bound now uses the spec's HOLD-BACK MUST, which is a documented input.
+
+### K-27
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM5 software encode (libx264/x264enc)
+- **Fact:** x264's 'zerolatency' tune sets rc.i_lookahead=0, i_sync_lookahead=0, i_bframe=0, b_sliced_threads=1, b_vfr_input=0 and rc.b_mb_tree=0. The CLI help lists the equivalent as '--bframes 0 --force-cfr --no-mbtree --sync-lookahead 0 --sliced-threads --rc-lookahead 0'.
+- **Source:** x264 source: common/base.c and x264.c (master) — <https://code.videolan.org/videolan/x264/-/blob/master/common/base.c>
+- **Evidence:** base.c: 'else if( len == 11 && !strncasecmp( tune, "zerolatency", 11 ) ) { param->rc.i_lookahead = 0; param->i_sync_lookahead = 0; param->i_bframe = 0; param->b_sliced_threads = 1; param->b_vfr_input = 0; param->rc.b_mb_tree = 0; }'. x264.c help: '--sliced-threads  Low-latency but lower-efficiency threading'.
+
+### K-28
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM5 software encode (libx264/x264enc)
+- **Fact:** x264 buffers frames.i_delay frames before output. This is the B-frame count (raised to rc_lookahead if MB-tree or VBV is on), plus frame threads minus 1, plus sync_lookahead, plus vfr_input. Frame threads are 1 when sliced threads are on. With zerolatency every term is 0, so no frames are held back; GStreamer x264enc then reports a latency of 0 x frame duration.
+- **Source:** x264 source: encoder/encoder.c (master); GStreamer 1.26 gstx264enc.c — <https://code.videolan.org/videolan/x264/-/blob/master/encoder/encoder.c>
+- **Evidence:** encoder.c: 'h->frames.i_delay = h->param.i_bframe; if( h->param.rc.b_mb_tree || h->param.rc.i_vbv_buffer_size ) h->frames.i_delay = X264_MAX( h->frames.i_delay, h->param.rc.i_lookahead ); ... h->frames.i_delay += h->i_thread_frames - 1; h->frames.i_delay += h->param.i_sync_lookahead; h->frames.i_delay += h->param.b_vfr_input;' and 'h->i_thread_frames = h->param.b_sliced_threads ? 1 : h->param.i_threads;'. gstx264enc.c (1.26): latency = gst_util_uint64_scale_ceil(GST_SECOND * fps_d, x264_encoder_maximum_delayed_frames(), fps_n). Note: this covers buffered frames only; the compute time per frame is not zero.
+
+### K-29
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** CM5 software encode (x264enc), GStreamer 1.26.2
+- **Fact:** In GStreamer 1.26 x264enc, the element's property-default string (bframes=0, rc-lookahead=40, threads=0, sliced-threads=false and so on) is applied only when speed-preset is None (0) and no tune is set. speed-preset defaults to medium (6), so by default x264enc actually runs x264's medium preset (x264 defaults: 3 B-frames, rc-lookahead 40, MB-tree on), unless downstream caps force a profile such as baseline. Only properties the user sets explicitly are layered on top. Documented property defaults are speed-preset=medium, tune=none, bframes=0, rc-lookahead=40, sliced-threads=false and threads=0 (auto). The bframes=0 property default therefore does NOT guarantee a B-frame-free stream. Set tune=zerolatency, set bframes=0 explicitly, or force profile=baseline in caps.
+- **Source:** GStreamer 1.26 gst-plugins-ugly/ext/x264/gstx264enc.c; GStreamer docs: x264enc — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-ugly/ext/x264/gstx264enc.c>
+- **Evidence:** '/* if no preset nor tuning, use property defaults */ if (!encoder->speed_preset && !encoder->tunings->len) { ... x264enc_defaults ... }' then '/* apply user-set options */'. Defines: ARG_THREADS_DEFAULT 0 ('auto' which is 1.5x number of CPU cores), ARG_BFRAMES_DEFAULT 0, ARG_SLICED_THREADS_DEFAULT FALSE, ARG_RC_LOOKAHEAD_DEFAULT 40, ARG_SPEED_PRESET_DEFAULT 6 ('medium'), ARG_TUNE_DEFAULT 0. The x264enc docs also suggest tune=zerolatency as a fix for pipeline stalls caused by encoder latency.
+- **Original claim (before verification):** In GStreamer 1.26 x264enc, setting a speed-preset or tune means the element's own property defaults (e.g. rc-lookahead=40) are not applied. Only properties the user sets explicitly are layered on top afterwards. The element defaults are speed-preset=medium, tune=none, bframes=0, rc-lookahead=40, sliced-threads=false and threads=0 (auto).
+- **Verifier note:** Source: ARG_SPEED_PRESET_DEFAULT 6 ('medium' preset - matches x264 CLI default); gst_x264_enc_init sets encoder->speed_preset = ARG_SPEED_PRESET_DEFAULT; x264_param_default_preset() is called with 'medium'. The x264enc_defaults branch is guarded by 'if (!encoder->speed_preset && !encoder->tunings->len)', which is false by default. Property setters append to option_string only when set. x264_param_apply_profile is applied from downstream caps (line 1865). x264 base.c default i_bframe=3. The original claim implied the element defaults apply unless a preset or tune is set; in fact a preset is always set by default.
+
+### K-30
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4 (BCM2711) hardware encode, live encode (shared RTMP+WebRTC)
+- **Fact:** In rpi-6.18.y, the bcm2835-codec H.264 encoder (CM4 hardware path) limits V4L2_CID_MPEG_VIDEO_B_FRAMES to min=0, max=0, so it never emits B-frames. Its defaults are profile High, level 4.0, GOP_SIZE/H264_I_PERIOD 60, and maximum width/height 1920.
+- **Source:** raspberrypi/linux rpi-6.18.y: drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** 'v4l2_ctrl_new_std(hdl, &bcm2835_codec_ctrl_ops, V4L2_CID_MPEG_VIDEO_B_FRAMES, 0, 0, 1, 0);' The level menu default is V4L2_MPEG_VIDEO_H264_LEVEL_4_0 and the profile menu default is V4L2_MPEG_VIDEO_H264_PROFILE_HIGH. 'V4L2_CID_MPEG_VIDEO_GOP_SIZE, 0, 0x7FFFFFFF, 1, 60'; '#define MAX_W_CODEC 1920' / '#define MAX_H_CODEC 1920'. Comment: 'the MMAL encoder never produces I-frames that aren't IDR frames'.
+
+### K-31
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4 (BCM2711) hardware encode, GStreamer 1.26.2 v4l2h264enc
+- **Fact:** The bcm2835-codec encoder implements V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME by setting MMAL_PARAMETER_VIDEO_REQUEST_I_FRAME. GStreamer 1.26 v4l2videoenc issues that control for frames flagged as force-keyframe, so an IDR can be requested on demand, e.g. when a new viewer joins.
+- **Source:** bcm2835-v4l2-codec.c (rpi-6.18.y); GStreamer 1.26 gstv4l2videoenc.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** Driver: 'case V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME: { u32 mmal_bool = 1; ... vchiq_mmal_port_parameter_set(..., MMAL_PARAMETER_VIDEO_REQUEST_I_FRAME, &mmal_bool, ...)'. gstv4l2videoenc.c: 'if (GST_VIDEO_CODEC_FRAME_IS_FORCE_KEYFRAME (frame)) { struct v4l2_control ctrl = { V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME, 1 };'.
+
+### K-32
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4 (BCM2711) hardware encode, GStreamer 1.26.2 v4l2h264enc
+- **Fact:** GStreamer 1.26 v4l2videoenc reports encoder latency as min_buffers x frame duration, and a FIXME comment admits this is not a true latency. In rpi-6.18.y the bcm2835-codec exposes V4L2_CID_MIN_BUFFERS_FOR_CAPTURE only on the decoder, not the encoder. As a result v4l2h264enc on BCM2711 reports 0 latency to the pipeline.
+- **Source:** GStreamer 1.26 gstv4l2videoenc.c; bcm2835-v4l2-codec.c (rpi-6.18.y); raspberrypi/linux issue #7313 — <https://github.com/raspberrypi/linux/issues/7313>
+- **Evidence:** gstv4l2videoenc.c: '/* FIXME This may not be entirely correct, as encoder may keep some observation without delaying the encoding. ... */ latency = self->v4l2capture->min_buffers * self->v4l2capture->duration;'. Driver: V4L2_CID_MIN_BUFFERS_FOR_CAPTURE is only added under 'case DECODE:'. Issue #7313 log: 'gst_v4l2_video_enc_decide_allocation:<v4l2h264enc0> Setting latency: 0:00:00.000000000'.
+
+### K-33
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM4 (BCM2711) hardware encode
+- **Fact:** In raspberrypi/linux issue #7313 (April 2026), Raspberry Pi engineer 6by9 states that the Pi hardware H.264 encoder holds no extra buffers because it has no B-frame support, and that its latency depends on the frame's macroblock count: about 10 ms for 720p on a Pi 4, about 40 ms for 1080p on Pi 0-3 (pipelined, so 30 fps is still reached). The reporter measured median 9.7 ms, p95 14.3 ms and max 18.5 ms at 1280x720@60 on a Pi 4B.
+- **Source:** raspberrypi/linux issue #7313: bcm2835-codec encoder does not expose V4L2_CID_MIN_BUFFERS_FOR_CAPTURE — <https://github.com/raspberrypi/linux/issues/7313>
+- **Evidence:** 6by9: 'The encoder hardware on the Pi has no requirements for additional buffers as it has no support for B-frames. The encoding latency of the hardware will be dictated by the number of macroblocks in the frame. For 720p on a Pi4 it will be about 10ms. Pi0-3 will be slightly longer as the clock is lower. 1080p on Pi0-3 will take about 40ms as motion estimation and CABAC are pipelined'. Reporter: 'median: 9.7 ms mean: 10.9 ms p95: 14.3 ms max: 18.5 ms' over 1486 frames at 1280x720@60fps, sink QBUF to src DQBUF, on 'Raspberry Pi 4 Mod. B'. A figure for 1080p on BCM2711 is not given.
+
+### K-34
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4 capture (TC358743 via Unicam)
+- **Fact:** On CM4, the bcm2835-unicam capture driver (rpi-6.18.y) timestamps each buffer at Frame Start (ktime_get_ns, CLOCK_MONOTONIC) and only completes it at Frame End. A captured frame therefore reaches userspace at least one frame's readout time after its first line. If no buffer is queued, the frame goes to a dummy buffer and is dropped, not queued.
+- **Source:** raspberrypi/linux rpi-6.18.y: drivers/media/platform/bcm2835/bcm2835-unicam.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/platform/bcm2835/bcm2835-unicam.c>
+- **Evidence:** 'if (ista & UNICAM_FSI) { /* Timestamp is to be when the first data byte was captured, aka frame start. */ ts = ktime_get_ns();' ... 'Look for either the Frame End interrupt or the Packet Capture status to signal a frame end.' then unicam_process_buffer_complete() calls vb2_buffer_done(..., VB2_BUF_STATE_DONE). 'If no buffer is available, use a dummy buffer to dump out frames until we get a new buffer'. 'q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC'.
+
+### K-35
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM5 capture (TC358743 via RP1 CFE)
+- **Fact:** On CM5, the RP1 CFE capture driver (rpi-6.18.y) also timestamps at Frame Start and completes the buffer in its end-of-frame handler, with min_queued_buffers=1. Capture therefore also costs about one frame's readout time on CM5.
+- **Source:** raspberrypi/linux rpi-6.18.y: drivers/media/platform/raspberrypi/rp1_cfe/cfe.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/platform/raspberrypi/rp1_cfe/cfe.c>
+- **Evidence:** FS handler: 'node->ts = ktime_get_ns();' ... 'node->cur_frm->vb.vb2_buf.timestamp = node->ts;'. 'static void cfe_eof_isr_handler(struct cfe_node *node) { ... if (node->cur_frm) cfe_process_buffer_complete(node, VB2_BUF_STATE_DONE);'. 'q->min_queued_buffers = 1;' 'q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;'.
+
+### K-36
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4 capture, CM5 capture, V4L2
+- **Fact:** The V4L2 streaming-I/O spec defines incoming and outgoing buffer queues as FIFOs, and VIDIOC_DQBUF returns the oldest filled buffer. REASONING: each filled capture buffer still waiting in the outgoing queue adds one frame period (33.3 ms at 30p) of latency.
+- **Source:** Linux kernel docs: userspace-api/media/v4l/mmap.rst (rpi-6.18.y) — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/Documentation/userspace-api/media/v4l/mmap.rst>
+- **Evidence:** 'Conceptually streaming drivers maintain two buffer queues, an incoming and an outgoing queue. ... The queues are organized as FIFOs, buffers will be output in the order enqueued in the incoming FIFO, and were captured in the order dequeued from the outgoing FIFO.' 'By default VIDIOC_DQBUF blocks when no buffer is in the outgoing queue.' The per-buffer cost is reasoning: 1/30 s = 33.3 ms.
+
+### K-37
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer 1.26.2 v4l2src, CM4 capture, CM5 capture
+- **Fact:** GStreamer 1.26 v4l2src always reports itself as live, with min latency = one frame duration (half that for alternate-field interlace) and max latency = buffer-pool depth x frame duration. The pool minimum (GST_V4L2_MIN_BUFFERS) is 2, or 4 for alternate interlace. Output timestamps are the pipeline clock 'now' minus the delay since the driver's frame-start timestamp, or minus one frame if driver timestamps are rejected. The v4l2src docs page does not document do-timestamp.
+- **Source:** GStreamer 1.26 gst-plugins-good/sys/v4l2/gstv4l2src.c, gstv4l2object.h — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/sys/v4l2/gstv4l2src.c>
+- **Evidence:** '/* min latency is the time to capture one frame/field */ min_latency = gst_util_uint64_scale_int (GST_SECOND, fps_d, fps_n);' '/* max latency is total duration of the frame buffer */ ... max_latency = num_buffers * min_latency;' '/* we are always live, the min latency is 1 frame and the max latency is the complete buffer of frames. */'. Timestamping: 'delay = gstnow - timestamp;' ... 'timestamp = abs_time - base_time; /* adjust for delay in the device */ if (timestamp > delay) timestamp -= delay;' with fallback '/* we assume 1 frame/field latency otherwise */'. gstv4l2object.h: GST_V4L2_MIN_BUFFERS = 4 if ALTERNATE else 2.
+
+### K-38
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** TC358743, CM4 capture, CM5 capture
+- **Fact:** The tc358743 driver in rpi-6.18.y sets the bridge's FIFOCTL trigger level to 374. A driver comment says this works for 720p60 (2 lanes) and 1080p60 (4 lanes) at 594 Mbps and for most modes at 972 Mbps. The driver states no latency figure for the bridge, and no public source checked documents the TC358743's internal buffering latency.
+- **Source:** raspberrypi/linux rpi-6.18.y: drivers/media/i2c/tc358743.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/i2c/tc358743.c>
+- **Evidence:** 'Ideally the FIFO trigger level should be set based on the input and output data rates, but the calculations required are buried in Toshiba's register settings spreadsheet. A value of 16 works with a 594Mbps data rate for 720p60 (using 2 lanes) and 1080p60 (using 4 lanes) ... A value of 374 works with both those modes at 594Mbps, and with most modes on 972Mbps.' 'state->pdata.fifo_level = 374;' 'i2c_wr16(sd, FIFOCTL, pdata->fifo_level);'.
+
+### K-39
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM5 software encode, rpicam-vid
+- **Fact:** The Raspberry Pi docs say that on Raspberry Pi 5, rpicam-vid's --low-latency option reduces encoding latency at slightly lower coding efficiency, because 'B frames and arithmetic coding will no longer be used'. The same docs say Pi 5 software encoders generally have longer latency than the old hardware encoders. The docs do not say whether rpicam-apps can drive a TC358743.
+- **Source:** Raspberry Pi documentation: Camera software — <https://www.raspberrypi.com/documentation/computers/camera_software.html>
+- **Evidence:** 'On a Raspberry Pi 5, the --low-latency option reduces the encoding latency, which might be beneficial for real-time streaming applications, in return for (slightly) less good coding efficiency (for example, B frames and arithmetic coding will no longer be used).' 'Raspberry Pi 5 uses software video encoders. These generally output frames with a longer latency than the old hardware encoders' (context D-32/D-35). The TC358743 section documents V4L2 DV-timings ioctls only.
+
+### K-40
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** WebRTC audio (Opus)
+- **Fact:** Opus frames can be 2.5, 5, 10, 20, 40 or 60 ms (RFC 6716). GStreamer opusenc defaults to frame-size=20 ms and audio-type=generic; a restricted-lowdelay audio type is also offered.
+- **Source:** GStreamer docs: opusenc; RFC 6716 — <https://gstreamer.freedesktop.org/documentation/opus/opusenc.html>
+- **Evidence:** opusenc frame-size: 'The duration of an audio frame, in ms', values 2.5/5/10/20/40/60, default 20. audio-type default generic; options voice, restricted-lowdelay. RFC 6716: 'Opus can encode frames of 2.5, 5, 10, 20, 40, or 60 ms.' CELT layer 'requires an additional 2.5 ms look-ahead'.
+
+### K-41
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX v1.21.1, WebRTC, network/ICE
+- **Fact:** MediaMTX v1.21.1 defaults to webrtcLocalUDPAddress ':8189' (UDP/ICE listener) and webrtcLocalTCPAddress '' (disabled). The config explains TCP is off by default because it 'is less efficient than UDP and introduces a progressive delay when network is congested'.
+- **Source:** MediaMTX mediamtx.yml (tag v1.21.1) — <https://github.com/bluenviron/mediamtx/blob/v1.21.1/mediamtx.yml>
+- **Evidence:** '# Address of a UDP/ICE listener that will receive connections. # Use a blank string to disable. webrtcLocalUDPAddress: :8189' '# Address of a TCP/ICE listener that will receive connections. # This is disabled by default since TCP is less efficient than UDP and # introduces a progressive delay when network is congested. webrtcLocalTCPAddress: ""' (context F-44/F-45).
+
+### K-42
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX v1.21.1, WebRTC LAN viewers, WebRTC internet viewers
+- **Fact:** MediaMTX advertises the IPs of its network interfaces to WebRTC clients by default (webrtcIPsFromInterfaces: true). For LAN clients, the docs say to put the server's LAN address in webrtcAdditionalHosts; for internet clients, its public IP or DNS name. webrtcICEServers2 (STUN/TURN) is 'Needed only when local listeners can't be reached by clients'.
+- **Source:** MediaMTX docs: WebRTC-specific features (Solving WebRTC connectivity issues); mediamtx.yml v1.21.1 — <https://mediamtx.org/docs/features/webrtc-specific-features>
+- **Verifier's best source:** <https://github.com/bluenviron/mediamtx/blob/main/docs/2-features/25-webrtc-specific-features.md>
+- **Evidence:** 'Make sure that webrtcAdditionalHosts includes your public IPs, that are IPs that can be used by clients to reach the server. If clients are on the same LAN as the server, add the LAN address of the server. If clients are coming from the internet, add the public IP address of the server, or alternatively a DNS name'. Config: 'webrtcIPsFromInterfaces: true'; '# ICE servers. Needed only when local listeners can't be reached by clients. # STUN servers allow to obtain and share the public IP of the server. # TURN/TURNS servers force all traffic through them.' Container case: 'route all incoming UDP packets on port 8189 to the server'.
+
+### K-43
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX, WebRTC internet viewers
+- **Fact:** MediaMTX lists four WebRTC connection methods: static UDP port (default), static TCP port, random UDP port with STUN hole punching, and a TURN relay. For coturn it recommends TCP transport only, and notes the TURN server can be configured as client-only.
+- **Source:** MediaMTX docs: WebRTC-specific features — <https://mediamtx.org/docs/features/webrtc-specific-features>
+- **Verifier's best source:** <https://github.com/bluenviron/mediamtx/blob/main/docs/2-features/25-webrtc-specific-features.md>
+- **Evidence:** Methods: '1. using a static UDP server port (webrtcLocalUDPAddress must be filled, it is by default) 2. using a static TCP server port (webrtcLocalTCPAddress must be filled, it is not by default) 3. using a random UDP server port and UDP client port with the hole-punching technique 4. using a relay (TURN server) that exposes a TCP port'. Coturn: 'enable the TCP transport only'. Example 'url: turn:REPLACE_WITH_COTURN_IP:3478?transport=tcp'.
+
+### K-44
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** MediaMTX, WebRTC, live path
+- **Fact:** MediaMTX documents that it favours real-time delivery over reliability: most protocols run over UDP so late packets can be dropped, and outgoing packets go through a circular buffer (writeQueueSize, default 512) that drops packets when full and logs 'reader is too slow'.
+- **Source:** MediaMTX docs: Decrease packet loss (docs/2-features/28-decrease-packet-loss.md) — <https://github.com/bluenviron/mediamtx/blob/main/docs/2-features/28-decrease-packet-loss.md>
+- **Evidence:** 'makes use of a series of protocols and techniques which try to preserve the real-time aspect of streams and minimize latency at cost of losing packets in transmit ... most protocols are built on UDP ... specifically picked because it allows dropping late packets in case of network congestion. there's a circular buffer that stores outgoing packets and drops packets if full.' mediamtx.yml: 'writeQueueSize: 512'.
+
+### K-45
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, CM5, WebRTC, latency target <1 s
+- **Fact:** REASONING (labelled budget, not a measurement): for a CM4 1080p30 WebRTC/WHEP viewer on a LAN, the documented or extrapolated terms are about 56 ms typical and about 75 ms worst case. They are: capture readout of about 33.3 ms (K-34); hardware encode of about 23 ms (the 720p Pi 4 figure of about 10 ms scaled by macroblocks, 8160/3600 = 2.27); and zero frames waiting in V4L2/GStreamer queues, where each waiting frame would add 33.3 ms (K-36). The reporter's 720p p95 14.3 ms and max 18.5 ms scale to about 32 and 42 ms, which gives the worst case. That leaves about 925-945 ms of the 1 s target for undocumented terms: HDMI source/ATEM, TC358743, any pixel-format conversion, MediaMTX relay, LAN, browser jitter buffer, decode and render. The encode estimate assumes the live encode has the CM4 hardware encoder to itself, but PACSCORDER's recording encode shares it. On CM5 the encode term is unknown until per-frame x264 time on BCM2712 is measured.
+- **Source:** Reasoning from K-28, K-33, K-34, K-35, K-36 — <https://github.com/raspberrypi/linux/issues/7313>
+- **Evidence:** Inputs: (a) capture from frame start to frame end is about 1 frame at 30p = 33.3 ms (K-34/K-35); (b) zero extra frames waiting in V4L2/GStreamer queues if the consumer keeps up, each queued frame adding 33.3 ms (K-36); (c) CM4 hardware encode at 1080p: 10 ms at 720p (3600 macroblocks, K-33) x 8160/3600 macroblocks = about 23 ms (extrapolated, unverified); (d) x264 zerolatency holds back 0 frames (K-28), but its per-frame compute time on BCM2712 is undocumented; (e) MediaMTX relay, LAN transit, browser jitter buffer and decode/render are undocumented here. 33.3 + 23 = about 56 ms documented or extrapolated. Not a measurement: glass-to-glass must be tested.
+- **Original claim (before verification):** REASONING (labelled budget): the documented or extrapolated contributions for a CM4 1080p30 WebRTC/WHEP viewer on a LAN add up to about 60 ms, leaving about 940 ms of the 1 s target for the undocumented parts (HDMI source, TC358743, MediaMTX relay, network, browser jitter buffer, decode and render). On CM5 the encode term is unknown until per-frame x264 time is measured.
+- **Verifier note:** Arithmetic re-checked. 720p = 80x45 = 3600 MBs; 1080p coded = 120x68 = 8160 MBs; ratio 2.267. 10 ms x 2.267 = 22.7 ms; 33.3 + 22.7 = 56 ms, so 'about 60 ms / 940 ms' was a rounding of 56 / 944. Added the worst-case scaling (33.3 + 41.9 = 75 ms) and the shared-encoder caveat: two 1080p30 encodes on hardware specified for 1080p30 is a contention risk. Linear scaling with macroblocks is 6by9's qualitative statement, not a measured curve.
