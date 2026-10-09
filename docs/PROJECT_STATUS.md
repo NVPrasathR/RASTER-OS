@@ -7,7 +7,7 @@
 
 ## Current Phase
 
-PHASE 1 — Decisions and hardware (IN PROGRESS). PHASE 0, the documentation baseline, is complete. Owner decisions so far: 5 open questions answered and ADR-003 accepted on 2026-10-07; on 2026-10-08, OQ-103 (H.264 only for now), the number of encodes (OQ-005), the live-latency target (OQ-116) and the recording design (ADR-009) were decided; on 2026-10-09, how the latency target is judged and the viewer reach (OQ-008) and the recording duration (OQ-006) were decided; later on 2026-10-09 the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (under 1 s glass-to-disk) and the WebRTC measurement run (a 30-minute run at 1 sample/second, about 1800 samples) were decided, which fully answered OQ-005 and OQ-008 and raised the new OQ-130.
+PHASE 1 — Decisions and hardware (IN PROGRESS). PHASE 0, the documentation baseline, is complete. Owner decisions so far: 5 open questions answered and ADR-003 accepted on 2026-10-07; on 2026-10-08, OQ-103 (H.264 only for now), the number of encodes (OQ-005), the live-latency target (OQ-116) and the recording design (ADR-009) were decided; on 2026-10-09, how the latency target is judged and the viewer reach (OQ-008) and the recording duration (OQ-006) were decided; later on 2026-10-09 the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (under 1 s glass-to-disk) and the WebRTC measurement run (a 30-minute run at 1 sample/second, about 1800 samples) were decided, which fully answered OQ-005 and OQ-008 and raised OQ-130 (against which drive and statistic the recording capture-to-file < 1 s target is judged), which the owner then answered the same day: the primary recording target (the NVMe SSD) at the 95th percentile, with the HDD a lagging mirror.
 
 Product work cannot start until the hardware and remaining decisions listed under **Blocked** exist.
 
@@ -39,9 +39,8 @@ Product work cannot start until the hardware and remaining decisions listed unde
    - **Viewers and browsers (2026-10-09, later):** up to 5 simultaneous WebRTC viewers on the LAN; Chrome (and Chromium-based browsers), Safari (macOS and iOS) and Firefox (OQ-008).
    - **File splitting (2026-10-09, later):** recordings are split into a new file every 30 minutes, about 5.67 GB per file per drive at 25 Mbit/s (reasoning, [J-36]). The mechanism depends on ADR-007; fragmented-mode compatibility is OQ-118.
    - **Recording encode (2026-10-09, latest):** H.264 **High profile, Level 4.2, no B-frames**, the same on CM4 and CM5 (OQ-005). Whether 25 Mbit/s fits Level 4.2's maximum bitrate is OQ-073.
-   - **Recording latency (2026-10-09, latest):** a **capture-to-file latency target of under 1 s glass-to-disk** (OQ-005). Against which drive and over what statistic it is judged, given the HDD stall (RISK-028), is the new OQ-130. With these, **OQ-005 and OQ-008 are fully ANSWERED.**
+   - **Recording latency (2026-10-09, latest):** a **capture-to-file latency target of under 1 s glass-to-disk** (OQ-005). Judged against the **primary recording target (the NVMe SSD) at the 95th percentile**, with the HDD a **lagging mirror** not bound by the target (OQ-130 ANSWERED, 2026-10-09; it refines ADR-009's mirror). With these, **OQ-005 and OQ-008 are fully ANSWERED.**
 2. **Owner decisions still open** ([OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)):
-   - OQ-130: against which drive, and over what statistic, the recording capture-to-file < 1 s target is judged (RISK-028, OQ-117).
    - OQ-091: the operator interface, including how drive alerts are shown.
    - OQ-118 to OQ-121 (in part): fragment duration and the acceptable loss on a power cut, recording filesystem, NVMe SSD and adapter choice.
    - OQ-007 (RTMP destinations), OQ-010 (sustained-operation envelope), OQ-113 (AAC licensing).
@@ -69,7 +68,7 @@ Product work cannot start until the hardware and remaining decisions listed unde
 - [x] Requirements: 21 (16 DRAFT, 4 PROPOSED, 1 DEFERRED — REQ-ENC-002 H.265) — [REQUIREMENTS.md](REQUIREMENTS.md).
 - [x] Decisions: 9 ADRs (ACCEPTED: ADR-001, ADR-003, ADR-009; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-004, ADR-007) — [DECISIONS.md](DECISIONS.md).
 - [x] Risks: 34, all OPEN — [RISKS.md](RISKS.md).
-- [x] Open questions: 130 (119 OPEN; 11 ANSWERED by owner statements; OQ-129 added and answered 2026-10-09; OQ-130 added 2026-10-09) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+- [x] Open questions: 130 (118 OPEN; 12 ANSWERED by owner statements; OQ-129 added and answered 2026-10-09; OQ-130 added and answered 2026-10-09) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 - [x] Full Rule 2 documentation set, written from the source register and kept consistent with every owner decision up to 2026-10-08 (catch-up of 2026-10-09); the documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)).
 
 None of the above is product functionality. **Nothing in the product works yet, because nothing has been built or tested.**
@@ -126,7 +125,7 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 1. *(Done: the catch-up commit `f39e661` was pushed on 2026-10-09, and the owner-decision commit was committed and pushed on 2026-10-09.)*
 2. *(Done: the bitrate and drive-failure decisions were committed and pushed on 2026-10-09.)*
 3. Commit the uncommitted 2026-10-09 decisions once the owner approves. This now includes the fourth-entry decisions (OQ-129; viewers and browsers) and the fifth-entry decisions (OQ-005 recording encode and capture-to-file latency; OQ-008 measurement run; new OQ-130); the proposed commits are in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) (2026-10-09, fourth and fifth entries).
-4. The owner decides OQ-130 (which drive, and over what statistic, the recording capture-to-file < 1 s target is judged) and the remaining recording-design items (OQ-118 to OQ-121).
+4. The owner decides the remaining recording-design items (OQ-118 to OQ-121) and the operator interface (OQ-091).
 5. Proposed (Claude): research the Ethernet facts of CM4, CM5 and their IO Boards (OQ-098), because the decided viewer count and bitrate put video egress near 100 Mbit/s.
 6. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
 
@@ -147,3 +146,4 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 | 2026-10-09 | Commit `b142871` and its push recorded; OQ-129 decisions (start on the available drive; split every 30 minutes) added to Current Objective; Next Step renumbered. | Claude (session 2026-10-09) |
 | 2026-10-09 | Third set of 2026-10-09 decisions recorded (OQ-129 ANSWERED: drive return; OQ-008: up to 5 viewers, Chrome, Safari, Firefox); network-egress known problem (reasoning, OQ-098); counts 120 OPEN / 9 ANSWERED; owner's "Not yet" on the commit; Next Step renumbered with the proposed Ethernet research. | Claude (session 2026-10-09) |
 | 2026-10-09 | Fifth set of 2026-10-09 decisions recorded (OQ-005 ANSWERED: recording encode H.264 High profile, Level 4.2, no B-frames, and a capture-to-file latency target under 1 s glass-to-disk; OQ-008 ANSWERED: 95th-percentile measured over a 30-minute run at 1 sample/second, ~1800 samples); new OQ-130 (which drive and statistic the recording latency is judged against); counts 130 OQs (119 OPEN / 11 ANSWERED); Current Phase, phase plan, Current Objective and Next Step updated. Changes uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-09 | OQ-130 ANSWERED: the recording capture-to-file < 1 s target is judged against the primary recording target (the NVMe SSD) at the 95th percentile, the HDD a lagging mirror (refines ADR-009's mirror). Counts 130 OQs (118 OPEN / 12 ANSWERED); Current Objective, counts and Next Step updated; ADR-009 Consequences refined. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |

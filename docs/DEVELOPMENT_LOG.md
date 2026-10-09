@@ -1306,6 +1306,98 @@ Tests: documentation consistency check NOT RUN - doccheck.py unavailable
 3. Proposed (Claude): commit `doccheck.py` (or its specification) so the documentation check is reproducible; research the Ethernet facts (OQ-098).
 4. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
 
+## 2026-10-09 (sixth entry) — OQ-130 answered: recording capture-to-file < 1 s judged against the primary drive (NVMe) at the 95th percentile
+
+### Objective
+
+Record and propagate the owner's answer to OQ-130, raised by the fifth entry: against which drive, and over what statistic, the recording capture-to-file `< 1 s` glass-to-disk target is judged.
+
+### Starting State
+
+The fifth 2026-10-09 change was complete and uncommitted (it stacks on the external "update by ai" commits, see below). OQ-130 was OPEN.
+
+### Changes
+
+Owner decisions (2026-10-09), by two `ask_user` questions:
+
+| Question | Owner's choice | Recorded as |
+|---|---|---|
+| Against which drive is the recording < 1 s judged? (OQ-130) | "Whichever drive is the primary target; the other is a lagging mirror" | OQ-130 owner input |
+| Over what statistic? (OQ-130) | "95th percentile, consistent with the WebRTC criterion (OQ-008)" | OQ-130 owner input; **OQ-130 ANSWERED** |
+
+Consequences recorded:
+
+- The `< 1 s` bound is judged against the **primary recording target at the 95th percentile**; the other drive is a **lagging mirror** not bound by the target.
+- Reasoning (and Claude's reading, pending owner confirmation): the primary must be the **NVMe SSD**, because the USB-to-SATA HDD can stall up to about 3.0 s from standby to ready [J-30] (RISK-028) and so cannot sustain `< 1 s`; if the HDD were designated the primary, the target could not be guaranteed. The lagging mirror is then the decoupled or buffered HDD branch (OQ-117).
+- This **refines ADR-009's mirror** into a latency-bound primary plus a lagging mirror; both drives still receive the full recording. Recorded in ADR-009 Consequences (ADR-009 stays ACCEPTED — a refinement, not a new decision).
+- Registers: **130 OQs (118 OPEN, 12 ANSWERED)**. No requirement moved from DRAFT (OQ-017); no ADR status changed.
+
+### Files Modified
+
+All in `docs/`: `OPEN_QUESTIONS.md`, `DECISIONS.md`, `REQUIREMENTS.md`, `RECORDING.md`, `VIDEO_ENCODER.md`, `PERFORMANCE.md`, `TESTING.md`, `TRACEABILITY.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation only.
+
+### Commands Used
+
+```bash
+grep / view / edit via the assistant's tools
+git --no-pager diff --stat
+```
+
+### Test Results
+
+**Documentation consistency check: NOT RUN** — `doccheck.py` is not in the repository or session workspace (see the fifth entry). Consistency kept by hand; no new fact IDs cited (reused [J-30]). Status of that check: UNKNOWN — VERIFICATION REQUIRED.
+
+### Problems Found
+
+- During this session an external **"update by ai"** process committed the working tree partway through the fifth-entry edits (commits `fe26dd2`, `98779a4`, `9670f71`), so the documentation change is split between those commits and the working tree. All content is present and consistent; no edits were lost. This bypasses Rule 15 (owner-approved commits) and contradicts the owner's "leave uncommitted" choice.
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PARTIAL. OQ-130 is decided and propagated; the only product work remaining in Phase 1 is other owner decisions and hardware.
+- The documentation consistency check could not be run (tool missing).
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Commit the uncommitted 2026-10-09 documentation once the owner approves (it stacks on the fifth-entry change and the external "update by ai" commits). Proposed commit (Rule 15):
+
+```text
+Commit title: docs: judge recording capture-to-file < 1 s against the primary drive (OQ-130)
+Commit description: Record the owner decision of 2026-10-09 (OQ-130 ANSWERED):
+  the recording capture-to-file < 1 s glass-to-disk target is judged against
+  the primary recording target - the NVMe SSD, since the HDD can stall ~3.0 s
+  (J-30, RISK-028) - at the 95th percentile, consistent with the WebRTC
+  criterion (OQ-008); the HDD is a lagging mirror not bound by the target.
+  Refine ADR-009's mirror into a latency-bound primary plus a lagging mirror
+  (the decoupled HDD branch, OQ-117); both drives still receive the full
+  recording. Propagate to the registers and technical documents.
+  No hardware or code exists; the documentation consistency check could not
+  be run (doccheck.py not in the repository).
+Files changed: docs/** (11 Markdown files, plus the fifth-entry files)
+Reason: Rules 1, 13, 21, 22 - owner decision and consequences documented
+Tests: documentation consistency check NOT RUN - doccheck.py unavailable
+```
+
+2. The owner decides the remaining recording-design items (OQ-118 to OQ-121) and the operator interface (OQ-091).
+3. Proposed (Claude): commit `doccheck.py` (or its specification); research the Ethernet facts (OQ-098); reconcile the split commit/working-tree state created by the external committer.
+4. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
+
 ## Change history
 
 | Date | Change | By |
@@ -1320,3 +1412,4 @@ Tests: documentation consistency check NOT RUN - doccheck.py unavailable
 | 2026-10-09 | Third 2026-10-09 entry added: commit and push of `6ad83d4`; owner decisions on bitrate (OQ-005) and mirrored-drive failure (OQ-129). | Claude (session 2026-10-09) |
 | 2026-10-09 | Fourth 2026-10-09 entry added: commit and push of `b142871`; owner decisions on a drive missing at start and 30-minute file splitting (OQ-129). Third entry's Next Step items annotated. Extended the same day (uncommitted, owner "Not yet") with the drive-return, viewer and browser decisions. | Claude (session 2026-10-09) |
 | 2026-10-09 | Fifth 2026-10-09 entry added: owner decisions on the recording encode (High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples); OQ-005 and OQ-008 ANSWERED; OQ-130 opened. Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-09 | Sixth 2026-10-09 entry added: OQ-130 ANSWERED (recording capture-to-file < 1 s judged against the primary drive, the NVMe SSD, at the 95th percentile; the HDD a lagging mirror; ADR-009 mirror refined). Documentation consistency check NOT RUN (doccheck.py unavailable). Noted the external "update by ai" commits that committed the working tree mid-session. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |

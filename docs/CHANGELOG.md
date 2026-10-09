@@ -37,6 +37,10 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-09: **Owner decision: which drive and statistic the recording < 1 s target is judged against (OQ-130 ANSWERED).**
+  - The recording capture-to-file **< 1 s glass-to-disk** target is judged against the **primary recording target — the NVMe SSD — at the 95th percentile** (consistent with the WebRTC criterion, OQ-008); the HDD is a **lagging mirror** not bound by the target.
+  - This refines ADR-009's mirror into a latency-bound primary plus a lagging mirror (both drives still receive the full recording); the lagging mirror is the decoupled HDD branch (OQ-117). The HDD cannot meet < 1 s during a standby-to-ready stall of up to about 3.0 s [J-30] (RISK-028).
+  - Registers: 130 OQs (118 OPEN, 12 ANSWERED). Propagated to the registers, ADR-009 Consequences, REQUIREMENTS, RECORDING, VIDEO_ENCODER, PERFORMANCE, TESTING (TEST-REC-001) and TRACEABILITY. Uncommitted, pending owner approval.
 - 2026-10-09: **Owner decisions: recording encode, recording latency, WebRTC measurement run (OQ-005 and OQ-008 ANSWERED).**
   - Recording encode (OQ-005): H.264 **High profile, Level 4.2, no B-frames**, uniform on CM4 and CM5. CM4 emits no B-frames [D-14]; CM5 `x264enc` is forced B-frame-free [K-29]; Level 4.2 because 1080p60 exceeds Level 4.0's macroblock rate [F-40]. Whether 25 Mbit/s fits Level 4.2 is OQ-073.
   - Recording latency (OQ-005): a **capture-to-file latency target of under 1 s glass-to-disk**. New **OQ-130**: against which drive, and over what statistic, it is judged, given the HDD standby-to-ready stall of up to about 3.0 s [J-30] (RISK-028, OQ-117).
@@ -132,7 +136,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001, ADR-003 and ADR-009 are ACCEPTED.
 - H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
 - The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125). It is judged at the 95th percentile over a 30-minute run at 1 sample/second (~1800 samples), with the recording running (owner, 2026-10-09; OQ-008 ANSWERED).
-- The recording capture-to-file < 1 s glass-to-disk target (owner, 2026-10-09) may not hold on the mirrored HDD branch during an HDD standby-to-ready stall of up to about 3.0 s [J-30] unless that branch is decoupled or buffered (RISK-028, OQ-117); which drive and statistic it is judged against is OQ-130.
+- The recording capture-to-file < 1 s glass-to-disk target (owner, 2026-10-09) is judged against the primary recording target — the NVMe SSD — at the 95th percentile; the HDD is a lagging mirror not bound by the target (OQ-130 ANSWERED). The HDD cannot meet < 1 s during a standby-to-ready stall of up to about 3.0 s [J-30] (RISK-028), so its branch must be decoupled or buffered (OQ-117).
 - Network egress with 5 WebRTC viewers and one RTMP destination is about 102 Mbit/s of video (reasoning); the boards' Ethernet link speed has not been researched (OQ-098).
 - Recording storage (ADR-009): on CM4 the NVMe SSD takes the only PCIe lane and the HDD shares USB 2.0 (RISK-026); UAS bridge faults (RISK-027); HDD stalls could back-pressure the shared encoder and live path (RISK-028); fragmented MP4 compatibility (RISK-029); residual loss on a power cut (RISK-030).
 - The GStreamer WebRTC publishing elements are not packaged for Raspberry Pi OS trixie, and WHEP is still a draft (RISK-034).
@@ -156,3 +160,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-09 | Owner decisions on bitrate (OQ-005) and drive failure (OQ-129), and the push of `6ad83d4`, recorded. | Claude (session 2026-10-09) |
 | 2026-10-09 | OQ-129 decisions (drive missing at start; 30-minute file splitting) and the push of `b142871` recorded. Drive-return, viewer and browser decisions added; Known Issues: mirror item replaced by the network-egress item. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions on the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples) recorded; OQ-005 and OQ-008 ANSWERED; new OQ-130 added; Known Issues updated. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-09 | OQ-130 ANSWERED: recording capture-to-file < 1 s judged against the primary recording target (NVMe SSD) at the 95th percentile, the HDD a lagging mirror; ADR-009 mirror refined. Counts 130 OQs (118 OPEN, 12 ANSWERED). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |

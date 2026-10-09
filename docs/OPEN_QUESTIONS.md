@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 130 questions registered: 119 OPEN, 11 ANSWERED |
+| Document status | Active — 130 questions registered: 118 OPEN, 12 ANSWERED |
 | Last updated | 2026-10-09 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply, recording storage |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H, I, J and K) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -157,7 +157,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-127 | Live encode keyframe interval, on-demand keyframes and B-frame settings shared by RTMP and WebRTC | 7 Encoding & DMA | VENDOR CONFIRMATION REQUIRED; BUILD TEST REQUIRED | OPEN |
 | OQ-128 | WebRTC for internet viewers: WHEP through MediaMTX, ICE, STUN and TURN | 9 Streaming & WebRTC | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-129 | Mirrored recording without a duration limit: one drive full, absent or failed; file splitting | 12 Recording & storage | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
-| OQ-130 | Recording capture-to-file < 1 s: against which drive, and with what statistic, is it judged? | 12 Recording & storage | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
+| OQ-130 | Recording capture-to-file < 1 s: against which drive, and with what statistic, is it judged? | 12 Recording & storage | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 
 ---
 
@@ -1966,9 +1966,14 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - The register's example 2.5-inch HDD takes 2.5 s typical and 3.0 s maximum from standby to ready [J-30]; ADR-009 requires the HDD writer not to stall the NVMe copy or the live path (RISK-028, OQ-117).
   - For the live path the owner chose the 95th percentile over a 30-minute run (OQ-008); whether the recording target reuses that basis is not stated.
   - No register fact gives a capture-to-file latency measurement method: NEEDS VERIFICATION (HARDWARE TEST REQUIRED).
-- **Resolution method:** OWNER DECISION REQUIRED (which drive and which statistic); HARDWARE TEST REQUIRED (measure glass-to-disk latency on CM4 and CM5, with and without an HDD stall).
+- **Owner input (2026-10-09):** the `< 1 s` glass-to-disk bound is judged against **whichever drive is the primary recording target**, at the **95th percentile** (the same statistic as the WebRTC target, OQ-008); the other drive is a **lagging mirror** that is not bound by the target ("Whichever drive is the primary target; the other is a lagging mirror"; "95th percentile, consistent with the WebRTC criterion"). Consequence (reasoning, and Claude's reading pending owner confirmation): for the bound to be meetable the primary must be the drive that can sustain `< 1 s` — the **PCIe NVMe SSD** — because the USB-to-SATA HDD can stall up to about 3.0 s from standby to ready [J-30] (RISK-028); if the HDD were ever designated the primary, the target could not be guaranteed. The lagging mirror is then the decoupled or buffered HDD branch (OQ-117), which keeps an HDD stall off both the latency bound and the shared encoder. The sample basis of the recording-latency 95th percentile aligns with the OQ-008 run (a sustained run with the recording running); the exact per-frame sampling is a TEST-REC-001 detail.
+- **Answer:** The recording capture-to-file `< 1 s` glass-to-disk target is judged against the primary recording target (the NVMe SSD, by the latency consequence above) at the 95th percentile; the second drive is a lagging mirror, not bound by the target. This refines ADR-009's mirror into a latency-bound primary plus a lagging mirror realised by the decoupled HDD branch (OQ-117). Whether the primary is fixed to the NVMe SSD or configurable is Claude's reading (NVMe) unless the owner states otherwise.
+- **Evidence:** Owner answers of 2026-10-09: "Whichever drive is the primary target; the other is a lagging mirror" and "95th percentile, consistent with the WebRTC criterion (OQ-008)".
+- **Answered on:** 2026-10-09
+- **Answered by:** Owner
+- **Resolution method:** OWNER DECISION REQUIRED (which drive and which statistic — ANSWERED); HARDWARE TEST REQUIRED (measure glass-to-disk latency on CM4 and CM5, with and without an HDD stall).
 - **Resolving test:** TEST-REC-001
-- **Status:** OPEN
+- **Status:** ANSWERED
 - **Added:** 2026-10-09 (consequence of the OQ-005 recording capture-to-file latency decision)
 
 ---
@@ -2063,3 +2068,4 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-09 | Owner decisions of 2026-10-09 (second set on OQ-129): start on the available drive when one is missing at the start; split recordings every 30 minutes (with [J-36] sizing reasoning and the `splitmuxsink` candidate [J-44]; fragmented-mode compatibility NEEDS VERIFICATION). OQ-129 stays OPEN only for drive return (alert method: OQ-091). OQ-118 note on the split decision. Counts unchanged (129: 121 OPEN, 8 ANSWERED). | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 (third set): OQ-129 ANSWERED (a returning drive is used again from the next 30-minute file; Answer/Evidence fields; summary row); full-disk muxer behaviour carried to OQ-118; OQ-008 owner input (up to 5 viewers; Chrome, Safari, Firefox; egress reasoning) — stays OPEN for sample count and run length; OQ-098 note (Ethernet speed now needed); header and hardware-verification counts (129: 120 OPEN, 9 ANSWERED). | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 (fourth set): OQ-005 ANSWERED (recording encode H.264 High profile, Level 4.2, no B-frames; recording capture-to-file latency target under 1 s glass-to-disk; owner-input, Answer/Evidence fields; summary row ANSWERED); OQ-008 ANSWERED (95th-percentile measured over a 30-minute run at 1 sample/second, ~1800 samples; owner-input, Answer/Evidence fields; summary row ANSWERED); new OQ-130 (against which drive and over what statistic the recording capture-to-file < 1 s target is judged, given the HDD stall — RISK-028, OQ-117) with summary row; header counts (130: 119 OPEN, 11 ANSWERED). | Claude (session 2026-10-09) |
+| 2026-10-09 | Owner decisions of 2026-10-09 (fifth set): OQ-130 ANSWERED (the recording capture-to-file < 1 s glass-to-disk bound is judged against the primary recording target at the 95th percentile; the other drive is a lagging mirror; owner-input, Answer/Evidence fields; summary row ANSWERED). Consequence recorded: the primary must be the NVMe SSD because the HDD can stall ~3.0 s [J-30] (RISK-028); the lagging mirror is the decoupled HDD branch (OQ-117). Header counts (130: 118 OPEN, 12 ANSWERED). | Claude (session 2026-10-09) |

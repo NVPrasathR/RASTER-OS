@@ -437,12 +437,13 @@ ACCEPTED — 2026-10-08. All parts are owner decisions: *(Corrected 2026-10-09: 
 
 - GStreamer robust muxing [J-40]: not chosen. It fsyncs the moov on every update and reserves space for the maximum duration [J-41], [J-43] ([J-43] is reasoning).
 - Plain MP4 + UPS: not chosen.
-- NVMe primary with a later copy to the HDD: not chosen; the owner chose a mirror.
+- NVMe primary with a later copy to the HDD: not chosen; the owner chose a mirror. *(Refined 2026-10-09: the owner's OQ-130 decision makes the NVMe SSD the latency-bound primary and the HDD a lagging mirror, so the live behaviour resembles this alternative, but both drives still receive the full recording — it stays a mirror, not a primary-plus-backup copy.)*
 - Bus-powered 2.5-inch drive: not chosen.
 
 ## Consequences
 
 - Each encode's recording output feeds two file writers. An HDD stall (spin-up 2.5–3.0 s [J-30]; *corrected 2026-10-09: [J-30] gives 2.5 s typical and 3.0 s maximum standby-to-ready for one Seagate family, not a general spin-up time*) must not stall the NVMe copy or the live path. Buffering design is open (OQ-117; RISK-028).
+- *(Added 2026-10-09; OQ-005, OQ-130.)* The recording has a **capture-to-file latency target of under 1 s glass-to-disk** (owner, OQ-005). The owner's OQ-130 decision judges that bound against **whichever drive is the primary recording target, at the 95th percentile**, with the other drive a **lagging mirror** not bound by the target. This refines the mirror (decision 2) into a latency-bound primary plus a lagging mirror; both still receive the full recording. Consequence (reasoning): the primary must be the **NVMe SSD**, because the HDD can stall up to about 3.0 s [J-30] (RISK-028) and so cannot meet `< 1 s`; the lagging mirror is then the decoupled or buffered HDD branch (OQ-117). Measured in TEST-REC-001.
 - Fragmented MP4 compatibility with the owner's editing tools must be tested (TEST-REC-001; OQ-118, RISK-029).
 - On CM4, the USB 2.0 hub's bandwidth and VBUS are shared with every other USB device [J-06] (RISK-026).
 - Some data at power loss is still lost (ext4 commit interval, page cache) [J-35] (OQ-119, RISK-030).
@@ -489,3 +490,4 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-09 | ADR-009 Consequences: drive-failure policy (continue on the remaining drive, alert the operator; owner, 2026-10-09; OQ-129). No decision or status changed. | Claude (session 2026-10-09) |
 | 2026-10-09 | ADR-009 Consequences: later owner decisions of 2026-10-09 (start on the available drive; split every 30 minutes; OQ-129). No decision or status changed. | Claude (session 2026-10-09) |
 | 2026-10-09 | ADR-009 Consequences: drive-return decision (OQ-129 ANSWERED). No decision or status changed. | Claude (session 2026-10-09) |
+| 2026-10-09 | ADR-009 Consequences and Alternatives: the recording capture-to-file < 1 s target (OQ-005) is judged against the primary recording target (the NVMe SSD) at the 95th percentile, the HDD a lagging mirror (OQ-130 ANSWERED). Refinement of the mirror, not a new decision; ADR-009 status unchanged (ACCEPTED). | Claude (session 2026-10-09) |
