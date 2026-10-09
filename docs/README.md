@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-08 |
-| Project phase | PHASE 0 — Bootstrap (see [PROJECT_STATUS.md](PROJECT_STATUS.md)) |
+| Last updated | 2026-10-09 |
+| Project phase | PHASE 1 — Decisions and hardware, in progress; PHASE 0 documentation baseline complete (see [PROJECT_STATUS.md](PROJECT_STATUS.md)) |
 
 PACSCORDER is an embedded Linux product that captures HDMI video through a Toshiba **TC358743** HDMI-to-MIPI-CSI-2 bridge into a **Raspberry Pi**. It then encodes the video for recording, **RTMP** streaming and **WebRTC** streaming, and integrates with **Blackmagic ATEM** switchers. The mandated video path is:
 
@@ -33,7 +33,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 | How is CSI configured? | [CSI_PIPELINE.md](CSI_PIPELINE.md), [DEVICE_TREE.md](DEVICE_TREE.md) |
 | How does V4L2 work? | [V4L2.md](V4L2.md), [DMA.md](DMA.md) |
 | How is video encoded? | [VIDEO_ENCODER.md](VIDEO_ENCODER.md), [DMA.md](DMA.md) (buffer sharing with the encoder), [PERFORMANCE.md](PERFORMANCE.md) (encode budgets) |
-| How is recording performed? | [RECORDING.md](RECORDING.md) |
+| How is recording performed? | [RECORDING.md](RECORDING.md), [DECISIONS.md](DECISIONS.md) (ADR-009: fragmented MP4 mirrored to NVMe SSD and HDD), [HARDWARE.md](HARDWARE.md) (storage per board) |
 | How is streaming performed? | [STREAMING.md](STREAMING.md), [ATEM.md](ATEM.md) |
 | How is the system built? | [BUILD_SYSTEM.md](BUILD_SYSTEM.md), [RELEASE.md](RELEASE.md) |
 | How is it tested? | [TESTING.md](TESTING.md), [TRACEABILITY.md](TRACEABILITY.md), [PERFORMANCE.md](PERFORMANCE.md) (measurement procedures) |
@@ -145,7 +145,7 @@ Every document ends with a change-history table. Changes are added, never rewrit
 | `RISK-NNN` | Risk | [RISKS.md](RISKS.md) |
 | `OQ-NNN` | Open question / owner decision | [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) |
 | `TEST-<AREA>-NNN` | Test procedure | [TESTING.md](TESTING.md) |
-| `A-NN` … `I-NN` | Source fact (topics A–G of 2026-10-06; topics H and I added 2026-10-08) | [REFERENCES.md](REFERENCES.md) |
+| `A-NN` … `K-NN` | Source fact (topics A–G of 2026-10-06; topics H, I, J and K added 2026-10-08) | [REFERENCES.md](REFERENCES.md) |
 
 ### 9. Canonical test IDs
 
@@ -183,3 +183,4 @@ Other documents must use exactly these IDs:
 | 2026-10-08 | ID schemes (convention 8): source-fact range extended from `A-NN` … `G-NN` to `A-NN` … `I-NN`, because REFERENCES.md gained topics H (H.265/HEVC, H-01 to H-43) and I (HDMI audio, I-01 to I-47) on 2026-10-08. No convention, test ID or title changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 encode (H.265 deferred)" after the owner deferred H.265 (OQ-103); ID unchanged. | Claude (session 2026-10-08) |
+| 2026-10-09 | ID schemes (convention 8): source-fact range extended from `A-NN` … `I-NN` to `A-NN` … `K-NN`, because REFERENCES.md gained topics J (recording storage and power loss, J-01 to J-45) and K (live latency, K-01 to K-45) on 2026-10-08. Header "Project phase" brought in line with PROJECT_STATUS.md (PHASE 1 in progress since 2026-10-07; the header still said PHASE 0). Start-here row "How is recording performed?" now also points to ADR-009 and HARDWARE.md storage. No convention, test ID or title changed. | Claude (session 2026-10-09) |

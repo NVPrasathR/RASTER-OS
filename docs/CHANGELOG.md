@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-08 |
+| Last updated | 2026-10-09 |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 4 |
 
 Every meaningful change is recorded here. Versioning is semantic-style (`Unreleased`, `v0.1.0`, `v0.2.0`, `v1.0.0`; see [RELEASE.md](RELEASE.md)). History is never rewritten: a correction is a new entry.
@@ -37,6 +37,30 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-09: **Documentation catch-up for `54269bf`, and verification of topics J and K.**
+  - ADR-009 (fragmented MP4 mirrored to NVMe SSD and HDD), the < 1 s WebRTC target (RTMP best-effort; OQ-116) and the topic J/K facts are now in every affected technical document:
+    - `RECORDING`, `PERFORMANCE`, `DMA`, `STREAMING`, `VIDEO_ENCODER`, `HARDWARE`, `DEVICE_TREE`, `BUILD_SYSTEM`, `RELEASE`, `ARCHITECTURE`, `SOFTWARE_ARCHITECTURE`, `V4L2`, `CSI_PIPELINE`, `TC358743_DRIVER`, `TESTING`, `TRACEABILITY` and `TROUBLESHOOTING`;
+    - this includes a full TEST-REC-001 procedure, latency steps in TEST-STR-001 and TEST-STR-002, and 12 new troubleshooting signatures. No test ID was added or renamed.
+  - Verification pass over about 2,200 J/K citations, including the `54269bf` register text, which had never been verified.
+    - Corrections were added as dated notes: CM4 encoder sharing stated as fact (OQ-115); one HDD family's figures generalised [J-30]; "under 5 s at best" for YouTube [K-15], [K-18]; and others.
+    - No requirement, ADR, risk or OQ status, score or ID changed.
+  - `REFERENCES.md`: dated register notes on [K-06], [K-26], [J-23], tier labels and MediaMTX tiers. No entry was edited.
+  - New open items inside existing OQs:
+    - how the < 1 s target is judged (OQ-008, owner decision);
+    - RP1 CFE behaviour when no buffer is queued (OQ-126);
+    - the CM5 `x264enc` on-demand keyframe (OQ-127).
+  - `README.md`: fact-ID range extended to `K-NN`; project phase corrected to PHASE 1. `PROJECT_STATUS.md` brought up to date.
+  - All 557 register facts are now cited at least once.
+- 2026-10-08 *(recorded 2026-10-09)*: **Recording storage and live latency.**
+  - Owner decisions:
+    - live latency under 1 s camera-to-viewer for WebRTC viewers only, with RTMP best-effort (OQ-116 added and ANSWERED);
+    - recording in MP4, written fragmented and mirrored to a PCIe NVMe SSD and a USB-to-SATA HDD in a self-powered enclosure (**ADR-009 ACCEPTED**; ext4 is Claude's proposal within it).
+  - Source register extended with topic J (recording storage and power loss, 45 facts) and topic K (live latency, 45 facts): 78 CONFIRMED and 12 CORRECTED, 557 facts in total. Raw data: `docs/research/2026-10-08-storage-latency-research.json`.
+  - Register changes:
+    - OQ-117 to OQ-128 and RISK-026 to RISK-034 added;
+    - evidence notes added to REQ-ENC-001, REQ-REC-001, REQ-STR-001, REQ-STR-002, ADR-004 and ADR-007, with no status changed.
+  - Only the registers were updated. The work was committed on 2026-10-09 as `54269bf` "update 9oct", which is on `origin/main`. That message does not follow Rule 15 and was left unchanged on the shared remote. This entry and the log entry were missing until 2026-10-09.
+- 2026-10-08 *(recorded 2026-10-09)*: `6efadce` "docs: two H.264 encodes - recording and shared live (OQ-005)" committed with the approved message and on `origin/main`.
 - 2026-10-08: **Two H.264 encodes.** The owner answered OQ-005 with "Separate record + live": one recording encode, and one live encode shared by RTMP and WebRTC. REQ-ENC-001 now records this together with the WebRTC constraints on the live encode. OQ-115 was added (two concurrent encodes on the CM4 hardware encoder), and RISK-002 and RISK-003 were annotated. Technical documents updated.
 - 2026-10-08: Pushed `d2d217e` (H.265 deferral) to `origin/main`.
 
@@ -77,8 +101,12 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 - No hardware exists. Every hardware test is BLOCKED — HARDWARE REQUIRED.
 - No code exists. Every requirement is NOT STARTED.
-- No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001 and ADR-003 are ACCEPTED.
+- No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001, ADR-003 and ADR-009 are ACCEPTED.
 - H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
+- The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125), and how the target is judged is not yet defined (OQ-008).
+- Recording storage (ADR-009): on CM4 the NVMe SSD takes the only PCIe lane and the HDD shares USB 2.0 (RISK-026); UAS bridge faults (RISK-027); HDD stalls could back-pressure the shared encoder and live path (RISK-028); fragmented MP4 compatibility (RISK-029); residual loss on a power cut (RISK-030).
+- The GStreamer WebRTC publishing elements are not packaged for Raspberry Pi OS trixie, and WHEP is still a draft (RISK-034).
+- Commit `54269bf` has a non-Rule-15 message ("update 9oct"); it is on the shared remote and was not rewritten.
 - HDMI audio on CM5 is unconfirmed (RISK-014). Audio sample-rate changes are not tracked by the kernel (RISK-023).
 - 1080p60 capture is not possible on a 2-lane link (RISK-001). Since 2026-10-07, 1080p60 is required on 4-lane configurations only, and Pi 4 Model B remains a 2-lane candidate (REQ-CAP-007). 1080p60 encode is unproven on every candidate platform (RISK-002, RISK-003).
 
@@ -93,3 +121,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-08 | Topics H and I; propagation of the second owner decisions; commit squash recorded; Known Issues extended. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferral and push recorded. | Claude (session 2026-10-08) |
 | 2026-10-08 | Two-encode decision; push of `d2d217e`. | Claude (session 2026-10-08) |
+| 2026-10-09 | Storage and latency (topics J and K, ADR-009, OQ-116; commit `54269bf`) and the `6efadce` commit recorded; Known Issues updated (ADR-009 ACCEPTED, RISK-026 to RISK-031, RISK-034, commit message). 2026-10-09 documentation catch-up and verification entry added. | Claude (session 2026-10-09) |

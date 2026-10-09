@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | Document status | Active — update after every major milestone (Rule 18) |
-| Last updated | 2026-10-08 |
+| Last updated | 2026-10-09 |
 
 ## Current Phase
 
-PHASE 0 — Bootstrap (documentation baseline complete). PHASE 1 (decisions and hardware) has started: the owner answered 5 open questions on 2026-10-07, accepted ADR-003, and answered OQ-103 on 2026-10-08 (H.264 only for now).
+PHASE 1 — Decisions and hardware (IN PROGRESS). PHASE 0, the documentation baseline, is complete. Owner decisions so far: 5 open questions answered and ADR-003 accepted on 2026-10-07; on 2026-10-08, OQ-103 (H.264 only for now), the number of encodes (OQ-005), the live-latency target (OQ-116) and the recording design (ADR-009) were decided.
 
 Product work cannot start until the hardware and remaining decisions listed under **Blocked** exist.
 
@@ -16,42 +16,50 @@ Product work cannot start until the hardware and remaining decisions listed unde
 | Phase | Content | Exit evidence | Status |
 |---|---|---|---|
 | PHASE 0 — Bootstrap | Git repository, rules, documentation set, source research | Documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)) | Documentation baseline complete; owner review of DRAFT/PROPOSED items continues |
-| PHASE 1 — Decisions and hardware | Owner answers the owner-decision OQs; ADR-004 decided from bring-up measurements; bring-up hardware obtained and recorded in [HARDWARE.md](HARDWARE.md) | Accepted requirements; HW REV recorded | IN PROGRESS — ADR-003 ACCEPTED; OQ-001, OQ-004, OQ-009, OQ-012, OQ-102, OQ-103 answered; no hardware yet |
+| PHASE 1 — Decisions and hardware | Owner answers the owner-decision OQs; ADR-004 decided from bring-up measurements; bring-up hardware obtained and recorded in [HARDWARE.md](HARDWARE.md) | Accepted requirements; HW REV recorded | IN PROGRESS — ADR-003 and ADR-009 ACCEPTED; OQ-001, OQ-004, OQ-009, OQ-012, OQ-102, OQ-103, OQ-116 answered; no hardware yet |
 | PHASE 2 — Bring-up | Stock Raspberry Pi OS on CM4 and CM5: I2C detection, driver probe, EDID / hot-plug, overlay and media graph, audio card | TEST-HW-001, TEST-DRV-001, TEST-DRV-002, TEST-PLT-001, TEST-CAP-001, TEST-AUD-001 | NOT STARTED |
 | PHASE 3 — Capture pipeline | 2-lane and 4-lane configurations, source changes, unsupported modes, DMABUF | TEST-CAP-002, TEST-CAP-003, TEST-CAP-004, TEST-DMA-001 | NOT STARTED |
-| PHASE 4 — Encode | Real-time H.264 encode on CM4 and CM5 (H.265 deferred); performance budget; ADR-004 decision | TEST-ENC-001, TEST-PERF-001 | NOT STARTED |
-| PHASE 5 — Record and stream | Recording, RTMP, WebRTC, with audio | TEST-REC-001, TEST-STR-001, TEST-STR-002 | NOT STARTED |
+| PHASE 4 — Encode | Two real-time H.264 encodes on CM4 and CM5 (H.265 deferred); performance budget; ADR-004 decision | TEST-ENC-001, TEST-PERF-001 | NOT STARTED |
+| PHASE 5 — Record and stream | Fragmented-MP4 recording mirrored to NVMe SSD and HDD (ADR-009); RTMP (best-effort latency); WebRTC under 1 s camera-to-viewer; with audio | TEST-REC-001, TEST-STR-001, TEST-STR-002 | NOT STARTED |
 | PHASE 6 — ATEM | HDMI capture of ATEM output (OQ-009 scope) | TEST-ATEM-001 | NOT STARTED |
 | PHASE 7 — Product image and release | Own OS image built with `rpi-image-gen`, update mechanism, release v0.1.0 | TEST-BLD-001, [RELEASE.md](RELEASE.md) checklist | NOT STARTED |
 
 ## Current Objective
 
-1. **Encoding decided for the current scope (owner, 2026-10-08):** two simultaneous H.264 encodes, one for recording and one live encode shared by RTMP and WebRTC ("Separate record + live", OQ-005). Whether CM4's hardware encoder can run both is open (OQ-115); on CM5 both run in software (OQ-059). Bitrate and latency targets are still open (OQ-005).
-   **OQ-103 decided (owner, 2026-10-08): "H.264 only for now".** All outputs (recording, RTMP, WebRTC) use H.264. H.265 is deferred as REQ-ENC-002 (DEFERRED), and its evidence and risks (RISK-022, RISK-025, OQ-104 to OQ-109) are kept for later.
-2. **Other owner decisions** in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md):
-   - OQ-005 (bitrate, rate control, latency) and OQ-006 to OQ-008: recording and streaming parameters.
-   - OQ-010: sustained-operation envelope.
-   - OQ-109 / OQ-113: HEVC and AAC patent licensing.
+1. **Decided for the current scope** (owner decisions, all 2026-10-08):
+   - **Encoding:** two simultaneous H.264 encodes, one for recording and one live encode shared by RTMP and WebRTC ("Separate record + live", OQ-005). Whether CM4's hardware encoder can run both is open (OQ-115); on CM5 both run in software (OQ-059).
+   - **Codec:** "H.264 only for now" (OQ-103). H.265 is deferred as REQ-ENC-002 (DEFERRED); its evidence and risks (RISK-022, RISK-025, OQ-104 to OQ-109) are kept for later.
+   - **Live latency:** under 1 s camera-to-viewer for **WebRTC viewers only**; RTMP outputs are best-effort (OQ-116 ANSWERED; REQ-STR-002). Nothing shows that either module meets it (RISK-031).
+   - **Recording (ADR-009, ACCEPTED):** MP4 written **fragmented**, every recording **mirrored** to a PCIe NVMe SSD and a USB-to-SATA HDD, the HDD in a **self-powered** enclosure. ext4 on the recording volumes is Claude's proposal inside ADR-009, not an owner decision (OQ-120).
+2. **Owner decisions still open** ([OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)):
+   - OQ-008: WebRTC reach (LAN only or internet), browsers, viewer count, and — recorded 2026-10-09 — how the < 1 s target is judged (statistic, number of samples, conditions).
+   - OQ-005: bitrate and rate control.
+   - OQ-006: maximum recording duration.
+   - OQ-118 to OQ-121 (in part): fragment duration and the acceptable loss on a power cut, recording filesystem, NVMe SSD and adapter choice.
+   - OQ-007 (RTMP destinations), OQ-010 (sustained-operation envelope), OQ-113 (AAC licensing).
    - OQ-018 to OQ-021: bridge board(s), wiring of INT/RESET and audio I2S.
 3. **Obtain bring-up hardware** (owner decision: evaluate **CM4 and CM5 side by side**):
-   - CM4 and CM5 with their IO boards;
-   - TC358743 bridge board(s) for both lane configurations, with a 27 MHz reference clock [A-45], [B-10] and the I2S audio pins wired to GPIO 18–20 [I-04];
+   - CM4 and CM5 with their IO boards. The CM4 IO Board's PCIe slot is powered only from its 12 V barrel input [J-05] (RISK-026).
+   - TC358743 bridge board(s) for both lane configurations, with a 27 MHz reference clock [A-45], [B-10] and the I2S audio pins wired to GPIO 18–20 [I-04].
    - TC358743 I/O voltage matched to the IO board's selected GPIO voltage (1.8 V or 3.3 V) [I-27], [I-29].
+   - Recording storage per ADR-009: an NVMe SSD for each board (with a PCIe adaptor for the CM4 IO Board socket [J-03], [J-11]; M.2 on the CM5 IO Board [J-13], [J-14]) and a USB-to-SATA HDD in a self-powered enclosure. No part is chosen; the bridge chipset has to be qualified (OQ-121, OQ-122, RISK-027).
 
 ## Completed
 
-- [x] Git: `main` is pushed to `origin` (github.com/NVPrasathR/RASTER-OS). Commits:
+- [x] Git: `main` is on `origin` (github.com/NVPrasathR/RASTER-OS). Commits:
   - `7107a39` docs: bootstrap PACSCORDER rules, source register and documentation baseline (squash of the owner's two local commits, Rule 15);
-  - `df3591d` docs: record owner decisions, accept ADR-003, add H.265 and audio research (pushed 2026-10-08 at the owner's request);
-  - `d2d217e` docs: defer H.265 encoding, H.264 only for now (OQ-103) (pushed 2026-10-08).
-  - The two-encode decision (OQ-005) is uncommitted; see Next Step.
+  - `df3591d` docs: record owner decisions, accept ADR-003, add H.265 and audio research;
+  - `d2d217e` docs: defer H.265 encoding, H.264 only for now (OQ-103);
+  - `6efadce` docs: two H.264 encodes - recording and shared live (OQ-005);
+  - `54269bf` "update 9oct" (2026-10-09, committed under the owner's git identity without a Rule 15 proposal): research topics J and K, ADR-009, OQ-116 and the new OQs and risks, registers only. Its message does not follow Rule 15; it was left unchanged because it is already on `origin` (see [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md), 2026-10-08 fourth entry).
+  - "docs: propagate ADR-009 and live-latency decision, verify topics J and K" (2026-10-09, approved by the owner): the 2026-10-09 documentation catch-up. Not pushed when committed; see Next Step.
 - [x] Owner's engineering rules stored verbatim in [ENGINEERING_RULES.md](ENGINEERING_RULES.md), loaded every session through `CLAUDE.md`.
-- [x] Source research: **467 facts in 9 topics (A–I)**, each independently fact-checked: 434 CONFIRMED, 33 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED ([REFERENCES.md](REFERENCES.md)). Topics H (H.265) and I (HDMI audio) were added on 2026-10-08.
+- [x] Source research: **557 facts in 11 topics (A–K)**, each independently fact-checked: 512 CONFIRMED, 45 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED ([REFERENCES.md](REFERENCES.md)). Topics J (recording storage and power loss) and K (live latency) were added on 2026-10-08.
 - [x] Requirements: 21 (16 DRAFT, 4 PROPOSED, 1 DEFERRED — REQ-ENC-002 H.265) — [REQUIREMENTS.md](REQUIREMENTS.md).
-- [x] Decisions: 8 ADRs (ACCEPTED: ADR-001, ADR-003; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-004, ADR-007) — [DECISIONS.md](DECISIONS.md).
-- [x] Risks: 25, all OPEN — [RISKS.md](RISKS.md).
-- [x] Open questions: 115 (109 OPEN; 6 ANSWERED by owner statements; OQ-115 added 2026-10-08) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
-- [x] Full Rule 2 documentation set, written from the source register, reviewed and kept consistent; the documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)).
+- [x] Decisions: 9 ADRs (ACCEPTED: ADR-001, ADR-003, ADR-009; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-004, ADR-007) — [DECISIONS.md](DECISIONS.md).
+- [x] Risks: 34, all OPEN — [RISKS.md](RISKS.md).
+- [x] Open questions: 128 (121 OPEN; 7 ANSWERED by owner statements) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+- [x] Full Rule 2 documentation set, written from the source register and kept consistent with every owner decision up to 2026-10-08 (catch-up of 2026-10-09); the documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)).
 
 None of the above is product functionality. **Nothing in the product works yet, because nothing has been built or tested.**
 
@@ -64,26 +72,31 @@ None of the above is product functionality. **Nothing in the product works yet, 
 - [ ] Every hardware test (TEST-HW-001 … TEST-PERF-001): **BLOCKED — HARDWARE REQUIRED**. No hardware exists.
 - [ ] Device Tree / overlay for PACSCORDER: blocked on the bridge-board facts (OQ-018 to OQ-020).
 - [ ] Product image build (TEST-BLD-001): ADR-003 is ACCEPTED, but the build is NOT STARTED. No `rpi-image-gen` configuration exists, and the image cannot be boot-tested without hardware.
+- [ ] Recording design (ADR-009) beyond the documented decisions: HDD-branch buffering (OQ-117), fragment settings (OQ-118) and storage qualification (OQ-121, OQ-122) need hardware or a build.
 
 ## Known Problems
 
 These are known from sources; none has been observed on PACSCORDER hardware. See [RISKS.md](RISKS.md).
 
 - **RISK-001:** 1080p60 needs a 4-lane CSI-2 link. The 2-lane configuration (REQ-CAP-007) is physically limited to 1080p50 UYVY / 1080p30 RGB888 for 1920x1080 [C-37], [C-48].
-- **RISK-002:** 1080p60 hardware H.264 encode on CM4 is unproven; the official specification is 1080p30 [D-10].
+- **RISK-002:** 1080p60 hardware H.264 encode on CM4 is unproven; the official specification is 1080p30 [D-10]. Two concurrent encodes on it are unknown (OQ-115).
 - **RISK-003:** CM5 has no hardware video encoder; all encoding is in software [G-22].
-- **RISK-022:** not in current scope — H.265 is deferred (REQ-ENC-002). It is kept OPEN because real-time 1080p H.265 is doubtful on CM4 and CM5.
+- **RISK-031:** the < 1 s WebRTC target is unproven. A labelled budget (reasoning, not a measurement) accounts for about 56–75 ms of documented terms on CM4; the rest of the path is undocumented [K-45] (OQ-125).
+- **RISK-026:** on CM4 the NVMe SSD takes the only PCIe lane, the HDD shares the IO Board's USB 2.0 hub, and the PCIe slot needs the 12 V input [J-01], [J-05], [J-06].
+- **RISK-028:** an HDD stall (one example drive needs up to 3.0 s from standby to ready [J-30]) could back-pressure the mirrored recording into the shared encoder and the live path unless the HDD writer is decoupled (OQ-117).
+- **RISK-034:** the GStreamer WebRTC publishing elements (gst-plugins-rs) are not packaged for Raspberry Pi OS trixie [K-06], and WHEP is still an Internet-Draft [K-02].
 - **RISK-023:** HDMI audio at a sample rate other than the one ALSA opens is not detected by the kernel. The application must read the TC358743 sampling-rate control (reasoning from kernel source) [I-18].
 - **RISK-014:** HDMI audio on CM5 is unconfirmed. The overlay labels resolve on CM5, but no source shows it working [I-05], [I-06], [I-07].
 - **RISK-010:** HDMI sources see no display until userspace loads an EDID [A-33], [B-21].
+- **RISK-022:** not in current scope — H.265 is deferred (REQ-ENC-002). It is kept OPEN because real-time 1080p H.265 is doubtful on CM4 and CM5.
 
 ## Last Verified
 
-2026-10-08. Only the **documentation consistency check** has been run: 0 problems ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)). No hardware or software verification has ever been performed.
+2026-10-09. Only the **documentation consistency check** has been run: 0 problems, 557 of 557 facts cited ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md), 2026-10-09). No hardware or software verification has ever been performed.
 
 ## Hardware
 
-None. Bring-up will evaluate CM4 and CM5 side by side (owner, 2026-10-07); the product platform stays OPEN (ADR-004). The bridge board is not selected (OQ-018). See [HARDWARE.md](HARDWARE.md).
+None. Bring-up will evaluate CM4 and CM5 side by side (owner, 2026-10-07); the product platform stays OPEN (ADR-004). The bridge board is not selected (OQ-018). Recording storage is decided by type (NVMe SSD and USB-to-SATA HDD, ADR-009) but no part is chosen (OQ-121, OQ-122). See [HARDWARE.md](HARDWARE.md).
 
 ## Kernel
 
@@ -98,9 +111,9 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 
 ## Next Step
 
-1. The owner decides the remaining owner-decision OQs listed under Current Objective, starting with OQ-005 (bitrate, rate control and latency) and OQ-006 (recording container, storage, power-loss behaviour).
-2. The owner obtains the CM4 + CM5 bring-up hardware listed under Current Objective, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
-3. Commit and push the two-encode decision once the owner approves. The proposed commit is in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) (2026-10-08, third entry).
+1. Push the 2026-10-09 catch-up commit to `origin` when the owner asks (committed locally on 2026-10-09 with the owner's approval).
+2. The owner decides the open owner-decision OQs under Current Objective, starting with OQ-008 (WebRTC reach and how the < 1 s target is judged) and OQ-005 (bitrate and rate control).
+3. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
 
 ## Change history
 
@@ -113,3 +126,4 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 | 2026-10-08 | Brought up to date after topics H and I: 467 facts, 25 risks, 114 OQs; OQ-103 (H.265 scope) made the most urgent owner decision; known problems extended with RISK-022, RISK-023 and RISK-014; commit `7107a39` recorded; phase plan updated for CM4 + CM5, audio and H.265; Last Verified 2026-10-08. | Claude (session 2026-10-08) |
 | 2026-10-08 | OQ-103 answered ("H.264 only for now"): H.265 deferred (REQ-ENC-002); counts 21 requirements / 108 OPEN + 6 ANSWERED OQs; git state (commits `7107a39`, `df3591d` pushed); next step updated. | Claude (session 2026-10-08) |
 | 2026-10-08 | Two-encode decision recorded (OQ-005: recording + shared live; OQ-115 added); commit `d2d217e` pushed; next step updated. | Claude (session 2026-10-08) |
+| 2026-10-09 | Brought up to date with commit `54269bf` (research topics J and K, ADR-009 ACCEPTED, OQ-116 ANSWERED) and the 2026-10-09 documentation catch-up: Current Phase reworded (PHASE 1 in progress); phase plan rows for PHASE 1, 4 and 5; Current Objective restructured into decided items, open owner decisions (OQ-008 now includes how the < 1 s target is judged) and hardware including recording storage; Completed (commits `6efadce` and `54269bf`, 557 facts, 9 ADRs, 34 risks, 128 OQs); Blocked (recording design items); Known Problems (RISK-026, RISK-028, RISK-031, RISK-034 added); Last Verified, Hardware and Next Step. The 2026-10-08 statement that the two-encode decision was uncommitted was stale: it was committed as `6efadce`. | Claude (session 2026-10-09) |

@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Document status | DRAFT — derived from source research only |
-| Last updated | 2026-10-07 |
-| Applies to | TC358743 CSI-2 transmitter; Raspberry Pi 4 Model B, CM4 (CAM0 and CAM1), Pi 5, CM5; both the 2-lane and the 4-lane configuration the product needs (REQ-CAP-007); kernel sources as read on `rpi-6.18.y` [D-01], [E-37] |
+| Last updated | 2026-10-09 |
+| Applies to | TC358743 CSI-2 transmitter; Raspberry Pi 4 Model B, CM4 (CAM0 and CAM1), Pi 5, CM5; both the 2-lane and the 4-lane configuration the product needs (REQ-CAP-007); kernel sources as read on `rpi-6.18.y` [D-01], [E-37]; added 2026-10-09: the receiver's frame-completion term of the < 1 s WebRTC latency target (REQ-STR-002; §7.4) |
 | Implementation status | NOT STARTED |
-| Verification | Source research of 2026-10-06 only ([REFERENCES.md](REFERENCES.md)). **Nothing in this document has been run or measured on PACSCORDER hardware. No hardware exists as of 2026-10-06.** |
+| Verification | Source research of 2026-10-06, plus research topic K (live latency) of 2026-10-08 for §7.4 and the related notes in §1, §2 and §12, and [I-33] from research topic I (HDMI audio path) of 2026-10-08 in §7.4 ([REFERENCES.md](REFERENCES.md)). **Nothing in this document has been run or measured on PACSCORDER hardware. No hardware exists as of 2026-10-06 (still none on 2026-10-09).** |
 
 This document describes the MIPI CSI-2 link from the TC358743 to the Raspberry Pi CSI-2 receiver, end to end:
 
@@ -39,6 +39,7 @@ Conventions follow [README.md](README.md):
 - **2-lane ports are limited.** Pi 4 Model B and CM4 CAM0 are limited to 1080p50 UYVY or 1080p30 RGB888 [C-37], [C-48].
 - **The product needs both lane counts.** The owner requires a 2-lane and a 4-lane configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; owner 2026-10-07, OQ-001 ANSWERED). Recorded interpretation: 1080p60 is required on the 4-lane configuration; the 2-lane configuration is capped at the 2-lane limit above. The platform for each configuration is not chosen (ADR-004, OPEN). See §11.3.
 - **Pi 5/CM5 use a fallback D-PHY rate.** The downstream RP1 CFE driver cannot read a link rate from this bridge, so it always programs its D-PHY for 999 Mbps [C-31], [B-49].
+- **Capture adds at least one frame's readout on CM4 and about one on CM5.** *(Added 2026-10-09; research topic K / OQ-116.)* Unicam on CM4 and RP1 CFE on CM5 complete each buffer only at frame end, so a frame reaches userspace at least one frame's readout time after its first line on CM4 [K-34] and about one frame's readout time later on CM5 [K-35]. This is one term of the owner's < 1 s camera-to-viewer target for WebRTC viewers (REQ-STR-002); see §7.4. Nothing has been measured (OQ-125).
 - **Unresolved items that matter for REQ-CAP-001 and the 4-lane configuration of REQ-CAP-007:**
   - capture with 3 of 4 lanes active (OQ-038);
   - the hard-coded FIFO trigger level (OQ-035, RISK-006);
@@ -58,6 +59,7 @@ TC358743  (HDMI receiver → video FIFO → CSI-2 transmitter)
   │          PACSCORDER board value: UNKNOWN — VERIFICATION REQUIRED (OQ-019)
   │  PLL: lane rate = refclk / pll_prd × pll_fbd                         [B-08]
   │  FIFO trigger level: hard-coded 374                                  [B-12]
+  │  internal buffering latency: undocumented (added 2026-10-09; §12)   [K-38]
   ▼
 D-PHY: clock lane (clock-lanes <0>) [C-12] + 1–4 data lanes; the driver activates 1–4 at runtime  [A-06], [A-25]
   │  required: a 2-lane and a 4-lane configuration (REQ-CAP-007; §11.3)
@@ -68,6 +70,7 @@ CSI-2 receiver
   Pi 4 Model B / CM4 : Unicam  csi0 (2 lanes; not exposed on Pi 4B),
                                csi1 (4 lanes; 2 on Pi 4B)                     [C-07], [C-08]
   Pi 5 / CM5         : RP1 CFE csi0 / csi1, 4-lane D-PHY each                 [C-29], [C-30]
+  each buffer completed at frame end on CM4 and CM5 (added 2026-10-09; §7.4) [K-34], [K-35]
   ▼
 Media Controller graph
   Pi 4/CM4 (MC mode) : "tc358743 …":0 ──(immutable, enabled)──► "unicam-image"        [C-36]
@@ -269,6 +272,22 @@ A Raspberry Pi engineer gave a Pi 5 capture sequence and reported capturing with
 | Link the user must enable | None (immutable) [C-36] | `csi2`:4 → `rp1-cfe-csi2_ch0` [C-32] |
 | Lane check at STREAMON | Yes [B-32] | Yes [B-32] |
 | Allowed endpoint lane counts | 1, 2, 4 [C-17] | Not in the source register |
+
+### 7.4 Frame completion and capture latency (added 2026-10-09)
+
+*Added 2026-10-09; research topic K / OQ-116.* The owner's target, set on 2026-10-08, is under 1 second camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (REQ-STR-002; OQ-116 ANSWERED). The receiver contributes one term of that budget. The full budget is in [PERFORMANCE.md](PERFORMANCE.md) (latency budget section). Nothing has been measured (OQ-125, RISK-031).
+
+| | Unicam — CM4 (downstream `drivers/media/platform/bcm2835/bcm2835-unicam.c`) | RP1 CFE — CM5 (downstream `rp1_cfe`) |
+|---|---|---|
+| Buffer timestamp | At Frame Start, `ktime_get_ns()` (`CLOCK_MONOTONIC`) [K-34] | At Frame Start [K-35], with `ktime_get_ns()` (`CLOCK_MONOTONIC`) [I-33] |
+| Buffer completed | Only at Frame End [K-34] | In the end-of-frame handler [K-35] |
+| Capture cost | A frame reaches userspace at least one frame's readout time after its first line [K-34] | About one frame's readout time [K-35] |
+| No empty buffer queued | The frame goes to a dummy buffer and is dropped, not queued [K-34] | Not stated in the register entry, which records `min_queued_buffers = 1` [K-35]: UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED) |
+
+- **Pi 4 Model B and Pi 5.** Reasoning: the same downstream drivers bind there (§7.1, §7.2; [C-09], [C-29]), so the same behaviour is expected; [K-34] and [K-35] are stated for CM4 and CM5 only.
+- **Size of the term.** Reasoning (a labelled budget, not a measurement; CORRECTED) [K-45]: for a CM4 1080p30 WebRTC/WHEP viewer on a LAN the budget takes capture readout as about 33.3 ms, one frame period at 30p. The readout time on PACSCORDER hardware, on CM4 or CM5 and at each mode, is UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED; OQ-125, TEST-STR-002).
+- **What the timestamp does not show.** Reasoning (Claude, from [K-34], [K-35], [K-38]; not a register fact): the receiver stamps the buffer when it sees frame start, after the frame has already passed through the TC358743. V4L2 timestamps therefore cannot reveal the bridge's own buffering delay, which no public source documents [K-38] (§12). That term can only come from an end-to-end measurement (OQ-125) or from Toshiba documentation (DATASHEET REQUIRED; OQ-027).
+- **After completion.** Waiting in the V4L2 outgoing queue, buffer count and what `v4l2src` reports: [V4L2.md](V4L2.md) §12.2.
 
 ---
 
@@ -494,6 +513,7 @@ Whether one bridge-board design can serve both configurations, for example a 4-l
 | Open defect report | An open issue reports corrupted images at 1080p50 RGB24 on a 4-lane CM4, where the driver chose 3 lanes. A Raspberry Pi engineer attributed it to the hard-coded FIFO trigger level (Toshiba's spreadsheet gives a minimum of 120) and to the lane formula using active height instead of total line time. | [C-43] (community) |
 | Margin of the officially supported 2-lane mode | About 7.6 % for 1080p50 UYVY at 972 Mbps | [C-50] |
 | What would resolve it | Toshiba's register spreadsheet (REF_02), which is not public [A-42]. A Raspberry Pi engineer reported that the FIFO formula is covered by NDA [A-43] (community). | [A-42], [A-43]; OQ-027 |
+| Latency of the bridge's buffering *(added 2026-10-09; research topic K / OQ-116)* | The driver sets `FIFOCTL` to 374 and states no latency figure for the bridge; no public source checked documents the TC358743's internal buffering latency. It is one of the undocumented terms of the < 1 s WebRTC target (REQ-STR-002): UNKNOWN — VERIFICATION REQUIRED (DATASHEET REQUIRED; HARDWARE TEST REQUIRED, end to end). See §7.4 and [TC358743_DRIVER.md](TC358743_DRIVER.md) §11.1. | [K-38]; OQ-027, OQ-125 |
 
 - Status: **BLOCKED — HARDWARE REQUIRED.**
 - Retired only by TEST-CAP-004 across the supported-mode matrix, including the 85.3 % cases from §10.6, and by TEST-PERF-001 for long runs and temperature (RISK-006, OQ-035).
@@ -602,6 +622,7 @@ media-ctl -d <M> -V '"csi2":4 [fmt:UYVY8_1X16/1920x1080 field:none colorspace:sm
 | REQ-CAP-007 (DRAFT) | §1, §11.2, §11.3: 2-lane and 4-lane configurations and the modes each link carries | NOT STARTED; TEST-CAP-002, TEST-CAP-004 BLOCKED — HARDWARE REQUIRED |
 | REQ-CAP-008 (DRAFT) | §2, §11.3: ATEM and camera HDMI sources (models OQ-102) | NOT STARTED; TEST-CAP-001, TEST-CAP-004, TEST-ATEM-001 BLOCKED — HARDWARE REQUIRED |
 | REQ-PLT-001 | §11: all four platforms | NOT STARTED; TEST-PLT-001 BLOCKED — HARDWARE REQUIRED |
+| REQ-STR-002 (DRAFT) | §7.4, §12 (added 2026-10-09): receiver frame-completion term and the undocumented TC358743 buffering term of the < 1 s WebRTC latency target (owner 2026-10-08; OQ-116 ANSWERED) | NOT STARTED; TEST-STR-002 BLOCKED — HARDWARE REQUIRED |
 | ADR-002 (PROPOSED) | §7.2, §12: patch the in-tree driver only for defects shown on hardware | — |
 | ADR-004 (OPEN) | §11, §11.3: platform choice, per lane configuration (REQ-CAP-007) | — |
 | ADR-005 (PROPOSED) | §9, §10.6, §13: UYVY default and its 3-lane consequence at 1080p60 | — |
@@ -614,8 +635,9 @@ media-ctl -d <M> -V '"csi2":4 [fmt:UYVY8_1X16/1920x1080 field:none colorspace:sm
 | RISK-012 | §7.2, §11 | OPEN |
 | RISK-016 | §9 | OPEN |
 | RISK-021 | §11.1, §14 | OPEN |
+| RISK-031 | §7.4, §12 (added 2026-10-09) | OPEN |
 
-**Open questions referenced:** OQ-001 (ANSWERED 2026-10-07), OQ-002, OQ-003, OQ-009 (ANSWERED 2026-10-07), OQ-011, OQ-018, OQ-019, OQ-021, OQ-027, OQ-030, OQ-031, OQ-035, OQ-037, OQ-038, OQ-040, OQ-041, OQ-043, OQ-044, OQ-045, OQ-046, OQ-047, OQ-049, OQ-050, OQ-052, OQ-095, OQ-099, OQ-100, OQ-101, OQ-102.
+**Open questions referenced:** OQ-001 (ANSWERED 2026-10-07), OQ-002, OQ-003, OQ-009 (ANSWERED 2026-10-07), OQ-011, OQ-018, OQ-019, OQ-021, OQ-027, OQ-030, OQ-031, OQ-035, OQ-037, OQ-038, OQ-040, OQ-041, OQ-043, OQ-044, OQ-045, OQ-046, OQ-047, OQ-049, OQ-050, OQ-052, OQ-095, OQ-099, OQ-100, OQ-101, OQ-102. *(Added 2026-10-09:)* OQ-116 (ANSWERED 2026-10-08), OQ-125.
 
 ---
 
@@ -635,15 +657,17 @@ These are statements found in the cited sources, or arithmetic built on them. Th
 - **HDMI sources and detected timings (§11.3):** [F-23] (ATEM Mini Pro output standards), [B-27] (reasoning; interlaced rejected), [B-28] (fractional rates reported as integer rates).
 - **Defect reports:** [A-43] (community), [C-43] (community), [C-45] (community).
 - **Kernel baseline:** [D-01], [E-37], [G-04].
+- **Capture latency (added 2026-10-09; research topic K):** [K-34], [K-35] (receiver frame completion on CM4 and CM5), [K-38] (TC358743 buffering latency undocumented), [K-45] (reasoning, CORRECTED; labelled budget, not a measurement); [I-33] (topic I; CFE `CLOCK_MONOTONIC` timestamp in §7.4).
 - **Claude's own reasoning in this document (not register facts):**
   - the active-lane percentages in §10.2–§10.3;
   - the per-line extension in §10.4;
   - the observations in §10.6;
   - the 42 MHz `pll_fbd` value in §4.2;
   - the DT-versus-wiring note in §5 and the candidate `V4L2_CID_LINK_FREQ` patch in §7.2;
-  - in §11.3: the connector-to-configuration mapping for 2-lane bridge boards on 4-lane ports, the lower-rate and fractional-rate lane argument, the ATEM 2-lane consequence and the per-configuration EDID note.
+  - in §11.3: the connector-to-configuration mapping for 2-lane bridge boards on 4-lane ports, the lower-rate and fractional-rate lane argument, the ATEM 2-lane consequence and the per-configuration EDID note;
+  - *(added 2026-10-09)* in §7.4: the Pi 4 Model B / Pi 5 extension of [K-34], [K-35], and the note that V4L2 timestamps cannot show the TC358743's buffering delay.
 
-**Verified on PACSCORDER hardware:** nothing (no hardware exists as of 2026-10-07).
+**Verified on PACSCORDER hardware:** nothing (no hardware exists as of 2026-10-07; still none on 2026-10-09). No latency has been measured (OQ-125).
 
 Every procedure in §14 is **NOT YET RUN ON PACSCORDER HARDWARE**. Every hardware-dependent item is **BLOCKED — HARDWARE REQUIRED**.
 
@@ -657,3 +681,4 @@ Every procedure in §14 is **NOT YET RUN ON PACSCORDER HARDWARE**. Every hardwar
 | 2026-10-06 | Adversarial review: community and CORRECTED wording, NDA claims, 675 ns caveat, DT-versus-wiring note, command option forms marked NEEDS VERIFICATION, `--set-edid` syntax cited, conditional wording for PROPOSED ADRs. | Claude (session 2026-10-06) |
 | 2026-10-06 | Cross-document consistency fixes: §4.5 link-frequency recommendation linked to ADR-008 (PROPOSED) and OQ-099, with ADR-008's CM4 CAM1 297 MHz evaluation noted (§4.5, §13 fallback no longer "not proposed"); "4-lane port is necessary but not shown sufficient for 1080p60 UYVY" stated in §1, §11.2 and §15 (OQ-038); Unicam CSI-2 error counters linked to OQ-095 (§14); `v4l2-ctl -d` sub-device form, `media-ctl -d` forms and the video-node format option linked to OQ-101 (§14); `config.txt` parameter-syntax caveat added under §11.1 ([G-12], [C-39], OQ-100); 6.18.39 identified as the kernel of the community report only, with 6.18.50 [G-04] and 6.18.55 [E-37], and "reported as successful" reworded (§7.2, §14); ADR-008 traceability row and OQ list updated. No status changed. | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: both 2-lane and 4-lane configurations required (REQ-CAP-007; OQ-001 ANSWERED) in the header, intro, §1, §2, §6, §11.2 ("Whether 1080p60 is mandatory: OQ-001" replaced; Pi 4 Model B and CM4 CAM0 recorded as 2-lane candidates) and §13; new §11.3 maps candidate connectors to configurations and gives per-configuration supported-mode limits [C-37], [C-48], [C-49], [B-33], lower/fractional-rate reasoning [B-28] (OQ-040), HDMI sources = ATEM outputs and cameras (REQ-CAP-008, OQ-102, [F-23], [B-27]) and the per-configuration EDID note (OQ-002, reasoning [B-24]); §5 EDID note extended; ADR-004 now a per-configuration choice (still OPEN); traceability rows added for REQ-CAP-007 and REQ-CAP-008; OQ list adds OQ-009, OQ-040, OQ-102 and marks OQ-001/OQ-009 ANSWERED. Added citations B-27, B-28, F-23. No platform chosen; no ADR status changed. | Claude (session 2026-10-07) |
+| 2026-10-09 | Live latency (OQ-116 ANSWERED, research topic K): header (Last updated; Applies to adds the REQ-STR-002 receiver term; Verification adds research topic K of 2026-10-08); §1 bullet "Capture adds about one frame's readout" [K-34], [K-35]; §2 diagram lines for the undocumented TC358743 buffering latency [K-38] and frame-end buffer completion [K-34], [K-35]; new §7.4 "Frame completion and capture latency": Unicam (CM4) and RP1 CFE (CM5) timestamp at frame start and complete at frame end [K-34], [K-35] (CFE `CLOCK_MONOTONIC` from [I-33]), Unicam drops into a dummy buffer when none is queued [K-34] (CFE equivalent KERNEL SOURCE INSPECTION REQUIRED), Pi 4 Model B / Pi 5 by reasoning, the budget's 33.3 ms readout term labelled as reasoning [K-45] (CORRECTED), reasoning that V4L2 timestamps cannot show the bridge's delay (OQ-125, OQ-027), pointers to V4L2.md §12.2 and PERFORMANCE.md; §12 row on the bridge's undocumented buffering latency [K-38]; §15 rows REQ-STR-002 and RISK-031, OQ list adds OQ-116 and OQ-125; Verification status adds K-34, K-35, K-38, K-45 and the new reasoning items. No requirement, ADR, risk or OQ status changed; nothing measured. Verifier pass (same date): §1 bullet title "Capture adds about one frame's readout" → "Capture adds at least one frame's readout on CM4 and about one on CM5" ([K-34] says at least one; [K-35] about one); header Verification row now names §1 and [I-33] from research topic I, which §7.4 cites. Main session, same date: "no hardware exists as of" dates restored to their original values with "still none on 2026-10-09" appended (Rule 21). | Claude (session 2026-10-09) |

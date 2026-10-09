@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | Active — source research only. Describes the in-tree driver that ADR-002 (PROPOSED) would use unmodified. PACSCORDER integration: NOT STARTED |
-| Last updated | 2026-10-08 |
-| Applies to | `drivers/media/i2c/tc358743.c`, `drivers/media/i2c/tc358743_regs.h` and `include/media/i2c/tc358743.h` in raspberrypi/linux `rpi-6.18.y` and torvalds/linux `master`, as read on 2026-10-06; the audio setup, audio controls and audio events in `rpi-6.18.y` as read for research topic I on 2026-10-08 (sections 11.7 and 22.1); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). |
-| Verification | Source inspection only (research of 2026-10-06, plus research topic I of 2026-10-08, [REFERENCES.md](REFERENCES.md)). Nothing has been built, loaded or tested. No PACSCORDER hardware or code exists as of 2026-10-08. |
+| Last updated | 2026-10-09 |
+| Applies to | `drivers/media/i2c/tc358743.c`, `drivers/media/i2c/tc358743_regs.h` and `include/media/i2c/tc358743.h` in raspberrypi/linux `rpi-6.18.y` and torvalds/linux `master`, as read on 2026-10-06; the audio setup, audio controls and audio events in `rpi-6.18.y` as read for research topic I on 2026-10-08 (sections 11.7 and 22.1); the `FIFOCTL` setting as re-read in `rpi-6.18.y` for research topic K (live latency) on 2026-10-08 (section 11.1, added 2026-10-09); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). |
+| Verification | Source inspection only (research of 2026-10-06, plus research topic I of 2026-10-08 and research topic K (live latency) of 2026-10-08, [REFERENCES.md](REFERENCES.md)). Nothing has been built, loaded or tested. No PACSCORDER hardware or code exists as of 2026-10-08 (still none on 2026-10-09). |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 7 (driver documentation), Rules 8, 10, 22, 23 |
 
 This document answers the Rule 25 question "How is TC358743 controlled?" for the Linux driver layer. It documents what the in-tree `tc358743` driver does, as established by reading its source. It does **not** document observed behaviour: nothing has been run on PACSCORDER hardware ([section 26](#26-what-was-actually-verified-rule-7)).
@@ -300,6 +300,13 @@ A *research gap* (topic A) advises against strongly driving or pulling INT durin
 | `fifo_level` | 374 | FIFO trigger level, written to `FIFOCTL` during initial setup [B-50]. The driver comment says 16 fails at higher rates, and that 374 suits 720p60 / 1080p60 at 594 Mbps and "most modes on 972Mbps" | [B-12], [B-50], [C-44] |
 
 A Raspberry Pi engineer (6by9) reported that Toshiba's FIFO formula is in an NDA datasheet; the value 374 in the driver is empirical [A-43]. RISK-006, OQ-035.
+
+**Latency of the bridge's buffering** *(added 2026-10-09; research topic K / OQ-116)*:
+
+- The driver sets the `FIFOCTL` trigger level to 374, states no latency figure for the bridge, and no public source checked documents the TC358743's internal buffering latency [K-38]. The value is hard-coded when the driver is configured from the Device Tree [B-12]. Reasoning: all four candidate platforms configure it that way, so the value is the same on CM4 (Unicam) and CM5 (RP1 CFE), and on Pi 4 Model B and Pi 5.
+- Why it matters: the owner's target, set on 2026-10-08, is under 1 second camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (REQ-STR-002; OQ-116 ANSWERED). The bridge's delay is one of the undocumented terms of that budget (RISK-031). The full budget is in [PERFORMANCE.md](PERFORMANCE.md) (latency budget section).
+- **UNKNOWN — VERIFICATION REQUIRED:** DATASHEET REQUIRED (the Toshiba documents, OQ-027); HARDWARE TEST REQUIRED (end-to-end measurement on CM4 and CM5, OQ-125, TEST-STR-002).
+- Reasoning: the receivers timestamp each buffer at their own frame start [K-34], [K-35], after the frame has passed through the bridge, so V4L2 timestamps cannot show this delay ([CSI_PIPELINE.md](CSI_PIPELINE.md) §7.4).
 
 ### 11.2 PLL from the reference clock
 
@@ -798,6 +805,7 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 - Topic A (TC358743 hardware): 50 claims, 47 CONFIRMED, 3 CORRECTED (A-22, A-25, A-26). Topic B (driver and binding): 50 claims, 46 CONFIRMED, 4 CORRECTED (B-11, B-21, B-25, B-44) ([REFERENCES.md](REFERENCES.md) summary).
 - "CONFIRMED" means the cited source says so. It does not mean the behaviour has been observed.
 - *(Added 2026-10-08.)* Research topic I (HDMI audio path) read the driver's audio setup, audio controls and audio events, the `tc358743-audio` overlay, the ALSA stub codec and both Pi I2S drivers in `rpi-6.18.y`, with the same researcher-plus-independent-verifier method: 47 claims, 46 CONFIRMED, 1 CORRECTED (I-40, not cited here) ([REFERENCES.md](REFERENCES.md) summary). The sources were read at the branch head, while the packaged kernels are 6.18.50 (research gap, topic I; OQ-097 scope note).
+- *(Added 2026-10-09.)* Research topic K (live latency, 2026-10-08) re-read the driver's `FIFOCTL` setting in `rpi-6.18.y` and found no latency figure for the bridge [K-38] (section 11.1), with the same method: 45 claims, 39 CONFIRMED, 6 CORRECTED (counted from the register; [K-38] is CONFIRMED). The bridge's buffering latency has not been measured (OQ-125).
 
 **Not done, even at source level:**
 
@@ -869,6 +877,8 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 | OQ-110 | TC358743 I2S output for compressed, multichannel and 24-bit HDMI audio (added 2026-10-08) | DATASHEET REQUIRED; HARDWARE TEST REQUIRED |
 | OQ-111 | HDMI audio sample-rate detection, rate changes and output sample rate (added 2026-10-08) | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED; BUILD TEST REQUIRED |
 | OQ-112 | A/V synchronisation across the I2S audio and CSI-2 video clock domains (added 2026-10-08) | HARDWARE TEST REQUIRED; OWNER DECISION REQUIRED |
+| OQ-116 | Does the < 1 s latency target apply to RTMP outputs? (added 2026-10-09) | OWNER DECISION REQUIRED — ANSWERED 2026-10-08: WebRTC viewers only; RTMP best-effort |
+| OQ-125 | Measured camera-to-viewer latency of the WebRTC path and its undocumented terms, including the TC358743's buffering (added 2026-10-09) | HARDWARE TEST REQUIRED; DATASHEET REQUIRED; VENDOR CONFIRMATION REQUIRED |
 
 ## Verification status
 
@@ -884,6 +894,7 @@ This document cites the following register entries, all with verdict `CONFIRMED`
 | E — Buildroot and kernel configuration | E-06, E-37, E-38, E-39 |
 | G — Raspberry Pi OS | G-04, G-16 |
 | I — HDMI audio path (added 2026-10-08) | I-02, I-11, I-12, I-13, I-16, I-18, I-19, I-20, I-21, I-22, I-23, I-24, I-25, I-26 |
+| K — Live latency (added 2026-10-09) | K-34, K-35, K-38 |
 
 - `CORRECTED` entries, used in their corrected wording only: A-22, A-25, B-11, B-21, B-44, C-28, C-36, C-53.
 - `community` entries, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43; added 2026-10-08: I-16.
@@ -893,7 +904,7 @@ This document cites the following register entries, all with verdict `CONFIRMED`
 
 ### Verified on PACSCORDER hardware
 
-Nothing (no hardware exists as of 2026-10-08). The owner decisions of 2026-10-07 (audio required; CM4 and CM5 side by side) are requirements and plans, not hardware evidence.
+Nothing (no hardware exists as of 2026-10-08; still none on 2026-10-09). The owner decisions of 2026-10-07 (audio required; CM4 and CM5 side by side) and of 2026-10-08 (< 1 s camera-to-viewer for WebRTC viewers only, OQ-116) are requirements and plans, not hardware evidence. No latency has been measured (OQ-125).
 
 ## Change history
 
@@ -905,3 +916,4 @@ Nothing (no hardware exists as of 2026-10-08). The owner decisions of 2026-10-07
 | 2026-10-07 | ADR-003 ACCEPTED by the owner propagated (status wording); section 24 gap: "only if the Buildroot alternative in ADR-003 is chosen" → "only if ADR-003 (ACCEPTED: Raspberry Pi OS with `rpi-image-gen`) is re-evaluated and its documented Buildroot alternative is chosen" (OQ-064 unchanged). No evidence, other ADR status (ADR-002, ADR-005, ADR-006 PROPOSED) or implementation status changed. | Claude (session 2026-10-07) |
 | 2026-10-08 | Owner decisions of 2026-10-07 (second set: audio required, CM4 and CM5 side by side) and research topic I propagated. Header, conventions (2026-10-08 research JSON; [I-24] line number from the branch head, OQ-097) and §1 (TEST-AUD-001 row; REQ-CAP-006 served). §2: pointers to the new sections. §4: CEC not set in packaged kernels [I-22]; no audio Kconfig in the driver [I-02], [I-12]. §11.4 step 9 points to the new §11.7; §11.6 adds the audio registers [I-19], [I-24]. New §11.7 `tc358743_set_hdmi_audio()`: called once at probe, registers written [I-24], datasheet I2S/TDM limits [I-25], audio PLL [I-26] (OQ-112, RISK-024), stereo-only consequence (reasoning; research design risk), and unknowns (bit length, NLPCM and auto-mute meaning, compressed/multichannel, rate-change behaviour: research gaps; OQ-110, OQ-111, OQ-027, OQ-033). §12: audio row (CBIT interrupts) [I-21]. §15: `V4L2_EVENT_CTRL` for audio-rate changes [I-21]. §19: audio interrupt sources [I-21] and audio-rate polling latency [I-22]. §21: PROPOSED recovery rows for audio rate change and audio lock [I-18], [I-19], [I-21], [I-22]; the +5V-loss `V4L2_EVENT_CTRL` NEEDS VERIFICATION note marked partly addressed by [I-21]. §22: OQ-004 noted as ANSWERED; new §22.1 with control IDs [I-20], the `code_to_rate[]` decode and no-signal rule [I-19], updates and events [I-21], [I-22], the per-platform node that carries the controls [I-23] (Pi 4 Model B / Pi 5 and CM4 Media Controller rows labelled reasoning), the missing ALSA rate path (reasoning [I-18]; RISK-023, OQ-111), a community report [I-16] and a PROPOSED userspace use. §25: defects D19–D21. §26: topic I source-inspection scope and counts; test-map row. §27: OQ-004 marked ANSWERED; OQ-054, OQ-110, OQ-111, OQ-112 added. Verification status: topic I IDs, community I-16, reasoning I-18. No REQ or ADR status changed; driver strategy ADR-002 still PROPOSED; nothing tested. | Claude (session 2026-10-08) |
 | 2026-10-08 | Citation verification of the topic I additions: §4 audio-Kconfig bullet split into the sourced fact ([I-02]: no ASoC codec driver of its own; generic stub codec) and a labelled inference ("Reasoning from [I-02]: no extra Kconfig symbol for audio"). All other [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |
+| 2026-10-09 | Live latency (OQ-116 ANSWERED, research topic K): header (Last updated; Applies to adds the `FIFOCTL` setting as re-read for topic K; Verification adds research topic K of 2026-10-08); §11.1 new "Latency of the bridge's buffering" note: the driver sets `FIFOCTL` to 374 and states no latency figure, and no public source documents the bridge's internal buffering latency [K-38]; same value on all four platforms (reasoning from [B-12]); one of the undocumented terms of the owner's < 1 s WebRTC-only target (REQ-STR-002, RISK-031); UNKNOWN — VERIFICATION REQUIRED (DATASHEET REQUIRED, OQ-027; HARDWARE TEST REQUIRED, OQ-125, TEST-STR-002); reasoning that V4L2 timestamps cannot show it [K-34], [K-35]; §26 topic K source-inspection scope and counts; §27 adds OQ-116 and OQ-125; Verification status adds K-34, K-35, K-38. No requirement, ADR, risk or OQ status changed; driver strategy ADR-002 still PROPOSED; nothing measured. Main session, same date: "no hardware exists as of" dates restored to their original values with "still none on 2026-10-09" appended (Rule 21). | Claude (session 2026-10-09) |

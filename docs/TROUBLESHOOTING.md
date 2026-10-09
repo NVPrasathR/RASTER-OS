@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER**. *(2026-10-08: 37 signatures — eight added from research topics H and I, entries 6.7 to 6.9 and 8.1 to 8.5. Later on 2026-10-08: the H.265 entries 6.7 and 6.9 are deferred — REQ-ENC-002; not in current scope, and kept as reference.)* |
-| Last updated | 2026-10-08 |
-| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport *(later on 2026-10-08: deferred — REQ-ENC-002; not in current scope, because the owner chose "H.264 only for now" (OQ-103 ANSWERED); entries 6.7 and 6.9 are kept as reference)*; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN) |
-| Verification | Every signature comes from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and, for the entries added on 2026-10-08, from the source research of topics H and I. No signature has been observed on PACSCORDER hardware, because none exists as of 2026-10-06. Diagnosis steps and remedies are source-derived and **NOT YET RUN ON PACSCORDER HARDWARE**. |
+| Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER**. *(2026-10-08: 37 signatures — eight added from research topics H and I, entries 6.7 to 6.9 and 8.1 to 8.5. Later on 2026-10-08: the H.265 entries 6.7 and 6.9 are deferred — REQ-ENC-002; not in current scope, and kept as reference.)* *(2026-10-09: 49 signatures — twelve added from research topics J and K, entries 9.1 to 9.7 (recording storage and power loss) and 10.1 to 10.5 (live latency); none observed on PACSCORDER.)* |
+| Last updated | 2026-10-09 |
+| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport *(later on 2026-10-08: deferred — REQ-ENC-002; not in current scope, because the owner chose "H.264 only for now" (OQ-103 ANSWERED); entries 6.7 and 6.9 are kept as reference)*; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). *(Added 2026-10-09; ADR-009 / OQ-116 / research topics J and K.)* Recording storage as decided in ADR-009 (ACCEPTED, owner 2026-10-08): fragmented MP4 mirrored to a PCIe NVMe SSD (CM4 IO Board PCIe slot; CM5 IO Board M.2 slot) and a USB-to-SATA HDD in a self-powered enclosure; and the WebRTC live path against the owner's < 1 s camera-to-viewer target for WebRTC viewers (OQ-116 ANSWERED; RTMP best-effort) |
+| Verification | Every signature comes from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and, for the entries added on 2026-10-08, from the source research of topics H and I, and, for the entries added on 2026-10-09, from the source research of 2026-10-08 on topics J (recording storage and power loss) and K (live latency). No signature has been observed on PACSCORDER hardware, because none exists as of 2026-10-06. Diagnosis steps and remedies are source-derived and **NOT YET RUN ON PACSCORDER HARDWARE**. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 10 (status words), Rule 21 (record failures honestly), Rule 22 (unknowns), Rule 23 (source priority) |
 
 This document lists the failures that sources say can happen on the PACSCORDER video path:
@@ -39,6 +39,7 @@ For each failure it gives the exact log text where a source attests it, the like
    - `config.txt` overlay parameters given by name alone (for example `4lane`, `media-controller`) or combined on one line are NEEDS VERIFICATION (OQ-100). Only `dtoverlay=tc358743,<param>=<val>` [G-12] and appending `,cam0` [C-39] are attested.
    - Reading the kernel log is written as an action. No register fact attests a specific command for it.
    - *(Added 2026-10-08.)* Audio: the register attests the ALSA device string `hw:CARD=tc358743,DEV=0` [I-15] and one `arecord` capture command from a 2019 forum thread (community source) [I-16]. Listing ALSA cards, reading a V4L2 control, waiting for a control event, and complete GStreamer or FFmpeg H.265 and audio pipelines are NEEDS VERIFICATION (OQ-101).
+   - *(Added 2026-10-09; ADR-009 / OQ-116 / research topics J and K.)* Storage and latency: the register attests the kernel parameter `usb-storage.quirks=VID:PID:Flags` [J-26], given in `cmdline.txt` as a workaround by a Raspberry Pi engineer (community source, CORRECTED) [J-27], the dtparams `pciex1` and `pciex1_gen` [J-15], the fstab options `nofail` and `x-systemd.device-timeout=30` (CORRECTED) [J-33], the muxer settings `fragment-duration` [J-39] and `+frag_keyframe` / `hybrid_fragmented` [J-45], and the element `latency` properties [K-07], [K-08], [K-09]. Listing PCIe or USB devices, showing the bound USB storage driver, inspecting an MP4's structure, reading the browser's selected ICE path and measuring camera-to-viewer latency are NEEDS VERIFICATION (OQ-101). The remedies set the `pciex1` dtparam to on, because it defaults to off [J-15]; no source in the register quotes the `config.txt` line that does so (bare `dtparam=pciex1` or with a value), so its form is NEEDS VERIFICATION (OQ-101).
 6. **Source tiers.** Facts from community sources are worded "reported by …". Reasoning facts are labelled as reasoning.
 
 ## Symptom index
@@ -82,6 +83,18 @@ For each failure it gives the exact log text where a source attests it, the like
 | 8.3 | GPIO 18–21 conflict between `tc358743-audio` and another overlay *(added 2026-10-08)* | audio / DT / pins | CM4, CM5 |
 | 8.4 | Audio card present but capture is silent, or "Audio present" reads 0 *(added 2026-10-08)* | audio / HDMI / wiring | CM4, CM5 |
 | 8.5 | Lip-sync offset at start, or audio/video drift over time *(added 2026-10-08)* | audio / timestamps | CM4, CM5 |
+| 9.1 | No NVMe SSD in the CM4 IO Board's PCIe slot *(added 2026-10-09)* | storage / PCIe / power | CM4 (CM4 IO Board) |
+| 9.2 | No NVMe SSD in the CM5 IO Board's M.2 slot *(added 2026-10-09)* | storage / PCIe / DT | CM5 (CM5 IO Board) |
+| 9.3 | USB-to-SATA bridge stops responding or resets, or the HDD copy is corrupt (UAS) *(added 2026-10-09)* | storage / USB | CM4, CM5 |
+| 9.4 | HDD not detected, drops off at spin-up, or fails intermittently (power) *(added 2026-10-09)* | storage / USB power | CM4, CM5 |
+| 9.5 | NVMe copy, recording or live stream stalls when the HDD wakes, resets or is unplugged *(added 2026-10-09)* | storage / pipeline | CM4, CM5 |
+| 9.6 | MP4 file unplayable after a power cut *(added 2026-10-09)* | recording / muxer | all |
+| 9.7 | Boot waits about 90 s (or 30 s) when the HDD is absent *(added 2026-10-09)* | storage / mount | CM4, CM5 |
+| 10.1 | WebRTC camera-to-viewer latency far above 1 s *(added 2026-10-09)* | live path / GStreamer | CM4, CM5 |
+| 10.2 | Browser does not show the WebRTC video: B-frames in the live encode *(added 2026-10-09)* | live encode / WebRTC | CM5 (CM4 encoder has no B-frames) |
+| 10.3 | New WebRTC viewer waits up to about 2 s for the first picture *(added 2026-10-09)* | live encode / keyframes | CM4, CM5 |
+| 10.4 | Internet viewers cannot connect, or their latency grows over time *(added 2026-10-09)* | WebRTC network / ICE | all |
+| 10.5 | MediaMTX logs `reader is too slow` and drops packets to a viewer *(added 2026-10-09)* | WebRTC server | all |
 
 ---
 
@@ -946,6 +959,263 @@ The exact log text is not attested by any source: UNKNOWN.
 
 ---
 
+## 9. Recording storage and power loss
+
+*Section added 2026-10-09 (research topic J; ADR-009).* ADR-009 (ACCEPTED, owner decisions of 2026-10-08) writes every recording as fragmented MP4 to a PCIe NVMe SSD and to a USB-to-SATA HDD in a self-powered enclosure; ext4 on the recording volumes is Claude's proposal inside ADR-009, not an owner decision (OQ-120). No SSD, adaptor, HDD, enclosure or bridge has been chosen (OQ-121, OQ-122). **None of these signatures has been observed on PACSCORDER hardware**, and none has attested log text. Test procedure: TEST-REC-001.
+
+### 9.1 No NVMe SSD in the CM4 IO Board's PCIe slot
+
+**Symptom** (reasoning: the sources say PCIe cards do not work without the +12 V input [J-05], but do not describe how a failure appears). On CM4 with the CM4 IO Board, an NVMe SSD fitted in the PCIe slot through a PCIe-to-M.2 adaptor does not appear as `/dev/nvme0` / `/dev/nvme0n1`, the names Raspberry Pi documents [J-11], or appears but fails under load. The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **No +12 V input.** The slot is powered from the +12 V DC barrel input (J19); an on-board +12 V-to-+3.3 V converter is used only for the slot; with a typical +5 V-only PoE HAT, PCIe cards do not work [J-05].
+- **Adaptor or SSD.** The slot is one PCIe Gen 2 x1 socket designed for standard PC PCIe cards; Raspberry Pi states that it has been used with an NVMe drive through a passive adaptor [J-03]. It is CM4's only PCIe lane [J-01]. Which SSD and adaptor work, and whether the slot converter covers the SSD's peak current, is UNKNOWN (research gap, topic J; OQ-121).
+- **Host-controller limits.** The CM4 PCIe host controller does not support 64-bit accesses from the ARM. The CM4 datasheet says kernels 5.10 and newer support MSI-X with up to 32 IRQs and suggests `pci=nomsi` in `cmdline.txt` as a workaround; the CM4 IO Board datasheet says MSI-X is not supported and devices typically fall back to MSI [J-02]. Which applies to kernel 6.18 is OQ-123.
+
+**Evidence.** [J-01], [J-02], [J-03], [J-05], [J-11]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Check that the IO Board is powered from the +12 V barrel input, not from 5 V only.
+2. Inspect the kernel log for PCIe link and `nvme` messages, and list the PCIe devices. The command is NEEDS VERIFICATION (OQ-101).
+3. Record the interrupt mode the `nvme` driver gets (OQ-123; command NEEDS VERIFICATION).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Power the board from the +12 V barrel input [J-05]. If the product cannot provide 12 V, the NVMe target of ADR-009 is lost on a carrier built like the CM4 IO Board (reasoning from [J-05]; RISK-026, OQ-023).
+- For interrupt problems, the CM4 datasheet's workaround is `pci=nomsi` in `cmdline.txt` [J-02]; whether it is needed on kernel 6.18 is KERNEL SOURCE INSPECTION REQUIRED and HARDWARE TEST REQUIRED (OQ-123).
+- Try another adaptor or SSD; qualification is OQ-121.
+
+**Related.** RISK-026 · OQ-023, OQ-121, OQ-123 · TEST-REC-001
+
+### 9.2 No NVMe SSD in the CM5 IO Board's M.2 slot
+
+**Symptom** (reasoning from the disabled link [J-17] and the unsupported Gen 3 [J-12], [J-13]; no source describes how a failure appears). On CM5 with the CM5 IO Board, an NVMe SSD in the M.2 M-key slot does not appear, or the link is unstable. The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **M.2 link not enabled.** In the `rpi-6.18.y` device tree, `pcie1`, the external link used by the M.2 slot, has status "disabled", and neither the CM5 dtsi nor the CM5 IO Board files set it to okay [J-17]. The `pciex1` dtparam (alias `nvme`) controls the link and defaults to off [J-15]. Whether the firmware enables the link at run time on the CM5 IO Board is unknown (research gap, topic J; OQ-124).
+- **Gen 3 forced.** `dtparam=pciex1_gen=3` raises the link-speed cap [J-15]. On the CM5 IO Board Gen 3 is "possible, but experimental and therefore unsupported" [J-13], and on CM5 it "might not function reliably" [J-12].
+- **Form factor.** The slot takes 2230, 2242, 2260 and 2280 drives [J-14].
+
+**Evidence.** [J-12], [J-13], [J-14], [J-15], [J-17]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Check `config.txt` for a `pciex1` line and for `pciex1_gen`.
+2. Inspect the kernel log and list the PCIe devices (command NEEDS VERIFICATION, OQ-101). Research suggested also reading the `pcie1` node status from the live device tree (research gap, topic J — not a register fact).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Enable the link by setting the `pciex1` dtparam (alias `nvme`) to on; it defaults to off [J-15]. No source in the register quotes the `config.txt` line: its form is NEEDS VERIFICATION (OQ-101). Whether the product image must set it is OQ-124 (REQ-BLD-002).
+- Keep the default Gen 2 cap: remove `pciex1_gen=3` [J-13], [J-15].
+
+**Related.** No registered risk · OQ-121, OQ-124 · TEST-REC-001, TEST-PLT-001, TEST-BLD-001
+
+### 9.3 USB-to-SATA bridge stops responding or resets, or the HDD copy is corrupt (UAS)
+
+**Symptom.** During recording, the HDD stops responding, or, rarely, write data is thrown away and the HDD copy's filesystem is found corrupt — the faults a Raspberry Pi engineer's forum post describes (community source, CORRECTED) [J-27]. Reasoning and research design risk, topic J (not described by a register fact): the USB device may also reset or disconnect, with I/O errors in the kernel log. The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **UAS firmware faults.** A sticky forum post by Raspberry Pi engineer jdb reports that some UAS devices "don't fully implement the UAS specification"; they typically stop responding when sent UAS commands they do not like, or in rare cases throw write data away, which can cause filesystem corruption (community source, CORRECTED) [J-27]. Raspberry Pi's documentation warns that USB SATA adapters can be supported by the bootloader in mass-storage mode but fail if Linux selects UAS mode [J-28].
+- **Which driver binds differs by board.** `uas` refuses to bind when the host controller reports `sg_tablesize == 0`; `dwc2` hard-codes 0, so on CM4 with `dtoverlay=dwc2,dr_mode=host` a UASP bridge runs under `usb-storage`, while under Raspberry Pi OS's default `otg_mode=1` (XHCI USB 2.0) `uas` can bind [J-24], [J-07]. On CM5 the USB 3.0 ports are on RP1's xHCI controllers [J-21].
+- **Kernel quirks.** Before binding, the kernel applies built-in bridge quirks: for ASMedia 0x174c:0x5106/0x55aa the result depends on `bMaxPower`, link speed and stream count (below SuperSpeed a possible ASM1051 gets IGNORE_UAS); all Seagate enclosures (VID 0x0bc2) get NO_ATA_1X; a HIKSEMI MD202 RTL9210 (0bda:9210) gets IGNORE_UAS; user `usb-storage.quirks` are merged afterwards [J-25]. The same bridge can therefore behave differently on CM4 (USB 2.0) and CM5 (USB 3.0) (reasoning from [J-24], [J-25]; RISK-027).
+
+**Evidence.** [J-07], [J-21], [J-24], [J-25], [J-26], [J-27], [J-28]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Record the bridge's VID:PID and which driver is bound, `uas` or `usb-storage`. The command is NEEDS VERIFICATION (OQ-101); research suggested `lsusb -t` (research open question, topic J — not a register fact).
+2. Inspect the kernel log for USB resets, UAS errors and I/O errors during a long recording, and record the exact lines (TEST-REC-001 step 6).
+3. On CM4, record which host controller is active: `otg_mode=1` or `dwc2` [J-07].
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Make the bridge run under `usb-storage` (Bulk-Only) instead of `uas`: add `usb-storage.quirks=VID:PID:u` to `cmdline.txt` (`/boot/firmware/cmdline.txt` on the current OS), with 4-digit hex IDs; several devices are comma-separated [J-26], [J-27] ([J-27] is a community source, CORRECTED). Flag `u` is IGNORE_UAS [J-26].
+- Qualify the chosen bridge on each board separately (OQ-122). The throughput and CPU cost of `usb-storage` against `uas` on CM4's shared USB 2.0 are unmeasured (research open question, topic J; OQ-122).
+
+**Related.** RISK-027, RISK-028 · OQ-117, OQ-122 · TEST-REC-001, TEST-PERF-001
+
+### 9.4 HDD not detected, drops off at spin-up, or fails intermittently (power)
+
+**Symptom.** The HDD fails intermittently while everything appears to work, as Raspberry Pi's documentation warns for HDDs without a powered hub [J-28]. Reasoning (not described by a source): it may also not be detected, or disconnect as it spins up. The exact log text is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **Bus power.** One Seagate BarraCuda 2.5-inch family (ST2000LM015/ST1000LM048/ST500LM030), the register's only 2.5-inch HDD figure and not a general one, draws up to 1.0 A at +5 V during spin-up (CORRECTED) [J-30]. On the CM4 IO Board one current-limit switch of about 1.2 A supplies VBUS to all USB connectors [J-06]. On the CM5 IO Board the two USB 3.0 ports share about 1.2 A [J-19], and on a 5 V/3 A supply a 600 mA peripheral limit applies [J-20]. Reasoning: a bus-powered 2.5-inch HDD that needs 1.0 A to spin up exceeds the 600 mA limit, and under the about 1.2 A limits it leaves only about 0.2 A for the bridge and other USB devices, so a self-powered enclosure or powered hub is the safe choice [J-31]. Raspberry Pi's documentation says HDDs typically need a powered USB hub, and that without one intermittent failures can occur even when everything appears to work [J-28].
+- **3.5-inch HDD.** It needs +12 V as well as +5 V; USB VBUS supplies only 5 V [J-32].
+- **CM4 IO Board hub disabled.** Plugging in the micro-USB cable disables the on-board USB hub [J-06], and the HDD with it (reasoning from [J-06]).
+- ADR-009 decision 3 puts the HDD in a self-powered enclosure, so (reasoning) in the decided configuration bus power should not be the cause; check that the enclosure's own supply is connected and on.
+
+**Evidence.** [J-06], [J-19], [J-20], [J-28], [J-30], [J-31], [J-32]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Check that the enclosure is self-powered and that its supply is on (ADR-009).
+2. CM4: check that no micro-USB cable is plugged in [J-06].
+3. CM5: check whether the supply negotiated 5 A or 3 A [J-20]; the command is NEEDS VERIFICATION (OQ-101).
+4. Measure VBUS during spin-up and inspect the kernel log for disconnect or over-current messages (HARDWARE TEST REQUIRED; research open question, topic J — not a register fact).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Power the HDD from a self-powered enclosure or a powered hub, never from the board's VBUS (ADR-009; [J-28], [J-31]); a 3.5-inch HDD always needs an external 12 V supply [J-32].
+- CM4 IO Board: do not plug in the micro-USB cable while the hub is in use [J-06].
+- CM5 IO Board: use the 5 V/5 A supply [J-20].
+
+**Related.** RISK-026, RISK-027 · OQ-023, OQ-117, OQ-122 · TEST-REC-001
+
+### 9.5 NVMe copy, recording or live stream stalls when the HDD wakes, resets or is unplugged
+
+**Symptom** (reasoning, as in RISK-028; no source describes it). While the HDD spins up from standby, resets (9.3) or is unplugged, the NVMe copy shows a gap, the recording encode drops frames, or the WebRTC or RTMP stream freezes or its latency jumps. No log signature is attested.
+
+**Likely cause** (reasoning, as in RISK-028).
+- One Seagate BarraCuda 2.5-inch family, the register's only HDD timing figure and not a general one, takes 2.5 s typical, 3.0 s maximum from standby to ready (CORRECTED) [J-30].
+- If the HDD writer blocks and its branch has no buffer that can absorb or drop, the stall propagates back to the recording encode, then to the NVMe copy and, if it reaches the capture queue, into the live encode. V4L2 queues are FIFOs; reasoning: each waiting frame adds one frame period, 33.3 ms at 30p [K-36]. On CM4 the two encodes share the hardware encoder (OQ-115). A 3.0 s stall is three times the whole < 1 s live budget.
+
+**Evidence.** [J-30], [J-36], [K-36]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Run TEST-REC-001 step 5 with TEST-STR-002's latency measurement. Record the stall duration, the HDD-branch buffer level and overflow, gaps in the NVMe copy, and live latency and frame rate before, during and after.
+
+**Remedy** (design; NOT YET RUN ON PACSCORDER HARDWARE).
+- Decouple the HDD branch, as ADR-009's consequences require; the buffering and overflow policy are open (OQ-117). Research suggests a large or leaky queue in front of the HDD branch and disabling or extending spin-down where the bridge allows (research design risks, topic J — not register facts). Whether `hdparm` standby settings work through the bridge is unknown (research open question, topic J; OQ-117).
+- Reasoning from [J-30] and [J-36] (as in OQ-117; not a design figure): riding out a 3.0 s stall (that one Seagate family's standby-to-ready maximum [J-30]) at about 3.15 MB/s per destination needs about 3.0 × 3.15 ≈ 9.5 MB of HDD-branch buffering, before any margin.
+- Keep the live branch from building a backlog (OQ-126, RISK-032).
+
+**Related.** RISK-028, RISK-027, RISK-032 · OQ-115, OQ-117, OQ-126 · TEST-REC-001, TEST-STR-002, TEST-PERF-001
+
+### 9.6 MP4 file unplayable after a power cut
+
+**Symptom.** After power is lost during a recording, the MP4 file does not open or play. The exact player or tool error is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- **Written in normal (moov-at-end) mode.** In GStreamer 1.26.2 `qtmux`/`mp4mux`'s default mode, the moov index is written only at EOS and the mdat size is fixed up then; a file with no moov is not playable, so an unclean stop leaves an unplayable MP4 unless fragmented or robust mode is used [J-38]. FFmpeg 7.1 documents that a normal MOV/MP4 is undecodable if not properly finished [J-45].
+- **Fragmentation not active.** `fragment-duration` defaults to 0; only a value > 0 produces a fragmented file [J-39]. Whether the shipped GStreamer 1.26.2 and FFmpeg 7.1.5 builds expose the options as upstream documents them was not checked (research open question, topic J; OQ-118).
+- A fragmented file that **plays but ends early** is a different case: see the remaining loss below.
+
+**Evidence.** [J-35], [J-38], [J-39], [J-40], [J-45]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Check the muxer settings used: `fragment-duration` > 0 in GStreamer, or FFmpeg's `+frag_keyframe` or `hybrid_fragmented`.
+2. Inspect the file's structure. The tool is NEEDS VERIFICATION (OQ-101).
+3. Repeat with TEST-REC-001 step 4.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Write fragmented MP4, as ADR-009 decides: GStreamer `fragment-duration` > 0, in milliseconds [J-39]; FFmpeg `+frag_keyframe`, which starts a fragment at each video keyframe, or `hybrid_fragmented`, which writes a fragmented file and converts it to a normal one at the end [J-45]. FFmpeg 7.1's muxer documentation says a fragmented file stays decodable if writing is interrupted [J-45]; no register entry states this for GStreamer's fragmented output (TEST-REC-001 step 4 checks it).
+- Do not set robust-muxing properties together with `fragment-duration` > 0 and expect both: the muxer then silently produces a fragmented file only [J-39]. Robust muxing [J-40] was not chosen by ADR-009.
+- For a file already affected: FFmpeg documents that an aborted `hybrid_fragmented` file can be remuxed by hand [J-45]; GStreamer names the experimental `moov-recovery-file` property as a recovery measure for normal mode [J-38] (not part of ADR-009; NEEDS VERIFICATION).
+- **Remaining loss.** Even a decodable file loses its last seconds: with ext4's defaults a power loss loses at most the last 5 s of metadata changes, but because of delayed allocation even older data can be lost (CORRECTED) [J-35]. How many seconds are lost per drive is OQ-119 (RISK-030).
+
+**Related.** RISK-029, RISK-030 · OQ-118, OQ-119, OQ-120 · TEST-REC-001
+
+### 9.7 Boot waits about 90 s (or 30 s) when the HDD is absent
+
+**Symptom.** With the HDD disconnected or switched off, boot pauses for about 90 s, or about 30 s, before continuing.
+
+**Likely cause.** Raspberry Pi's external-storage guide warns that an absent disk adds 90 s to boot, and that appending `,x-systemd.device-timeout=30` after `nofail` shortens that wait to 30 s rather than removing it (CORRECTED) [J-33].
+
+**Evidence.** [J-33]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Check the HDD's fstab options, and time the boot with the HDD absent (TEST-REC-001 step 8).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Use `nofail` with `x-systemd.device-timeout=30` [J-33]; the wait is shortened, not removed. The recording volumes' mount options are OQ-120.
+- Whether recording to the NVMe SSD must start when the HDD is missing is UNDEFINED — OWNER DECISION REQUIRED (OQ-117).
+
+**Related.** No registered risk · OQ-117, OQ-120 · TEST-REC-001
+
+---
+
+## 10. Live latency (WebRTC)
+
+*Section added 2026-10-09 (research topic K; OQ-116).* The owner's target is under 1 s camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (OQ-116 ANSWERED; REQ-STR-002, REQ-STR-001). The live H.264 encode is shared by RTMP and WebRTC (OQ-005). **None of these signatures has been observed on PACSCORDER hardware.** Test procedures: TEST-STR-002 and TEST-ENC-001.
+
+### 10.1 WebRTC camera-to-viewer latency far above 1 s
+
+**Symptom.** The measured camera-to-viewer latency of a WebRTC viewer is well above the < 1 s target, for example several seconds (reasoning: one 2000 ms default [K-09] would do that on its own; no source describes this symptom on the PACSCORDER stack). No log signature is attested.
+
+**Likely cause.**
+- **RTSP element default.** `rtspclientsink` and `rtspsrc` have `latency` = "Amount of ms to buffer", default 2000; MediaMTX's own GStreamer reader examples set `rtspsrc latency=0` [K-09]. Whether `rtspclientsink`'s default adds delay on the sending side is unknown (research open question, topic K; OQ-126).
+- **Jitter buffers inside the pipeline.** `webrtcbin` `latency` defaults to 200 ms [K-07]; `rtpbin` and `rtpjitterbuffer` default to 200 ms, and `rtpjitterbuffer` adds that much latency [K-08]. Reasoning: these apply only to RTP received inside the live path, for example an `rtspsrc` relay; a browser viewer uses its own buffer [K-10].
+- **x264 defaults (CM5).** GStreamer 1.26 `x264enc` runs x264's medium preset by default (3 B-frames, rc-lookahead 40, MB-tree on) unless downstream caps force a profile such as baseline; only properties set explicitly are layered on top, and the `bframes=0` property default does not guarantee a B-frame-free stream (CORRECTED) [K-29]. x264 holds frames back for B-frames (raised to rc-lookahead when MB-tree is on), sync lookahead and frame threads, none with `zerolatency` [K-28]. Reasoning: with the medium preset's MB-tree and rc-lookahead 40 that is at least 40 frames, about 1.33 s at 30p.
+- **Queue backlog.** V4L2 queues are FIFOs; reasoning: each waiting frame adds one frame period [K-36]. `v4l2src` reports a maximum latency of buffer-pool depth × frame duration [K-37]. On CM5, if x264 cannot finish a frame within one frame period, queues grow (research design risk, topic K — not a register fact; RISK-032, OQ-059).
+- **Under-reported pipeline latency.** `v4l2h264enc` on BCM2711 reports 0 latency to the pipeline [K-32]; reasoning (as in RISK-032): GStreamer's own latency figure then leaves out the real encode time.
+- **Viewer buffer.** The browser's jitter buffer is its own; `jitterBufferTarget` only influences it [K-11].
+- An HDD stall reaching the live path (9.5).
+
+**Evidence.** [K-07], [K-08], [K-09], [K-10], [K-11], [K-12], [K-27], [K-28], [K-29], [K-32], [K-36], [K-37], [K-45]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. List every live-path element's latency property and queue settings.
+2. In the viewer, read `jitterBufferDelay`, `jitterBufferEmittedCount`, `jitterBufferTargetDelay`, `jitterBufferMinimumDelay` and `totalProcessingDelay` from the W3C statistics API (CORRECTED) [K-12], to separate the viewer's buffering from the sending path. How to read them is NEEDS VERIFICATION (OQ-101).
+3. Measure the live encode's per-frame time (TEST-ENC-001), not the pipeline's reported latency [K-32].
+4. Run TEST-STR-002 step 6.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- Set every buffering element's latency explicitly and record it (OQ-126); MediaMTX's examples use `rtspsrc latency=0` [K-09].
+- On CM5, use `tune=zerolatency` [K-27], [K-28].
+- Whether leaky queues are needed in front of the live encoder and payloader is a research open question (topic K; OQ-126): BUILD TEST REQUIRED.
+- For orientation only (reasoning, a labelled budget, not a measurement; CORRECTED): for a CM4 1080p30 LAN viewer the documented or extrapolated terms come to about 56 ms typical and about 75 ms worst case, so most of the 1 s is in undocumented terms [K-45] (OQ-125).
+
+**Related.** RISK-031, RISK-032 · OQ-059, OQ-125, OQ-126 · TEST-STR-002, TEST-ENC-001
+
+### 10.2 Browser does not show the WebRTC video: B-frames in the live encode
+
+**Symptom** (reasoning; the sources say only that browsers do not support H.264 B-frames over WebRTC [K-04], not how the failure appears). A browser viewer connects but the video does not decode or plays incorrectly, while RTMP from the same live encode plays. The exact browser error is not attested by any source: UNKNOWN.
+
+**Likely cause.**
+- MediaMTX documents that browsers deliberately do not support H.264 with B-frames over WebRTC, and recommends H.264 Baseline (no B-frames) with Opus [K-04]; the MediaMTX project reports the same (community source) [F-45].
+- **CM5.** GStreamer 1.26 `x264enc` runs x264's medium preset with 3 B-frames by default, and its `bframes=0` property default does not guarantee a B-frame-free stream (CORRECTED) [K-29]. rpicam-apps' normal-mode `libx264` defaults set `max_b_frames=1` [D-35].
+- **CM4 is not affected:** `bcm2835-codec` limits B-frames to 0 [K-30].
+- YouTube recommends 2 B-frames for RTMP [K-17]; reasoning from [K-04] and [K-17]: a live encode set up for that advice breaks WebRTC, because the two share one encode (OQ-127).
+
+**Evidence.** [D-35], [F-45], [K-04], [K-17], [K-29], [K-30]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Check the live encode's output for B-frames (TEST-ENC-001 two-encode run, step 4; tool NEEDS VERIFICATION, OQ-101), and record the `x264enc` settings.
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). On CM5, set `tune=zerolatency`, set `bframes=0` explicitly, or force `profile=baseline` in caps (CORRECTED) [K-29]. Do not follow YouTube's B-frame advice on the shared live encode (OQ-127). Profile and level negotiation are separate (OQ-073, RISK-019).
+
+**Related.** RISK-019 · OQ-073, OQ-127 · TEST-ENC-001, TEST-STR-002
+
+### 10.3 New WebRTC viewer waits up to about 2 s for the first picture
+
+**Symptom** (reasoning from [K-30]; see Likely cause). A viewer who joins a running stream sees no picture, or a frozen one, for up to about 2 s at 30 fps before video starts. No log signature is attested.
+
+**Likely cause.** Reasoning from [K-30]: the `bcm2835-codec` default GOP of 60 frames is 2 s at 30 fps, so without an on-demand keyframe a new viewer waits for the next IDR. Whether MediaMTX passes a viewer's keyframe request back to an RTSP-publishing pipeline is undocumented (research open question, topic K; OQ-127).
+
+**Evidence.** [K-17], [K-30], [K-31]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Record the GOP set and the join time (TEST-STR-002 step 7).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
+- CM4: request an IDR when a viewer joins. `bcm2835-codec` implements force-keyframe, and GStreamer 1.26 `v4l2videoenc` issues it for frames flagged force-keyframe [K-31]. How the join event reaches the pipeline is OQ-127. The CM5 (x264) equivalent is not in the register: NEEDS VERIFICATION.
+- Or shorten the GOP. YouTube recommends 2 s keyframes, not over 4 s [K-17]; the interval for the shared live encode is OQ-127.
+
+**Related.** RISK-019 · OQ-127 · TEST-STR-002, TEST-ENC-001
+
+### 10.4 Internet viewers cannot connect, or their latency grows over time
+
+**Symptom.** Viewers on the LAN play, but viewers outside it get no media (reasoning from [K-42]), or their session plays but its latency grows when the network is congested (MediaMTX's configuration says this of TCP [K-41]). No log signature is attested.
+
+**Likely cause.**
+- **Unreachable listener or wrong advertised address.** MediaMTX v1.21.1 listens for WebRTC on UDP `:8189` and leaves TCP disabled by default [K-41]. It advertises its interface addresses by default; for internet clients its docs say to add the public IP or DNS name to `webrtcAdditionalHosts`, and STUN/TURN (`webrtcICEServers2`) is "Needed only when local listeners can't be reached by clients" [K-42]. Reasoning from [K-42]: a configuration that only reaches LAN clients fails for remote viewers (research design risk, topic K; RISK-033).
+- **TCP path.** MediaMTX's configuration says TCP "is less efficient than UDP and introduces a progressive delay when network is congested" [K-41]. MediaMTX documents four connection methods — static UDP port, static TCP port, random UDP port with STUN hole punching, TURN relay — and recommends TCP transport only for a coturn relay [K-43].
+
+**Evidence.** [K-12], [K-41], [K-42], [K-43]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE).
+1. Check MediaMTX's WebRTC settings: UDP listener, `webrtcAdditionalHosts`, `webrtcICEServers2`, and the site's port forwarding.
+2. In the viewer, record which path the session uses and its round-trip time; the W3C statistics API exposes candidate-pair `currentRoundTripTime` (CORRECTED) [K-12]. Reading the selected path is NEEDS VERIFICATION (OQ-101).
+
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Make UDP 8189 reachable and advertise the public IP or DNS name in `webrtcAdditionalHosts` [K-41], [K-42]; otherwise provide STUN or a TURN relay [K-42], [K-43]. Whether internet viewers are in scope is OQ-008; the NAT-traversal design is OQ-074; latency per path is OQ-128.
+
+**Related.** RISK-033 · OQ-008, OQ-074, OQ-075, OQ-128 · TEST-STR-002
+
+### 10.5 MediaMTX logs `reader is too slow` and drops packets to a viewer
+
+**Symptom.** MediaMTX logs "reader is too slow" and drops packets to that reader [K-44]. Reasoning (not described by a source): the viewer sees gaps or damaged frames.
+
+**Likely cause.** MediaMTX documents that it favours real-time delivery over reliability: most protocols run over UDP, so late packets can be dropped, and outgoing packets go through a circular buffer (`writeQueueSize`, default 512) that drops packets when full and logs "reader is too slow" [K-44]. Reasoning from the log text: the viewer or its network path is not keeping up.
+
+**Evidence.** [K-44]
+
+**Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Note which reader is named, check its network path (10.4), and record the live bitrate (OQ-005).
+
+**Remedy** (NOT YET RUN ON PACSCORDER HARDWARE). No remedy is attested by the register. Reasoning (Claude): a larger write queue would trade dropped packets for added delay, against the < 1 s target, and a lower live bitrate (OQ-005) reduces what each reader must receive. NEEDS VERIFICATION.
+
+**Related.** RISK-031, RISK-033 · OQ-005, OQ-125, OQ-128 · TEST-STR-002
+
+---
+
 ## Verification status
 
 ### Verified from sources (fact IDs)
@@ -957,17 +1227,19 @@ Every signature, cause and remedy above cites entries of [REFERENCES.md](REFEREN
 | A — TC358743 hardware | A-03, A-04, A-08, A-15, A-16, A-19, A-20, A-21, A-22, A-23, A-24, A-25, A-29, A-30, A-31, A-33, A-43, A-44, A-45, A-46, A-50; added 2026-10-08: A-47 |
 | B — tc358743 Linux driver | B-06, B-07, B-09, B-10, B-11, B-12, B-14, B-16, B-18, B-19, B-21, B-22, B-23, B-24, B-25, B-26, B-27, B-29, B-31, B-32, B-34, B-38, B-39, B-41, B-42, B-43, B-45, B-47, B-48, B-49 |
 | C — Raspberry Pi CSI-2 receive path | C-01, C-02, C-03, C-04, C-05, C-06, C-08, C-10, C-11, C-13, C-14, C-16, C-17, C-19, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-27, C-28, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-39, C-40, C-41, C-42, C-43, C-45, C-47, C-49, C-50, C-51, C-52, C-53 |
-| D — Encoders | D-03, D-17, D-19, D-20, D-21, D-22, D-28, D-29, D-31, D-33, D-37, D-38, D-39, D-40, D-43, D-48; added 2026-10-08: D-24 |
+| D — Encoders | D-03, D-17, D-19, D-20, D-21, D-22, D-28, D-29, D-31, D-33, D-37, D-38, D-39, D-40, D-43, D-48; added 2026-10-08: D-24; added 2026-10-09: D-35 |
 | E — Buildroot and kernel configuration | E-13, E-32, E-37, E-39, E-47, E-48 |
-| F — ATEM and streaming | F-23, F-33, F-34, F-35; added 2026-10-08: F-31 |
+| F — ATEM and streaming | F-23, F-33, F-34, F-35; added 2026-10-08: F-31; added 2026-10-09: F-45 |
 | G — Raspberry Pi OS and image tooling | G-04, G-12, G-18, G-22, G-23, G-25, G-26, G-32, G-65; added 2026-10-08: G-14 |
 | H — H.265 software encoding and transport (added 2026-10-08) | H-10, H-13, H-16, H-26, H-27, H-30, H-43 |
 | I — HDMI audio path (added 2026-10-08) | I-01, I-02, I-03, I-04, I-05, I-06, I-07, I-08, I-09, I-10, I-11, I-12, I-13, I-14, I-15, I-16, I-17, I-18, I-19, I-20, I-21, I-22, I-23, I-24, I-26, I-27, I-29, I-30, I-31, I-32, I-33, I-35, I-36, I-37, I-38, I-41, I-47 |
+| J — Recording storage and power loss (research of 2026-10-08; cited from 2026-10-09) | J-01, J-02, J-03, J-05, J-06, J-07, J-11, J-12, J-13, J-14, J-15, J-17, J-19, J-20, J-21, J-24, J-25, J-26, J-27, J-28, J-30, J-31, J-32, J-33, J-35, J-36, J-38, J-39, J-40, J-45 |
+| K — Live latency (research of 2026-10-08; cited from 2026-10-09) | K-04, K-07, K-08, K-09, K-10, K-11, K-12, K-17, K-27, K-28, K-29, K-30, K-31, K-32, K-36, K-37, K-41, K-42, K-43, K-44, K-45 |
 
-- `CORRECTED` entries cited: A-22, A-25, B-11, B-21, B-25, C-28, C-36, C-39, C-53, E-47, F-34; added 2026-10-08: H-10.
-- `community` entries cited, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43, C-45, D-17; added 2026-10-08: I-16.
-- `reasoning` entries cited, labelled as reasoning: A-23, B-10, B-11, B-27, B-47, B-49, C-47, C-49, C-50, C-51, C-52, C-53, D-29, F-35; added 2026-10-08: H-43, I-17, I-18.
-- Two signatures rest partly on research gaps, not register facts: 4.2 (`Incorrect pixel format`) and the extra modes in 3.5. They are marked NEEDS VERIFICATION where used. The "even for HD sources" note in 4.3 is also a research gap, labelled as such. *(Added 2026-10-08.)* Entries 6.7 to 6.9 and 8.1 to 8.5 also use items marked *research gap* or *research design risk* (topics H and I) from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json): the backported-`eflvmux` option (6.7), the CM5 audio path being unconfirmed (8.2), the custom GPIO 18–20 overlay (8.3), the 2-channel-only EDID proposal (8.4) and the unmeasured GStreamer clock choice (8.5). They are not register facts and are labelled where used. None of the eight new signatures has attested log text; each says so.
+- `CORRECTED` entries cited: A-22, A-25, B-11, B-21, B-25, C-28, C-36, C-39, C-53, E-47, F-34; added 2026-10-08: H-10; added 2026-10-09: J-27, J-30, J-33, J-35, K-12, K-29, K-45.
+- `community` entries cited, worded as reports: A-43, C-28, C-33, C-35, C-41, C-42, C-43, C-45, D-17; added 2026-10-08: I-16; added 2026-10-09: F-45, J-27.
+- `reasoning` entries cited, labelled as reasoning: A-23, B-10, B-11, B-27, B-47, B-49, C-47, C-49, C-50, C-51, C-52, C-53, D-29, F-35; added 2026-10-08: H-43, I-17, I-18; added 2026-10-09: J-31, J-36, K-10, K-45, and the reasoning sentence of the `kernel-source` entry K-36.
+- Two signatures rest partly on research gaps, not register facts: 4.2 (`Incorrect pixel format`) and the extra modes in 3.5. They are marked NEEDS VERIFICATION where used. The "even for HD sources" note in 4.3 is also a research gap, labelled as such. *(Added 2026-10-08.)* Entries 6.7 to 6.9 and 8.1 to 8.5 also use items marked *research gap* or *research design risk* (topics H and I) from [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json): the backported-`eflvmux` option (6.7), the CM5 audio path being unconfirmed (8.2), the custom GPIO 18–20 overlay (8.3), the 2-channel-only EDID proposal (8.4) and the unmeasured GStreamer clock choice (8.5). They are not register facts and are labelled where used. None of the eight new signatures has attested log text; each says so. *(Added 2026-10-09.)* Entries 9.1 to 9.7 and 10.1 to 10.5 also use items marked *research gap*, *research open question* or *research design risk* (topics J and K) from [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json): the slot-converter rating and SSD peak current (9.1), firmware enablement of the CM5 M.2 link and the device-tree status check (9.2), the `lsusb -t` check and the `usb-storage` versus `uas` cost (9.3), VBUS measurement at spin-up (9.4), the HDD-branch queue, spin-down and `hdparm` (9.5), the unchecked muxer options on the shipped builds (9.6), the `rtspclientsink` sender-side question, the CM5 backlog and leaky queues (10.1), keyframe-request forwarding (10.3) and the LAN-only configuration risk (10.4). They are not register facts and are labelled where used. Of the twelve signatures added on 2026-10-09, only 10.5 has attested log text ("reader is too slow" [K-44]); the others say that none is attested. Entries 9.5 and 10.5 rest partly on Claude's reasoning, labelled where used. *(Verifier pass, same date.)* The symptoms of 9.1 to 9.5 and 10.1 to 10.5 that no source describes are also Claude's reasoning, labelled in each Symptom line.
 - "Verified from sources" means only that the cited source says so. Under Rule 23, a hardware measurement overrides any of these facts.
 
 ### Verified on PACSCORDER hardware
@@ -985,3 +1257,4 @@ Nothing (no hardware exists as of 2026-10-06). No signature in this document has
 | 2026-10-08 | Second set of owner decisions of 2026-10-07 and research topics H and I propagated; no entry rewritten or deleted. Header: status (37 signatures), "Applies to" (software H.265, `tc358743-audio` path, CM4 + CM5 bring-up) and "Verification" rows. Conventions: audio command attestation note (OQ-101). Symptom index: eight rows added. New entries: 6.7 H.265 will not link to `flvmux` (GStreamer 1.26.2 has no H.265 in `flvmux`, `eflvmux` only in 1.28; FFmpeg enhanced FLV, SRT or backport; OQ-107, RISK-025); 6.8 `opusenc` rejects 44.1 kHz audio ([I-47]; resample after capturing at the true rate); 6.9 `x265enc` / `libx265` reject UYVY (planar only; conversion cost; FFmpeg thread-count note); new section 8 HDMI audio: 8.1 sample-rate mismatch with no error (RISK-023, OQ-111), 8.2 missing or unusable `tc358743` card on CM5 (unconfirmed path, companion overlay, PCM name, OQ-054), 8.3 GPIO 18–21 conflicts (OQ-114), 8.4 silent capture or "Audio present" 0 (signal, wiring, VDDIO2 voltage, source format), 8.5 lip-sync offset and drift (RISK-024, OQ-112). Dated notes: 2.3 (OQ-102 answered, no model list), 6.3 (H.265 software-only on every candidate), 6.5 (H.265 see 6.7). Verification table: A-47, D-24, F-31, G-14, topic H and I rows; CORRECTED H-10; community I-16; reasoning H-43, I-17, I-18; 2026-10-08 research JSON items labelled. | Claude (session 2026-10-08) |
 | 2026-10-08 | Citation verification of the topic H and I additions: 8.2 Remedy — "Load both overlays [I-16]" now rests on the official statement [C-37] with the community report [I-16] labelled as such; the card-id bullet labels [I-17] as reasoning from source. All other [H-xx] and [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): header status and "Applies to" rows note that software H.265 / HEVC transport and entries 6.7 and 6.9 are deferred — REQ-ENC-002; not in current scope; symptom index rows 6.7 and 6.9 and their headings labelled "(deferred — REQ-ENC-002; not in current scope)"; dated scope notes added under 6.7 and 6.9 (signature not expected in current scope; entry kept unchanged as reference; 6.9 notes the H.264 software encoders also reject UYVY [D-40], [D-43]); 6.3 H.265 note and Related line, 6.5 H.265 pointer, and 6.7/6.9 Related lines annotated (RISK-022, RISK-025, OQ-104, OQ-106, OQ-107 not in current scope; OQ-103 ANSWERED). No entry text rewritten or deleted (the 6.7 and 6.9 headings only gained the label); signature count unchanged (37); no status changed. | Claude (session 2026-10-08) |
+| 2026-10-09 | Storage + latency (ADR-009 ACCEPTED, OQ-116 ANSWERED, research topics J and K): header — status (49 signatures; none observed on PACSCORDER), "Last updated", "Applies to" (ADR-009 storage path; WebRTC live path against < 1 s, RTMP best-effort) and "Verification" (topics J and K); How to use, item 5 — storage and latency command attestation note (OQ-101); symptom index — twelve rows; new section 9 "Recording storage and power loss": 9.1 no NVMe SSD in the CM4 IO Board PCIe slot (+12 V input, adaptor, MSI/MSI-X) [J-01] to [J-03], [J-05], [J-11]; 9.2 no NVMe SSD in the CM5 IO Board M.2 slot (`pciex1` dtparam, Gen 3) [J-12] to [J-15], [J-17]; 9.3 USB-to-SATA bridge hangs, resets or corruption under UAS, with `usb-storage.quirks` (community report) [J-07], [J-21], [J-24] to [J-28]; 9.4 HDD power and VBUS limits [J-06], [J-19], [J-20], [J-28], [J-30] to [J-32]; 9.5 HDD stall back-pressure into the NVMe copy and live path (reasoning, RISK-028) [J-30], [J-36], [K-36]; 9.6 MP4 unplayable after a power cut, fragmented MP4 as the mitigation, remaining ext4 loss [J-35], [J-38] to [J-40], [J-45]; 9.7 boot delay with the HDD absent [J-33]; new section 10 "Live latency (WebRTC)": 10.1 latency far above 1 s from default element latencies, x264 defaults, queue backlog and under-reported encoder latency [K-07] to [K-12], [K-27] to [K-29], [K-32], [K-36], [K-37], [K-45]; 10.2 browser rejects B-frames in the live encode [D-35], [F-45], [K-04], [K-17], [K-29], [K-30]; 10.3 viewer join waits for the next IDR [K-17], [K-30], [K-31]; 10.4 internet viewers, ICE and TCP fallback [K-12], [K-41] to [K-43]; 10.5 MediaMTX `reader is too slow` [K-44]; Verification status — D-35, F-45, topic J and K rows, CORRECTED, community and reasoning entries, topic J/K research items. No existing entry rewritten or deleted; no status changed. Verifier pass (same date): every [J-xx]/[K-xx] citation checked against the register (181 in the entries); fixed — symptoms of 9.1 to 9.5 and 10.1 to 10.5 that no source describes are now labelled reasoning (9.3 resets and I/O errors also a research design risk; 10.5 retitled "MediaMTX logs `reader is too slow` and drops packets to a viewer", in the index too); 9.2 remedy and the item-5 note: `pciex1` set to on, defaulting to off [J-15], `config.txt` line form NEEDS VERIFICATION; [J-30] named as one Seagate BarraCuda 2.5-inch family (9.4, 9.5, with the 9.5 MB arithmetic); [J-31] limited to an HDD that needs 1.0 A; [J-20] "USB peripherals" → peripheral limit; 9.4 decision-3 inference and VBUS item labelled (reasoning; research open question); 9.6 "fragmented file stays decodable" attributed to FFmpeg [J-45]; 10.1 x264 defaults reworded to [K-29] (medium preset unless caps force a profile; explicit properties layered on top) with the [K-28] lookahead delay as labelled reasoning, [K-37] as what `v4l2src` reports, [K-45] terms "documented or extrapolated", 56 ms typical / 75 ms worst; 10.2 "breaks WebRTC" labelled reasoning; 10.4 TCP statement attributed to MediaMTX's configuration [K-41]; `usb-storage.quirks` worded as a kernel parameter [J-26] given in `cmdline.txt` [J-27]. | Claude (session 2026-10-09) |

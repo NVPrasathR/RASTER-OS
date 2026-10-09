@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Document status | Active — source research only. Streaming design and implementation: NOT STARTED |
-| Last updated | 2026-10-08 |
-| Applies to | REQ-STR-001 (RTMP), REQ-STR-002 (WebRTC); REQ-ENC-001 (H.264 only for all outputs: owner, 2026-10-08, "H.264 only for now"; OQ-103 ANSWERED. Two simultaneous H.264 encodes, a recording encode and one live encode shared by RTMP and WebRTC: owner, 2026-10-08, "Separate record + live"; OQ-005, OQ-115, OQ-059); REQ-ENC-002 (H.265, `DEFERRED`: not in current scope); REQ-CAP-006 (HDMI audio required, owner 2026-10-07; DRAFT); REQ-ATEM-001 (scope notes only: receiving ATEM RTMP and ATEM network control are not in current scope, owner 2026-10-07); ADR-007 (`OPEN`); ADR-004 (`OPEN`; bring-up evaluates CM4 and CM5 side by side); RISK-002, RISK-003, RISK-019, RISK-023, RISK-024; RISK-022 and RISK-025 (not in current scope: H.265 deferred); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5); Raspberry Pi OS (ADR-003, `ACCEPTED`) and Buildroot (documented alternative) |
-| Verification | Source research of 2026-10-06, plus research topics H (H.265/HEVC) and I (HDMI audio) of 2026-10-08 ([REFERENCES.md](REFERENCES.md)). Nothing has been tested. No PACSCORDER hardware or code exists as of 2026-10-08. |
+| Last updated | 2026-10-09 |
+| Applies to | *(Added 2026-10-09.)* Live latency (owner, 2026-10-08; OQ-116 ANSWERED): under 1 s camera-to-viewer for WebRTC viewers only (REQ-STR-002); RTMP outputs best-effort, latency set by the receiving platform (REQ-STR-001); bitrate and rate control still open (OQ-005). Recording mirrored as fragmented MP4 (ADR-009, `ACCEPTED`), relevant here only as a load that must not stall the live path (OQ-117, RISK-028). OQ-125 to OQ-128; RISK-031 to RISK-034. — REQ-STR-001 (RTMP), REQ-STR-002 (WebRTC); REQ-ENC-001 (H.264 only for all outputs: owner, 2026-10-08, "H.264 only for now"; OQ-103 ANSWERED. Two simultaneous H.264 encodes, a recording encode and one live encode shared by RTMP and WebRTC: owner, 2026-10-08, "Separate record + live"; OQ-005, OQ-115, OQ-059); REQ-ENC-002 (H.265, `DEFERRED`: not in current scope); REQ-CAP-006 (HDMI audio required, owner 2026-10-07; DRAFT); REQ-ATEM-001 (scope notes only: receiving ATEM RTMP and ATEM network control are not in current scope, owner 2026-10-07); ADR-007 (`OPEN`); ADR-004 (`OPEN`; bring-up evaluates CM4 and CM5 side by side); RISK-002, RISK-003, RISK-019, RISK-023, RISK-024; RISK-022 and RISK-025 (not in current scope: H.265 deferred); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5); Raspberry Pi OS (ADR-003, `ACCEPTED`) and Buildroot (documented alternative) |
+| Verification | Source research of 2026-10-06, plus research topics H (H.265/HEVC) and I (HDMI audio) of 2026-10-08, plus research topics J (recording storage and power loss) and K (live latency) of 2026-10-08, added here 2026-10-09 ([REFERENCES.md](REFERENCES.md)). Nothing has been tested. No PACSCORDER hardware or code exists as of 2026-10-08. *(Still none as of 2026-10-09.)* |
 
 This document answers the Rule 25 question "How is streaming performed?". As of 2026-10-06, no streaming design has been chosen. The userspace framework is ADR-007 (`OPEN`). It records:
 
@@ -28,7 +28,7 @@ Fact IDs such as `[F-31]` point to [REFERENCES.md](REFERENCES.md). `OQ-NNN` poin
 > **Owner decision of 2026-10-08 (answer to OQ-005): "Separate record + live".** Recorded in [REQUIREMENTS.md](REQUIREMENTS.md) REQ-ENC-001, [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) OQ-005 and OQ-115, and [RISKS.md](RISKS.md) RISK-002 and RISK-003.
 >
 > - **Two simultaneous H.264 encodes.** One recording encode ([RECORDING.md](RECORDING.md)), and **one live encode shared by RTMP and WebRTC**. RTMP and WebRTC therefore take the same encoded video; neither has its own encode ([§2](#2-position-in-the-pipeline)).
-> - **Still open (OQ-005):** bitrate, rate control and latency. RTMP destinations and their bitrate remain OQ-007.
+> - **Still open (OQ-005):** bitrate, rate control and latency. RTMP destinations and their bitrate remain OQ-007. *(Superseded in part 2026-10-09: the owner set the latency target on 2026-10-08 — under 1 s camera-to-viewer for WebRTC viewers only; RTMP is best-effort (OQ-116 ANSWERED; see the note below). Bitrate and rate control remain OQ-005, which stays OPEN.)*
 > - **The live encode must be WebRTC-receivable** (reasoning from sources; [§4.1](#41-codec-requirements-from-the-standards-and-from-libwebrtc), [§4.2](#42-candidate-encoders-against-these-requirements)):
 >   - RFC 7742 requires H.264 Constrained Baseline support [F-36].
 >   - libwebrtc assumes Constrained Baseline Level 3.1 when `profile-level-id` is absent [F-39], while 1080p needs Level 4.0 or above (reasoning [F-40]; OQ-073, RISK-019).
@@ -39,6 +39,13 @@ Fact IDs such as `[F-31]` point to [REFERENCES.md](REFERENCES.md). `OQ-NNN` poin
 > - **CM5.** Both encodes run in software (OQ-059; RISK-003). Reasoning from [G-22]: that roughly doubles the encode CPU load.
 > - **Audio is still two encodes:** AAC for RTMP and recording, Opus for WebRTC ([§2.1](#21-audio-path-and-audio-encoder-per-output-added-2026-10-08)).
 > - **H.265 stays deferred** (REQ-ENC-002).
+>
+> **Owner decisions of 2026-10-08 on latency and recording (added 2026-10-09).** Recorded in [REQUIREMENTS.md](REQUIREMENTS.md) REQ-STR-001 and REQ-STR-002, [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) OQ-005 and OQ-116, and [DECISIONS.md](DECISIONS.md) ADR-009.
+>
+> - **WebRTC: under 1 s camera-to-viewer** ("Under 1 second"; "WebRTC viewers only"; REQ-STR-002; OQ-116 ANSWERED). No source shows the PACSCORDER path meeting it: UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED (OQ-125; RISK-031). Details: [§4.6](#46-live-latency-the--1-s-webrtc-target-added-2026-10-09).
+> - **RTMP: best-effort.** Its latency is set by the receiving platform (REQ-STR-001; OQ-116 ANSWERED). Details: [§3.7](#37-rtmp-latency-best-effort-set-by-the-receiving-platform-added-2026-10-09).
+> - **Still open:** bitrate and rate control (OQ-005, OPEN); reach, browsers and viewer count (OQ-008); how the < 1 s target is judged — statistic, number of samples, conditions: OWNER DECISION REQUIRED (OQ-008).
+> - **Recording (ADR-009, `ACCEPTED`):** fragmented MP4, every recording mirrored to a PCIe NVMe SSD and a USB-to-SATA HDD in a self-powered enclosure (owner's words: "Self-powered enclosure") ([RECORDING.md](RECORDING.md)). For streaming, ADR-009's consequence applies: an HDD stall must not stall the live path (OQ-117; RISK-028). See [§2](#2-position-in-the-pipeline).
 
 ## 1. Status at a glance
 
@@ -55,8 +62,14 @@ Fact IDs such as `[F-31]` point to [REFERENCES.md](REFERENCES.md). `OQ-NNN` poin
 | Audio sample-rate detection and output sample rate | UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED; BUILD TEST REQUIRED (OQ-111). RISK-023. |
 | Audio/video synchronisation and tolerance | UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED; OWNER DECISION REQUIRED (OQ-112). RISK-024. |
 | HEVC and AAC patent licensing | UNKNOWN — VERIFICATION REQUIRED. LEGAL CLARIFICATION REQUIRED (OQ-109, OQ-113). RISK-015. *(2026-10-08: the HEVC part, OQ-109, is not in current scope because H.265 is deferred (REQ-ENC-002). AAC licensing, OQ-113, is unchanged.)* |
-| WebRTC reach (LAN or internet), browsers, viewer count, latency | UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED (OQ-008). |
-| Video encodes behind the streams (row added 2026-10-08) | Decided by the owner, 2026-10-08 ("Separate record + live", answer to OQ-005): one live H.264 encode shared by RTMP and WebRTC, running beside a separate recording encode. Bitrate, rate control and latency: UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED (OQ-005). Two concurrent encodes on the CM4 hardware encoder: UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED (OQ-115; RISK-002). On CM5 both are software encodes: HARDWARE TEST REQUIRED (OQ-059; RISK-003). |
+| WebRTC reach (LAN or internet), browsers, viewer count, latency | UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED (OQ-008). *(Superseded in part 2026-10-09: latency is decided — under 1 s camera-to-viewer for WebRTC viewers (owner, 2026-10-08; REQ-STR-002; OQ-116 ANSWERED). Reach, browsers and viewer count remain OQ-008, as does how the < 1 s target is judged — statistic, number of samples, conditions (OWNER DECISION REQUIRED).)* |
+| Video encodes behind the streams (row added 2026-10-08) | Decided by the owner, 2026-10-08 ("Separate record + live", answer to OQ-005): one live H.264 encode shared by RTMP and WebRTC, running beside a separate recording encode. Bitrate, rate control and latency: UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED (OQ-005). Two concurrent encodes on the CM4 hardware encoder: UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED (OQ-115; RISK-002). On CM5 both are software encodes: HARDWARE TEST REQUIRED (OQ-059; RISK-003). *(Superseded in part 2026-10-09: the latency target is set — < 1 s camera-to-viewer for WebRTC viewers, RTMP best-effort (OQ-116 ANSWERED). Bitrate and rate control remain OQ-005.)* |
+| Live latency per output (row added 2026-10-09) | **WebRTC:** target under 1 s camera-to-viewer (owner, 2026-10-08; REQ-STR-002; OQ-116 ANSWERED). Whether PACSCORDER meets it: UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED (OQ-125; RISK-031); [§4.6](#46-live-latency-the--1-s-webrtc-target-added-2026-10-09). **RTMP:** best-effort; latency set by the receiving platform (REQ-STR-001; OQ-116 ANSWERED); [§3.7](#37-rtmp-latency-best-effort-set-by-the-receiving-platform-added-2026-10-09). |
+| Live-path element latencies and queue policy (row added 2026-10-09) | Several GStreamer elements buffer by default [K-07], [K-08], [K-09]. Settings and queue policy: UNKNOWN — VERIFICATION REQUIRED. BUILD TEST REQUIRED; HARDWARE TEST REQUIRED (OQ-126; RISK-032). |
+| WebRTC publishing route (row added 2026-10-09) | Candidate only: RTSP publishing to MediaMTX, which serves WebRTC/WHEP readers (reasoning recorded under ADR-007, `OPEN`; [K-05], [F-45]). `webrtcsink` and `whipclientsink` are not packaged in Debian trixie or the Raspberry Pi archive [K-06]; WHEP is not an RFC as of 2026-10-08, still an Internet-Draft [K-02] (RISK-034). Choice: OWNER DECISION REQUIRED (OQ-074, OQ-015). |
+| Live keyframe interval, on-demand keyframes, B-frames (row added 2026-10-09) | UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED; BUILD TEST REQUIRED (OQ-127; RISK-019). See [VIDEO_ENCODER.md](VIDEO_ENCODER.md) §7.1. |
+| Internet WebRTC viewers: ICE, STUN, TURN (row added 2026-10-09) | Needed only if OQ-008 puts internet viewers in scope. UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED (OQ-128; RISK-033). |
+| Live path isolated from the mirrored recording's HDD branch (row added 2026-10-09) | Required by ADR-009 (Consequences). Design: UNKNOWN — VERIFICATION REQUIRED. BUILD TEST REQUIRED; HARDWARE TEST REQUIRED (OQ-117; RISK-028). |
 | H.264 level signalling for 1080p in browsers | UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED (OQ-073). *(2026-10-08: this concerns the live encode, which RTMP shares (OQ-005).)* |
 | WebRTC signalling and NAT traversal | UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED (OQ-074). |
 | RTMP server on PACSCORDER; ports to open | UNKNOWN — VERIFICATION REQUIRED. OWNER DECISION REQUIRED (OQ-075). Receiving an ATEM's RTMP stream is not in current ATEM scope (REQ-ATEM-001, owner 2026-10-07), so the ATEM integration does not need an RTMP server unless the owner adds it ([§3.5](#35-receiving-rtmp-pacscorder-as-a-server)). |
@@ -80,6 +93,8 @@ The stages after the encoder are a generic sketch (reasoning from [F-33], [F-35]
 - One capture feeds two H.264 encoders. Each capture buffer therefore has two consumers, the live encode and the recording encode. Zero-copy into the CM4 encoder is OQ-058; two concurrent encode sessions on it are OQ-115.
 - One live bitstream feeds two outputs. It is split after the encoder: one branch goes through a parser to the FLV muxer [F-35], the other to the RTP packetiser. How the split is done is ADR-007 (`OPEN`).
 
+*(Added 2026-10-09; ADR-009 ACCEPTED by the owner on 2026-10-08.)* The recorder writes every recording as fragmented MP4 to both an NVMe SSD and a USB-to-SATA HDD ([RECORDING.md](RECORDING.md)). One Seagate BarraCuda 2.5-inch HDD family (an example, not a general figure) takes 2.5 s typical, 3.0 s maximum from standby to ready (CORRECTED) [J-30]. ADR-009 requires that an HDD stall must not stall the NVMe copy or the live path. Reasoning (as in RISK-028): on CM4 the recording encode would share the hardware encoder with the live encode (whether it can run both is OQ-115), and both encodes share the capture, so back-pressure from the HDD branch could reach the live stream; each frame waiting in a V4L2 queue adds one frame period (reasoning part of [K-36]). Buffering design: OQ-117; live-path queues: OQ-126.
+
 The encoder differs per platform. That affects both outputs:
 
 | Platform | Encoder (facts) | Consequence for streaming (reasoning) |
@@ -87,7 +102,7 @@ The encoder differs per platform. That affects both outputs:
 | Pi 4 Model B, CM4 | Hardware H.264 encoder, officially specified for 1080p30 encode [D-10] | 1080p60 streaming depends on unproven 1080p60 hardware encode (RISK-002, OQ-056). *(2026-10-08: the live encode would run beside a separate recording encode on the same hardware encoder (OQ-005). Reasoning: two 1080p30 encodes need 2 × 244,800 = 489,600 macroblocks/s, the rate of one 1080p60 encode and about 2.0× the 1080p30 specification [D-10], [D-52]. Whether the encoder sustains both: OQ-115, RISK-002.)* |
 | Pi 5, CM5 | No hardware video encoder [D-31]. "H264 1080p30 encode (from ISP) ~30–40% CPU" [G-22]. | Every stream is a CPU software encode (RISK-003). How many simultaneous encodes fit is OQ-059. *(2026-10-08: two software encodes are required at once, the live encode for both streams and the recording encode (OQ-005). Reasoning from [G-22]: that roughly doubles the encode CPU load. Whether it fits: OQ-059, RISK-003.)* |
 
-No candidate platform has a hardware HEVC encoder [D-24], [D-31]. Whether recording, RTMP and WebRTC share one encode or use separate encodes is OQ-005. *(Superseded 2026-10-08: decided by the owner, "Separate record + live" (answer to OQ-005). RTMP and WebRTC share one live encode; recording has its own. Bitrate, rate control and latency remain OQ-005.)*
+No candidate platform has a hardware HEVC encoder [D-24], [D-31]. Whether recording, RTMP and WebRTC share one encode or use separate encodes is OQ-005. *(Superseded 2026-10-08: decided by the owner, "Separate record + live" (answer to OQ-005). RTMP and WebRTC share one live encode; recording has its own. Bitrate, rate control and latency remain OQ-005.)* *(Superseded in part 2026-10-09: latency is decided — < 1 s camera-to-viewer for WebRTC viewers, RTMP best-effort (owner, 2026-10-08; OQ-116 ANSWERED). Bitrate and rate control remain OQ-005.)*
 
 **H.265 per platform (added 2026-10-08, when H.265 was required by REQ-ENC-001; deferred — REQ-ENC-002; not in current scope).** Since the owner's answer to OQ-103 on 2026-10-08 ("H.264 only for now"), no stream carries H.265. This table and the notes under it are kept as the evidence for REQ-ENC-002. Bring-up evaluates CM4 and CM5 side by side (ADR-004, `OPEN`). Research topic H covered CM4 and CM5 only. For Pi 4 Model B and Pi 5, only the community benchmarks below name those boards (Pi 5 and a Pi 400); everything else is NEEDS VERIFICATION.
 
@@ -143,6 +158,7 @@ The sketch is reasoning from the cited facts. The elements are not chosen: ADR-0
   - Without `-b` it defaults to 128 kb/s for stereo.
   - An explicit `-b` selects CBR.
 - **`opusenc`** defaults to 64000 bit/s, constrained VBR [I-47].
+  - *(Added 2026-10-09; research topic K.)* Opus frames can be 2.5, 5, 10, 20, 40 or 60 ms (RFC 6716). `opusenc` defaults to `frame-size=20` ms and `audio-type=generic`, and also offers a `restricted-lowdelay` audio type [K-40]. Audio-path latency and browser A/V sync are unmeasured (research gap, topic K; OQ-125, OQ-112).
 - **`fdk-aac` is not an option.**
   - It is not shipped in the Raspberry Pi FFmpeg or GStreamer builds [I-39], [I-44].
   - Debian ships it in non-free, under a licence that Debian calls incompatible with every GPL version [I-43].
@@ -361,6 +377,26 @@ H.265 SRT (GStreamer, only if OQ-076 adds SRT) :
 
 **Capacity.** Running an H.265 RTMP encode beside an H.264 encode (for WebRTC, [§4.5](#45-h265-in-webrtc-added-2026-10-08)) is two concurrent video encodes. On CM5 both are software encodes [D-31]; on CM4 the H.265 one is (reasoning from [D-10], [D-24]). Whether this fits: UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED (OQ-104, OQ-059; TEST-ENC-001, TEST-PERF-001). RISK-022. *(2026-10-08: not in current scope. These H.265 runs are deferred, not run in current scope; they would be added to TEST-ENC-001 and TEST-PERF-001 only if REQ-ENC-002 is re-activated. OQ-059 still applies to the H.264 encodes.)*
 
+### 3.7 RTMP latency: best-effort, set by the receiving platform (added 2026-10-09)
+
+**Owner decision of 2026-10-08 (OQ-116 ANSWERED; REQ-STR-001).** The < 1 s target applies to WebRTC viewers only. RTMP outputs are best-effort, and their latency is set by the receiving platform. Reasoning: the < 1 s target is therefore not a TEST-STR-001 criterion.
+
+**YouTube Live** (the only RTMP platform research topic K checked):
+
+| Item | Fact | Source |
+|---|---|---|
+| Latency modes | Normal: no stated figure; supports all resolutions and features. Low: "Most viewers … will experience latency less than 10 seconds"; no 4K. Ultra-low: "Most viewers … will experience latency less than 5 seconds"; no 4K; more viewer buffering. | [K-15] |
+| API setting | The Live Streaming API's `contentDetails.latencyPreference` accepts `normal`, `low` and `ultraLow`. `ultraLow` supports neither closed captions nor resolutions above 1080p. | [K-16] |
+| No sub-second mode | Reasoning (CORRECTED): YouTube documents no sub-second mode. Ultra-low's "under 5 s for most viewers" is an upper bound for most viewers, not a minimum. YouTube names the player's read-ahead buffer as the main source of stream latency. The RTMP-to-YouTube output therefore cannot be planned or claimed to meet the < 1 s target, and PACSCORDER's encoder settings cannot remove the player-side buffer. | [K-18] |
+| Encoder settings | 2 s keyframe frequency recommended ("Do not exceed 4 seconds"); CBR. Under advanced settings: "2 B-Frames", "1 Reference Frame", "CABAC". The B-frame recommendation conflicts with the B-frame-free stream WebRTC requires (MediaMTX documents that browsers do not support H.264 B-frames over WebRTC [K-04]). | [K-17], [K-04] |
+
+Consequences (reasoning):
+
+- Reasoning from [K-15] and [K-16]: the latency mode is chosen on the YouTube side, in the broadcast's settings or through the API. It is not a property of the RTMP stream PACSCORDER sends.
+- RTMP shares the live encode with WebRTC (OQ-005), so YouTube receives the B-frame-free stream that WebRTC needs (as MediaMTX documents [K-04]), not the 2 B-frames it recommends [K-17]. Whether YouTube and other destinations accept a B-frame-free Baseline or Constrained Baseline stream with acceptable quality is not stated by YouTube, which only "recommends" its settings (research open question, topic K): UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED (OQ-127; RISK-019).
+- The keyframe interval of the shared live encode has to fit both YouTube's 2 s recommendation [K-17] and WebRTC viewer join time ([§4.6](#46-live-latency-the--1-s-webrtc-target-added-2026-10-09); OQ-127).
+- Other RTMP platforms (for example Twitch, Facebook) were not checked for documented latency modes (research gap, topic K). The destinations themselves are OQ-007.
+
 ## 4. WebRTC (REQ-STR-002)
 
 ### 4.1 Codec requirements from the standards and from libwebrtc
@@ -406,6 +442,8 @@ H.265 SRT (GStreamer, only if OQ-076 adds SRT) :
 
 **B-frames.** The MediaMTX project reports that browsers deliberately do not support H.264 B-frames in WebRTC. It recommends re-encoding to H.264 Baseline plus Opus [F-45].
 
+*(Added 2026-10-09; research topic K.)* The same statement is in the register from MediaMTX's current documentation, at tier `vendor-other`: browsers deliberately do not support H.264 with B-frames over WebRTC; for broad browser compatibility MediaMTX recommends H.264 Baseline profile (no B-frames) with Opus audio; its WebRTC audio codecs are Opus, G722 and G711 only, and AAC is not listed [K-04]. If GStreamer publishes to MediaMTX over WebRTC (`whipclientsink`), MediaMTX requires GStreamer 1.22 or later and, for H.264, the Baseline profile [K-05].
+
 **Audio.** RFC 7874 requires WebRTC endpoints to implement Opus and G.711 (PCMA/PCMU). AAC is not a required WebRTC codec, so AAC audio must be transcoded, typically to Opus, for browser playback [F-41].
 
 *(Added 2026-10-08; audio is required, REQ-CAP-006.)* Opus encoders available in Raspberry Pi OS:
@@ -420,7 +458,7 @@ H.265 SRT (GStreamer, only if OQ-076 adds SRT) :
 | Requirement | Pi 4 / CM4 hardware encoder | Pi 5 / CM5 software encoder |
 |---|---|---|
 | Constrained Baseline profile | The profile menu includes Constrained Baseline; the default is High [D-11]. Reasoning: the profile must be set explicitly for WebRTC [F-36]. | `openh264enc` can output Constrained Baseline but accepts only I420 input [D-41]. How to select the profile in `x264enc` or `libx264`: NEEDS VERIFICATION. |
-| No B-frames | Produces no B-frames [D-14]. FFmpeg `h264_v4l2m2m` forces B-frames to 0 [D-44]. | `rpicam-apps` normal-mode `libx264` settings use `max_b_frames=1`; its `--low-latency` mode uses `tune zerolatency` [D-35] and drops B-frames [D-32]. Reasoning, from the MediaMTX project's report that browsers do not support H.264 B-frames [F-45]: B-frames must be disabled for browser WebRTC. |
+| No B-frames | Produces no B-frames [D-14]. FFmpeg `h264_v4l2m2m` forces B-frames to 0 [D-44]. *(Added 2026-10-09.)* Re-confirmed in `rpi-6.18.y`: B-frames limited to min 0, max 0; defaults profile High, level 4.0, GOP 60 [K-30]. | `rpicam-apps` normal-mode `libx264` settings use `max_b_frames=1`; its `--low-latency` mode uses `tune zerolatency` [D-35] and drops B-frames [D-32]. Reasoning, from the MediaMTX project's report that browsers do not support H.264 B-frames [F-45]: B-frames must be disabled for browser WebRTC. *(Added 2026-10-09.)* GStreamer 1.26 `x264enc` runs x264's medium preset by default (3 B-frames), so its `bframes=0` property default does not guarantee a B-frame-free stream; set `tune=zerolatency`, set `bframes=0` explicitly, or force `profile=baseline` in caps (CORRECTED) [K-29]. `tune=zerolatency` sets B-frames to 0 [K-27]. See [VIDEO_ENCODER.md](VIDEO_ENCODER.md) §7.1. |
 | SPS/PPS in-band | `REPEAT_SEQ_HEADER` defaults to off [D-15]. The official pipeline sets `repeat_sequence_header=1` [D-37]. | NEEDS VERIFICATION |
 | Level that covers 1080p | Level menu 1.0–5.1, default 4.0. The driver states the hardware spec is Level 4.0 and higher levels "may not be able to keep up with real-time" [D-12]. Reasoning: 1080p30 fits Level 4; 1080p60 needs Level 4.2 [F-40], beyond the hardware spec (RISK-002). | `rpicam-apps` forces Level 4.2 when the MB rate exceeds 245,760 MB/s, i.e. at 1080p60 [D-36] (reasoning). |
 
@@ -438,17 +476,19 @@ As reported in a Raspberry Pi engineer's 2020 TC358743 instructions (community s
 | Option | Facts | Gaps |
 |---|---|---|
 | **`webrtcbin`** (GStreamer) | Plugin `webrtc` in gst-plugins-bad, licence "LGPL". It implements most of the W3C RTCPeerConnection API. It takes and produces `application/x-rtp`. It has **no built-in signalling**. It needs libnice to build [F-42]. **Raspberry Pi OS:** Debian's `gstreamer1.0-plugins-bad` `1.26.2-3+deb13u3` ships `libgstwebrtc`, `libgstwebrtcdsp`, `libgstsrtp`, `libgstdtls` and `libgstsctp`; Raspberry Pi OS installs the Raspberry Pi build `1.26.2-3+rpt4+deb13u3` instead [G-27], whose file list NEEDS VERIFICATION. `gstreamer1.0-nice` (0.1.22) provides the `nicesrc`/`nicesink` elements that `webrtcbin` needs at runtime [G-28]. **Buildroot:** `BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_WEBRTC` depends on `!BR2_STATIC_LIBS`. It selects plugins-base, libnice, and the DTLS (OpenSSL), SCTP and SRTP (libsrtp) plugins. libnice builds its GStreamer elements only when plugins-base is enabled [E-35], [F-42]. | Signalling and ICE design (OQ-074) |
-| **`webrtcsink`** (gst-plugins-rs, plugin `rswebrtc`) | MPL-2.0. It includes a simple signalling server. It encodes internally (VP8, H.264, VP9, H.265, AV1; Opus audio). It offers Google Congestion Control. Buildroot master has no gst1-plugins-rs package [F-43]. | Raspberry Pi OS / Debian package: NEEDS VERIFICATION |
+| **`webrtcsink`** (gst-plugins-rs, plugin `rswebrtc`) | MPL-2.0. It includes a simple signalling server. It encodes internally (VP8, H.264, VP9, H.265, AV1; Opus audio). It offers Google Congestion Control. Buildroot master has no gst1-plugins-rs package [F-43]. *(Added 2026-10-09.)* Its documentation gives no latency figure. Documented defaults: `congestion-control=gcc`, `do-fec=true`, `do-retransmission=true`, `enable-mitigation-modes=downsampled+downscaled`, `min-bitrate=1000`, `start-bitrate=2048000`, `max-bitrate=8192000` bps [K-13]. | Raspberry Pi OS / Debian package: NEEDS VERIFICATION *(Superseded 2026-10-09: no Debian trixie package contains `libgstrswebrtc.so`, which provides `webrtcsink` and `whipclientsink`; no package named `gstreamer1.0-plugins-rs` exists in any Debian suite; the Raspberry Pi archive (trixie main arm64) has no gst-plugins-rs package as of 2026-10-08 [K-06]. Using it needs a self-built plugin matching GStreamer 1.26.2 (research gap, topic K; RISK-034). The Raspberry Pi archive part of [K-06] rests on the register verifier's check (REFERENCES.md, Register notes, 2026-10-09); whether the plugin is available on the PACSCORDER image: BUILD TEST REQUIRED (research open question, topic K).)* |
 | **MediaMTX** (community-reported) | As reported by the MediaMTX project: MIT-licensed, zero-dependency single executable for Linux, Windows and macOS. It converts between RTMP, WebRTC, SRT, RTSP and HLS. Buildroot master has no `package/mediamtx` [F-44] (community-tier entry). WebRTC readers get AV1, VP9, VP8, H265 or H264 video, and only Opus, G722 or G711 audio. Access is through a browser page at `:8889/<path>` or WHEP at `/<path>/whep` [F-45]. | Raspberry Pi OS package: NEEDS VERIFICATION. Reasoning: an RTMP ingest with AAC audio would need audio transcoding for WebRTC readers [F-41], [F-45]. |
 
 Choosing among these is part of ADR-007 (`OPEN`) and OQ-074. Licences: `webrtcbin` LGPL [F-42], `webrtcsink` MPL-2.0 [F-43], MediaMTX MIT (as reported [F-44]). x264 is GPL [D-47]. See OQ-087 and RISK-015.
+
+*(Added 2026-10-09; research topic K.)* MediaMTX documents RTSP-client publishing as the recommended way for GStreamer to publish to it [K-05]. Reasoning, as recorded under ADR-007 (`OPEN`) from [F-45], [K-05] and [K-06]: with the packages in Debian trixie and the Raspberry Pi archive, the GStreamer route to browser viewers is `rtspclientsink` publishing over RTSP to MediaMTX, which serves WebRTC readers, including over WHEP. *(Verifier note, 2026-10-09: read this as "a GStreamer route that needs no gst-plugins-rs", not "the only route" — `webrtcbin` with PACSCORDER's own signalling remains an option in the table above [F-42], [G-27]. Which Raspberry Pi OS package provides `rtspclientsink` is not in the register: NEEDS VERIFICATION. BUILD TEST REQUIRED.)* This is a **candidate, not a decision**; the latency it adds is in [§4.6](#46-live-latency-the--1-s-webrtc-target-added-2026-10-09).
 
 ### 4.4 Gaps the sources do not cover
 
 | Topic | State | OQ |
 |---|---|---|
-| WHIP (ingest) and WHEP (egress) standards | Not sourced. The MediaMTX project reports a WHEP endpoint [F-45]. | OQ-074 |
-| ICE, STUN and TURN for viewers behind NAT | Not sourced. The MediaMTX project reports a `webrtcLocalUDPAddress` default of `:8189` [F-44]; [F-44] gives only the setting name and port. Treating it as an ICE or RTP media port would be reasoning from the setting name, not a sourced fact (NEEDS VERIFICATION). | OQ-074, OQ-008 |
+| WHIP (ingest) and WHEP (egress) standards | Not sourced. The MediaMTX project reports a WHEP endpoint [F-45]. *(Superseded 2026-10-09: now sourced. WHIP is RFC 9725 and covers ingest only [K-01]; WHEP is not an RFC as of 2026-10-08 — draft-ietf-wish-whep-04, "Waiting for WG Chair Go-Ahead" [K-02] (RISK-034). See [§4.6](#46-live-latency-the--1-s-webrtc-target-added-2026-10-09).)* | OQ-074 |
+| ICE, STUN and TURN for viewers behind NAT | Not sourced. The MediaMTX project reports a `webrtcLocalUDPAddress` default of `:8189` [F-44]; [F-44] gives only the setting name and port. Treating it as an ICE or RTP media port would be reasoning from the setting name, not a sourced fact (NEEDS VERIFICATION). *(Superseded in part 2026-10-09: MediaMTX v1.21.1's configuration describes `webrtcLocalUDPAddress` `:8189` as a "UDP/ICE listener" and leaves the TCP/ICE listener disabled [K-41]; its documentation covers advertised addresses, STUN and TURN [K-42] and four connection methods [K-43]. See [§4.6](#46-live-latency-the--1-s-webrtc-target-added-2026-10-09). Latency and stability over STUN or TURN are untested (research open question, topic K; OQ-128, RISK-033).)* | OQ-074, OQ-008; OQ-128 (added 2026-10-09) |
 | SRT | ATEM streams over SRT [F-06], [F-26]. The MediaMTX project reports SRT conversion [F-44]. GStreamer and Buildroot SRT support were not researched. *(Superseded in part 2026-10-08: the Raspberry Pi OS GStreamer and FFmpeg SRT components are now sourced [H-30] — see [§3.6](#36-h265-hevc-over-rtmp-and-srt-added-2026-10-08). Buildroot SRT support is still not researched.)* | OQ-076 |
 | Browser behaviour with a 1080p stream above the negotiated level | Not sourced; needs an interoperability test in Chrome, Firefox and Safari | OQ-073 |
 | Audio encoders (AAC, Opus): element choice, licence, CPU cost | Not sourced *(Superseded in part 2026-10-08: availability and the `fdk-aac` licence are now sourced [I-39], [I-41], [I-42], [I-43], [I-44], [I-45], [I-46], [I-47]; element choice and CPU cost are still open, and AAC patent licensing is OQ-113.)* | OQ-063, OQ-113 |
@@ -489,6 +529,99 @@ H.265 is required for streaming (REQ-ENC-001). Whether WebRTC carries it is OQ-1
 - If H.265 is also offered, CM5 needs a second concurrent software video encode (OQ-104). On CM4 the H.264 track can use the hardware encoder [D-10], while H.265 is software [D-24].
 - Which viewer browsers and devices must receive H.265: UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED (OQ-108; OQ-008 for the target browsers).
 
+### 4.6 Live latency: the < 1 s WebRTC target (added 2026-10-09)
+
+**Target.** Under 1 s camera-to-viewer for WebRTC viewers (owner, 2026-10-08: "Under 1 second", "WebRTC viewers only"; REQ-STR-002; OQ-116 ANSWERED). Whether PACSCORDER meets it: UNKNOWN — VERIFICATION REQUIRED. HARDWARE TEST REQUIRED (OQ-125; RISK-031; TEST-STR-002). How the target is judged — which statistic (for example median, 95th percentile or maximum), over how many samples, under which conditions — is not defined: OWNER DECISION REQUIRED (OQ-008). Nothing in this section has been run on PACSCORDER hardware. Research topic K covered CM4 and CM5; Pi 4 Model B and Pi 5 are covered below only where stated.
+
+**Protocols**
+
+- **WHIP** is RFC 9725 (Proposed Standard, March 2025). It covers ingest only — unidirectional WebRTC media into a streaming service or CDN — and not playback [K-01].
+- **WHEP** is not an RFC as of 2026-10-08. The latest version is draft-ietf-wish-whep-04 (22 June 2026); its WG state is "Waiting for WG Chair Go-Ahead" (since 26 August 2026), and a shepherd write-up was submitted on 6 October 2026 [K-02]. MediaMTX serves WebRTC readers over WHEP at `/<path>/whep`, as reported by the project [F-45] (community source). Research expects MediaMTX's `/whep` behaviour may change when WHEP becomes an RFC (research design risk, topic K — not a register fact; RISK-034).
+
+**MediaMTX, as documented by the project** (the register tiers these MediaMTX sources `vendor-other`, while [F-44] and [F-45] are tiered `community`; see the note under [§5](#5-network-ports) and REFERENCES.md, Register notes, 2026-10-09)
+
+- Its current documentation gives no numeric WebRTC latency figure. It says only that HLS has higher latency than WebRTC, with fewer server-client connectivity problems [K-03]. Its relay latency from RTSP ingest to WebRTC egress is undocumented (research gap, topic K; OQ-125).
+- It favours real-time delivery over reliability: most protocols run over UDP so that late packets can be dropped, and outgoing packets pass through a circular buffer (`writeQueueSize`, default 512) that drops packets when full and logs "reader is too slow" [K-44].
+- Codec, publishing and packaging facts: [§4.1](#41-codec-requirements-from-the-standards-and-from-libwebrtc) and [§4.3](#43-implementation-options) ([K-04], [K-05], [K-06]).
+
+**Candidate publishing route.** Reasoning recorded under ADR-007 (`OPEN`) from [F-45], [K-05] and [K-06] ([§4.3](#43-implementation-options)). A candidate, not a decision; NOT YET RUN ON PACSCORDER HARDWARE. Element properties beyond those cited are NEEDS VERIFICATION.
+
+```text
+Pi 4 / CM4 : capture → v4l2h264enc (live encode; settings in VIDEO_ENCODER.md §7.1) ─┐
+Pi 5 / CM5 : capture → UYVY-to-I420/NV12 conversion [D-40] → x264enc (tune=zerolatency [K-27], [K-28]) ─┤
+                                                                                        └→ rtspclientsink (latency set explicitly; default 2000 ms [K-09])
+                                                                                           → MediaMTX RTSP ingest [K-05] → WebRTC / WHEP readers [F-45]
+Audio      : alsasrc [I-45] → opusenc (frame-size default 20 ms [K-40]) → RTSP publish to MediaMTX
+             (Reasoning: MediaMTX WebRTC readers take Opus, G722 or G711 only [K-04]. How audio and video share the RTSP publish: NEEDS VERIFICATION.)
+RTMP       : the AAC branch and FLV/RTMP publish of §3.2 stay separate (OQ-005; §2.1).
+```
+
+**Default buffering in the live path.** Each value must be set explicitly and recorded (OQ-126; RISK-032).
+
+| Element | Default (fact) | Relevance to PACSCORDER's live path | Source |
+|---|---|---|---|
+| `webrtcbin` | `latency` 200 ms ("Default duration to buffer in the jitterbuffers") | Reasoning: a jitter-buffer size for received RTP. With a browser viewer, the viewer's buffer is the browser's own, so this default matters only where a GStreamer element receives RTP inside the live path. | [K-07], [K-10] |
+| `rtpbin`, `rtpjitterbuffer` | `latency` 200 ms; `rtpjitterbuffer` holds packets for at most this time and adds that much latency | As for `webrtcbin` (reasoning) | [K-08], [K-10] |
+| `rtspclientsink` | `latency` 2000 ms ("Amount of ms to buffer") | Whether it adds delay on the sending side is not documented (research open question, topic K): UNKNOWN — VERIFICATION REQUIRED. BUILD TEST REQUIRED (OQ-126). | [K-09], [K-10] |
+| `rtspsrc` | `latency` 2000 ms; MediaMTX's own GStreamer reader examples set `rtspsrc latency=0` | Only if a GStreamer element reads RTSP inside the live path (reasoning from [K-10]) | [K-09] |
+| `v4l2src` | From GStreamer 1.26 source code (`gstv4l2src.c`; the register tiers it `vendor-other`): always live; minimum latency one frame duration; maximum buffer-pool depth × frame duration; pool minimum 2 (4 for alternate-field interlace) | Capture on every platform | [K-37] |
+| V4L2 capture queue | Kernel documentation (`mmap.rst`): incoming and outgoing queues are FIFOs; `VIDIOC_DQBUF` returns the oldest filled buffer. Reasoning: each filled buffer still waiting adds one frame period, 33.3 ms at 30p. | Capture on every platform | [K-36] |
+| `x264enc` (Pi 5 / CM5) | Medium preset by default: 3 B-frames, rc-lookahead 40 (CORRECTED). With `tune=zerolatency`, x264 holds no frames back. | Live encode | [K-27], [K-28], [K-29] |
+| `v4l2h264enc` (Pi 4 / CM4) | Reports 0 latency to the pipeline | Reasoning: the pipeline's latency query leaves out the real encode time (RISK-024) | [K-32] |
+| `opusenc` | `frame-size` 20 ms | WebRTC audio | [K-40] |
+
+**Capture, bridge and encode terms**
+
+- **CM4.** The `bcm2835-unicam` driver timestamps each buffer at Frame Start and completes it only at Frame End, so a frame reaches userspace at least one frame's readout time after its first line. If no buffer is queued, the frame goes to a dummy buffer and is dropped, not queued [K-34].
+- **CM5.** The RP1 CFE driver also timestamps at Frame Start and completes the buffer at end of frame, with `min_queued_buffers=1`, so capture also costs about one frame's readout time [K-35].
+- **Pi 4 Model B and Pi 5.** Reasoning: Pi 4 Model B uses the same downstream Unicam driver as CM4 [C-09], and Pi 5 the same RP1 CFE driver as CM5 [C-29], so the capture terms are expected to carry over. *(Verifier pass, 2026-10-09: [C-09] does not name the boards; the Pi 4 Model B and CM4 device trees both use Unicam nodes compatible `brcm,bcm2835-unicam` [C-08], which the downstream driver binds [C-09]. [C-29] names Pi 5 and CM5.)* NEEDS VERIFICATION (TEST-STR-002 on any kept platform).
+- **TC358743.** The driver sets the FIFOCTL trigger level to 374 and states no latency figure; no public source checked documents the bridge's internal buffering [K-38]. DATASHEET REQUIRED (OQ-125).
+- **Encode.** CM4: a Raspberry Pi engineer stated that the hardware encoder holds no extra buffers and that its latency is about 10 ms for 720p on a Pi 4 (community source) [K-33]. CM5: Raspberry Pi documents that Pi 5 software encoders generally have longer latency than the old hardware encoders [K-39]; the per-frame x264 time on BCM2712 is undocumented (OQ-059). Details: [VIDEO_ENCODER.md](VIDEO_ENCODER.md) §3.14 and §7.1.
+
+**Budget (summary; the full budget is in [PERFORMANCE.md](PERFORMANCE.md) §7).** Reasoning (a labelled budget, not a measurement; CORRECTED) [K-45]:
+
+- For a CM4 1080p30 WebRTC/WHEP viewer on a LAN, the documented or extrapolated terms come to about 56 ms typical and about 75 ms worst case: capture readout of about 33.3 ms [K-34]; hardware encode of about 23 ms (the 720p Pi 4 figure of about 10 ms, a community report [K-33], scaled by macroblocks, 8160/3600 = 2.27); and zero frames waiting in V4L2 or GStreamer queues, where each waiting frame would add 33.3 ms (reasoning part of [K-36]). The worst case scales the issue reporter's 720p maximum of 18.5 ms the same way, to about 42 ms: 33.3 + 41.9 ≈ 75 ms [K-33].
+- That leaves about 925–945 ms of the 1 s target for undocumented terms: HDMI source or ATEM, TC358743, any pixel-format conversion, MediaMTX relay, LAN, browser jitter buffer, decode and render.
+- The encode estimate assumes the live encode has the CM4 hardware encoder to itself, but PACSCORDER's recording encode would share it (whether the encoder runs both is OQ-115). On CM5 the encode term is unknown until per-frame x264 time on BCM2712 is measured (OQ-059).
+- Research design risk (topic K — not a register fact): on CM5, if x264 cannot finish each frame within 33.3 ms, queues grow by one frame period per queued frame without bound, so the live branch would need leaky queues or a lower live resolution or frame rate (RISK-032; OQ-126, OQ-059).
+
+**Viewer side**
+
+- Browsers expose `RTCRtpReceiver.jitterBufferTarget`, a hint in ms (at most 4000) that influences but does not set the receiver's jitter-buffer target; MDN marks it Baseline 2026 [K-11].
+- The W3C WebRTC Statistics API defines inbound-rtp metrics a viewer can read to measure its own buffering and decode delay: `jitterBufferDelay`, `jitterBufferEmittedCount`, `jitterBufferTargetDelay`, `jitterBufferMinimumDelay` and `totalProcessingDelay`. `roundTripTime` on remote-inbound-rtp is a sender-side metric (available on MediaMTX's side, not in a receive-only browser); a viewer can read RTT from candidate-pair `currentRoundTripTime` or remote-outbound-rtp `roundTripTime` (CORRECTED) [K-12].
+- Reference figure only: Cloudflare Stream, a third-party CDN, documents WHEP playback "with less than 500 milliseconds of latency". This is not the PACSCORDER stack [K-14].
+- Browsers' minimum jitter-buffer, decode and render times are undocumented (research gap, topic K; OQ-125).
+
+**Viewer join time and keyframes**
+
+- The CM4 encoder defaults to a GOP of 60 [K-30] and can insert an IDR on request through GStreamer 1.26 `v4l2videoenc` [K-31]. Reasoning (as in OQ-127): at 30 fps, without an on-demand keyframe, a new viewer may wait up to about 2 s for a decodable frame.
+- Whether MediaMTX passes a WebRTC viewer's keyframe request (PLI/FIR) back to an RTSP publisher is undocumented (research open question, topic K): UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED; BUILD TEST REQUIRED (OQ-127). Encoder settings: [VIDEO_ENCODER.md](VIDEO_ENCODER.md) §7.1.
+
+**HLS and LL-HLS: not a sub-second path.** HLS is not a required output (OQ-008). MediaMTX's HLS port is in [§5](#5-network-ports).
+
+| Item | Fact | Source |
+|---|---|---|
+| Apple LL-HLS | No numeric latency. LL-HLS "lowers video latencies over public networks into the range of standard television broadcasts"; the example uses 200 ms Partial Segments with 6 s parent segments. | [K-19] |
+| HLS 2nd Edition draft (draft-pantos-hls-rfc8216bis-22) | PART-HOLD-BACK MUST be at least 2× the Part Target Duration and SHOULD be at least 3×. HOLD-BACK MUST be at least 3× the Target Duration. | [K-20] |
+| MediaMTX v1.21.1 defaults | `hlsVariant: lowLatency`, `hlsSegmentDuration: 1s`, `hlsPartDuration: 200ms`, `hlsSegmentCount: 7`. The configuration notes that segment count does not influence latency, that segments stretch to include at least one IDR frame, and that "A player usually puts 3 parts in a buffer". | [K-21] |
+| gohlslib v2.4.5 (MediaMTX v1.21.1's HLS library) | In Low-Latency mode it advertises PART-HOLD-BACK = 2.5 × the Part Target Duration, which it sets to the longest actual part. `hlsPartDuration` is a minimum, so PART-HOLD-BACK is at least 500 ms. 2.5× meets the draft's 2× MUST but not its 3× SHOULD. It emits no HOLD-BACK, so the spec's implied 3× Target Duration applies (CORRECTED). | [K-22] |
+| hls.js (used in MediaMTX's docs for browser HLS) | `lowLatencyMode` defaults to true and starts live streams at PART-HOLD-BACK instead of HOLD-BACK; `liveSyncDurationCount` defaults to 3 target durations. | [K-23] |
+| Apple devices | MediaMTX's configuration says HTTPS (`hlsEncryption`) is required for Low-Latency HLS to work correctly on Apple devices. | [K-24] |
+| Historical figures | The pre-rename documentation (rtsp-simple-server v0.21.6, March 2023) put HLS latency at 1–15 s depending on segment duration and at 500 ms–3 s with the Low-Latency variant. Current MediaMTX documentation no longer states these figures. | [K-25] |
+
+Reasoning (CORRECTED) [K-26]: LL-HLS through MediaMTX defaults is unlikely to reliably reach under 1 s glass-to-glass, and regular HLS cannot.
+
+- LL-HLS: a player that stays at least PART-HOLD-BACK (at least 0.5 s) behind the playlist end runs at least PART-HOLD-BACK plus one part (at least 0.2 s) behind capture. With about 33 ms of capture readout, that is about 0.73 s before encode, HTTP round trips, player buffer, decode and render.
+- Regular HLS: segments are at least 1 s and stretch to the IDR interval (2 s with the CM4 encoder's default GOP of 60 at 30 fps). HOLD-BACK of at least 3× the Target Duration then gives at least 6 s; even a 1 s GOP gives at least 3 s.
+- Not checked (research gaps, topic K): the hls.js latency controller's live-edge estimate, Safari's native LL-HLS player, and MediaMTX's MoQ (Media over QUIC) support.
+
+**Internet viewers** (only if OQ-008 puts them in scope; OQ-128, RISK-033)
+
+- MediaMTX v1.21.1 defaults to `webrtcLocalUDPAddress` `:8189` (a UDP/ICE listener) and leaves `webrtcLocalTCPAddress` disabled, because TCP "is less efficient than UDP and introduces a progressive delay when network is congested" [K-41].
+- By default it advertises the IPs of its network interfaces (`webrtcIPsFromInterfaces: true`). Its docs say to put the server's LAN address in `webrtcAdditionalHosts` for LAN clients, and its public IP or DNS name for internet clients. STUN/TURN (`webrtcICEServers2`) is "Needed only when local listeners can't be reached by clients" [K-42].
+- It lists four connection methods: static UDP port (default), static TCP port, random UDP port with STUN hole punching, and a TURN relay. For coturn it recommends TCP transport only, and notes that the TURN server can be configured as client-only [K-43].
+- Reasoning from [K-41] and [K-43] (as in RISK-033): viewers forced onto TCP or a TCP TURN relay may see delay that grows under congestion, which threatens the < 1 s target. Latency and stability over STUN and TURN are untested (research open question, topic K): HARDWARE TEST REQUIRED (OQ-128).
+
 ## 5. Network ports
 
 Defaults from the sources. The ports PACSCORDER actually opens are UNKNOWN — VERIFICATION REQUIRED, OWNER DECISION REQUIRED (OQ-075).
@@ -498,14 +631,15 @@ Defaults from the sources. The ports PACSCORDER actually opens are UNKNOWN — V
 | 1935 | TCP | RTMP default port | Outbound when publishing (REQ-STR-001). Inbound only if PACSCORDER hosts an RTMP server (OQ-075); receiving ATEM RTMP is not in current ATEM scope (REQ-ATEM-001). | [F-32], [F-44] |
 | 1935 | TCP | Forwarded to an ATEM Streaming Bridge, or to an ATEM Mini Extreme ISO G2, for internet links | ATEM-side network setup (see [ATEM.md](ATEM.md)). Reference only: sending PACSCORDER video into an ATEM setup is not in current ATEM scope (REQ-ATEM-001, owner 2026-10-07). | [F-28], [F-29] |
 | 8889 | Not stated in the register (serves the browser page and the WHEP endpoint [F-45]) | MediaMTX `webrtcAddress` default | Inbound, only if MediaMTX is used for WebRTC | [F-44], [F-45] |
-| 8189 | UDP (reasoning from the setting name `webrtcLocalUDPAddress`) | MediaMTX `webrtcLocalUDPAddress` default. [F-44] gives only the setting name and `:8189`; calling it a WebRTC local UDP listener (for example for ICE/RTP) is reasoning from the name, and its exact role is NEEDS VERIFICATION | Inbound, only if MediaMTX is used for WebRTC | [F-44] |
+| 8189 | UDP (reasoning from the setting name `webrtcLocalUDPAddress`) *(Superseded 2026-10-09: UDP is now sourced [K-41].)* | MediaMTX `webrtcLocalUDPAddress` default. [F-44] gives only the setting name and `:8189`; calling it a WebRTC local UDP listener (for example for ICE/RTP) is reasoning from the name, and its exact role is NEEDS VERIFICATION *(Superseded 2026-10-09: MediaMTX v1.21.1's configuration describes it as "Address of a UDP/ICE listener that will receive connections" [K-41]. Reasoning from MediaMTX's documentation [K-42]: internet viewers need this port reachable and the public address advertised, or STUN/TURN (OQ-128).)* | Inbound, only if MediaMTX is used for WebRTC | [F-44], [K-41] |
+| — (row added 2026-10-09) | TCP | MediaMTX `webrtcLocalTCPAddress` (TCP/ICE listener): disabled by default, because TCP "introduces a progressive delay when network is congested" [K-41] | Only if enabled; not recommended for the < 1 s target (reasoning from [K-41]; RISK-033) | [K-41] |
 | 8554 | Not stated in the register | MediaMTX RTSP default | Only if enabled | [F-44] |
 | 8890 | Not stated in the register | MediaMTX SRT default | Only if SRT is required (OQ-076) | [F-44] |
 | 8888 | Not stated in the register | MediaMTX HLS default | Only if enabled | [F-44] |
 | 9997 | Not stated in the register | MediaMTX API (`api: false` by default) | Only if enabled | [F-44] |
 | 9910 | UDP | ATEM control protocol (reverse-engineered), as reported by the OpenSwitcher project [F-11]. The atem-connection and PyATEMMax projects report this port as their default [F-14], [F-19]. | Outbound to the ATEM (reasoning: PACSCORDER would be the client), only for control or tally integration. That integration is not in current scope (REQ-ATEM-001; OQ-009 ANSWERED 2026-10-07; RISK-018). | [F-11], [F-14], [F-19] |
 
-All MediaMTX entries come from a community source (the MediaMTX project's own documentation and configuration file). Conflicts when PACSCORDER both receives RTMP from an ATEM and publishes RTMP onward are part of OQ-075; that case arises only if the owner adds receiving ATEM RTMP to scope.
+All MediaMTX entries come from a community source (the MediaMTX project's own documentation and configuration file). *(Superseded in part 2026-10-09: the topic K MediaMTX entries [K-03], [K-04], [K-05], [K-21], [K-24], [K-41], [K-42], [K-43] and [K-44] cite the same kind of source — MediaMTX's own documentation and configuration — but carry tier `vendor-other` in the register, while [F-44] and [F-45] carry tier `community`. Both are stated here as what MediaMTX documents, as REFERENCES.md "Register notes" (2026-10-09) directs.)* Conflicts when PACSCORDER both receives RTMP from an ATEM and publishes RTMP onward are part of OQ-075; that case arises only if the owner adds receiving ATEM RTMP to scope.
 
 ## 6. Tests
 
@@ -544,6 +678,15 @@ All MediaMTX entries come from a community source (the MediaMTX project's own do
 
   Related: OQ-115, OQ-059, OQ-063; RISK-002, RISK-003.
 
+*(Added 2026-10-09 after the owner decisions of 2026-10-08 on latency (OQ-116 ANSWERED) and recording (ADR-009); scope notes taken from the "Retire by" lines of RISK-019, RISK-028, RISK-031 to RISK-033 and from OQ-125 to OQ-128; not accepted criteria; no test ID or status changed.)*
+
+- **TEST-STR-002** measures camera-to-viewer latency against the < 1 s target on CM4 and CM5, in each target browser, with the recording encode running (OQ-125; RISK-031). Its pass criterion — which statistic, over how many samples, under which conditions — is not defined: OWNER DECISION REQUIRED (OQ-008). The method named in OQ-125 (an on-screen millisecond clock filmed next to the viewer's display, plus the browser statistics of [K-12]) is NOT YET RUN ON PACSCORDER HARDWARE. It also:
+  - records the latency setting of every live-path element and includes a run with an injected slow branch (OQ-126; RISK-032);
+  - records viewer join time with the chosen keyframe policy (OQ-127; RISK-019);
+  - checks that an injected HDD stall in the mirrored recording does not change live latency or frame rate (OQ-117; RISK-028);
+  - runs from outside the LAN through NAT, over UDP and over TURN, only if OQ-008 puts internet viewers in scope (OQ-128; RISK-033).
+- **TEST-STR-001**: RTMP latency is best-effort (OQ-116 ANSWERED), so it is not a pass criterion (reasoning). The run confirms that the destinations accept the B-frame-free live encode (OQ-127; RISK-019).
+
 Procedures will be written in [TESTING.md](TESTING.md). Every command in this document is NOT YET RUN ON PACSCORDER HARDWARE.
 
 ## Verification status
@@ -559,9 +702,18 @@ D-06, D-10, D-11, D-12, D-14, D-15, D-24, D-31, D-32, D-35, D-36, D-37, D-38, D-
 - `reasoning` entries, labelled as reasoning: D-36, D-52, F-35, F-38, F-40, F-46, H-23, H-43, I-18.
 - "Verified from sources" means only that the cited source says so. Under Rule 23 a hardware measurement overrides any of these facts.
 
+*(Added 2026-10-09; research topics J and K of 2026-10-08.)* 48 entries added, so the document cites 170 register entries, all with verdict `CONFIRMED` or `CORRECTED` *(verifier pass, same date: C-08 added, so 49 entries added and 171 cited)*:
+
+C-08 (added in the verifier pass), C-09, C-29 (reasoning inputs for Pi 4 Model B and Pi 5 capture terms, §4.6); J-30; K-01, K-02, K-03, K-04, K-05, K-06, K-07, K-08, K-09, K-10, K-11, K-12, K-13, K-14, K-15, K-16, K-17, K-18, K-19, K-20, K-21, K-22, K-23, K-24, K-25, K-26, K-27, K-28, K-29, K-30, K-31, K-32, K-33, K-34, K-35, K-36, K-37, K-38, K-39, K-40, K-41, K-42, K-43, K-44, K-45.
+
+- `CORRECTED` entries, used in their corrected wording only: J-30, K-12, K-18, K-22, K-26, K-29, K-45.
+- `community` entries, worded as reports: K-33.
+- `reasoning` entries, labelled as reasoning: K-10, K-18, K-26, K-45; also the reasoning sentence of the `kernel-source` entry K-36.
+- Statements marked *research gap*, *research open question* or *research design risk* come from [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json) and are not register facts.
+
 ### Verified on PACSCORDER hardware
 
-Nothing (no hardware exists as of 2026-10-06). *(Still nothing as of 2026-10-08: no hardware, no code, no test run.)*
+Nothing (no hardware exists as of 2026-10-06). *(Still nothing as of 2026-10-08: no hardware, no code, no test run.)* *(Still nothing as of 2026-10-09: no latency, no RTMP or WebRTC run, no measurement of any kind.)*
 
 ## Change history
 
@@ -577,3 +729,4 @@ Nothing (no hardware exists as of 2026-10-06). *(Still nothing as of 2026-10-08:
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): header "Applies to" (REQ-ENC-001 H.264 only, REQ-ENC-002 DEFERRED, RISK-022/RISK-025 not in current scope); owner-decision box (Codecs bullet superseded, new 2026-10-08 note); §1 codec-per-output row superseded, H.265 capacity, HEVC-RTMP muxing and acceptance, WebRTC H.265 rows labelled deferred, HEVC licensing (OQ-109) and HEVC-over-SRT notes; §2 H.265-per-platform table labelled deferred, throughput line (TEST-ENC-001 H.265 runs not run in current scope); §2.1 enhanced-FLV audio row labelled; §3.1 superseded note (H.264 fits legacy FLV [F-31]) and E-RTMP HEVC label; §3.2 `flvmux` H.265, planar-input note and H.265 pipeline line labelled; §3.3 HEVC-in-FLV and `libx265` labelled, `libx265` still pulled in by `libavcodec61` (reasoning [H-09]); §3.4 x265, `x265enc`, `libx265`, `rtph265pay`, SRT/MPEG-TS rows "only if REQ-ENC-002 is re-activated"; §3.6 and §4.5 deferred notes (opening sentences superseded), §3.6 capacity note; §4.4 H.265 gap row labelled; §6 TEST-ENC-001 title as in README.md and H.265 test runs deferred, not run in current scope. H.265 research kept as evidence; no citation added or removed; no other decision or status changed. | Claude (session 2026-10-08) |
 | 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): header "Applies to" (two encodes; OQ-005, OQ-115, OQ-059; RISK-002 added); new owner-decision note (one live encode shared by RTMP and WebRTC plus a recording encode; bitrate, rate control and latency still OQ-005; live encode WebRTC-receivable [F-36], [F-39], [F-40], [F-45], [D-11], [D-14], [D-15]; CM4 concurrency OQ-115 with the 2.0× reasoning [D-10], [D-52]; CM5 two software encodes OQ-059; audio still AAC + Opus; H.265 still deferred); §1 new "Video encodes behind the streams" row and live-encode note on the OQ-073 row; §2 diagram redrawn (DMABUF to live and recording encoders; old form recorded) with topology reasoning (two consumers per capture buffer, OQ-058, OQ-115; live bitstream split), platform-table notes (CM4 OQ-115/RISK-002, CM5 OQ-059/RISK-003) and the "share one encode or separate" sentence marked superseded; §2.1 two-audio-encode and CPU-cost notes; §3.2 note that the shapes show the live encode, with its WebRTC settings and split; §4.2 note (RTMP receives the Constrained Baseline stream, destination acceptance OQ-007; recording encode not bound; per-platform concurrency); §6 TEST-ENC-001 and TEST-PERF-001 rows annotated, scope notes for the two-encode run on CM4 and CM5, the shared live encode in TEST-STR-001/002 and the combined load in TEST-PERF-001; Verification status 120 → 122 entries (D-06, D-52; D-52 reasoning). No status changed; no ID added. | Claude (session 2026-10-08) |
 | 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): verifier pass — §2 platform table: CM4 "the live encode runs beside" → "would run beside" (OQ-115); CM5 "two software encodes run at once" → "are required at once" (OQ-059); §3.2 live-encode "No B-frames [D-14], [F-45]" split into the [D-14] fact and the MediaMTX report [F-45] (community source). No status changed; no ID added. | Claude (session 2026-10-08) |
+| 2026-10-09 | Storage + latency (ADR-009 ACCEPTED, OQ-116 ANSWERED, research topics J and K): header "Last updated", "Applies to" (WebRTC < 1 s camera-to-viewer, RTMP best-effort, ADR-009, OQ-125 to OQ-128, RISK-031 to RISK-034) and "Verification" (topics J and K); owner-decision box — OQ-005 "still open: latency" superseded in part, new note on the 2026-10-08 latency and recording decisions; §1 OQ-008 and "Video encodes" rows superseded in part (latency decided), six rows added (latency per output, element latencies OQ-126, publishing route RISK-034, keyframes OQ-127, internet viewers OQ-128, HDD-branch isolation OQ-117); §2 latency sentence superseded in part, ADR-009 mirrored-recording note [J-30], [K-36] (OQ-117, RISK-028); §2.1 Opus frame size [K-40]; new §3.7 RTMP latency (YouTube modes and API [K-15], [K-16], no sub-second mode [K-18], encoder recommendations and B-frame conflict [K-17], [K-04], OQ-127); §4.1 MediaMTX B-frame/Baseline/Opus documentation [K-04], `whipclientsink` needs [K-05]; §4.2 CM4 encoder re-confirmed [K-30], `x264enc` default trap [K-29], [K-27]; §4.3 `webrtcsink` defaults [K-13], package NEEDS VERIFICATION superseded [K-06], candidate RTSP-to-MediaMTX route (reasoning under ADR-007, OPEN); §4.4 WHIP/WHEP and ICE gap rows superseded [K-01], [K-02], [K-41]–[K-43]; new §4.6 live latency (protocols, MediaMTX [K-03], [K-44], candidate route sketch NOT YET RUN, default element latencies [K-07]–[K-10], [K-36], [K-37], capture/bridge/encode terms [K-33]–[K-35], [K-38], [K-39], [C-09], [C-29], budget summary [K-45] pointing to PERFORMANCE.md §7, viewer side [K-11], [K-12], [K-14], keyframes [K-30], [K-31], HLS/LL-HLS not sub-second [K-19]–[K-26], internet viewers [K-41]–[K-43]); §5 port 8189 role superseded [K-41], TCP/ICE row added, MediaMTX tier note; §6 scope notes for TEST-STR-002 and TEST-STR-001; Verification status 122 → 170 entries. No requirement, ADR, risk, OQ or test status changed. Verifier pass (same date): owner-decision box and §1 OQ-008 row — how the < 1 s target is judged (statistic, samples, conditions) added as still open (OQ-008); HDD "self-powered enclosure or hub" → "self-powered enclosure" (the owner's words); §1 publishing-route row — "not packaged [K-06]" → "not packaged in Debian trixie or the Raspberry Pi archive", WHEP dated "as of 2026-10-08"; §2 — "the register's example 2.5-inch HDD" → one Seagate BarraCuda 2.5-inch family, an example [J-30]; CM4 "shares the hardware encoder" → "would share" (OQ-115); [K-36] per-frame cost labelled as its reasoning part; §3.7 — B-frame conflict attributed to MediaMTX's documentation [K-04] (table and consequences); §4.3 — `webrtcsink` row: [K-06] Raspberry Pi archive provenance (register note) and BUILD TEST REQUIRED for the image; candidate-route sentence kept, with a note that it is a route needing no gst-plugins-rs, not the only one (`webrtcbin` remains an option [F-42], [G-27]), and that the package providing `rtspclientsink` is NEEDS VERIFICATION; §4.6 — target-judging OQ-008 sentence; MediaMTX tier pointer (§5, register note); `v4l2src` row labelled GStreamer source code [K-37]; V4L2 queue row labelled kernel documentation [K-36]; Pi 4 Model B capture reasoning re-based on [C-08] with [C-09] ([C-09] does not name the boards); budget — 10 ms labelled a community report [K-33], worst-case inputs shown (18.5 ms × 2.27 ≈ 42 ms; 33.3 + 41.9 ≈ 75 ms), recording encode "shares it" → "would share it"; §5 — 8189 internet-viewer sentence labelled reasoning from MediaMTX's documentation [K-42]; tier note points to the register note; §6 — TEST-STR-002 pass criterion open (OQ-008); Verification status 170 → 171 entries (C-08). | Claude (session 2026-10-09) |
