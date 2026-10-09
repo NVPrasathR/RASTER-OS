@@ -1207,6 +1207,105 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
 3. Proposed (Claude): research the Ethernet facts of CM4, CM5 and their IO Boards (OQ-098).
 4. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
 
+## 2026-10-09 (fifth entry) — Recording encode (profile/level/B-frames), recording capture-to-file latency, WebRTC measurement run; OQ-005 and OQ-008 answered, OQ-130 opened
+
+### Objective
+
+Record and propagate the owner's answers to the last owner-decision remainders of OQ-005 and OQ-008: the recording encode's profile, level and B-frames; a capture-to-file latency target for recordings; and the sample count and run length of the WebRTC 95th-percentile latency measurement.
+
+### Starting State
+
+The fourth 2026-10-09 change (OQ-129 drive return; viewers and browsers) was complete and **uncommitted** (owner: "Not yet" on the fourth entry; on session start the owner chose to leave it uncommitted and work the remaining OQs). OQ-005 was answered except for the recording encode's profile/level/B-frames and a possible capture-to-file latency target; OQ-008 was answered except for the measurement's sample count and run length. `doccheck.py` is not in the repository or the session workspace.
+
+### Changes
+
+Owner decisions (2026-10-09), gathered by three `ask_user` questions:
+
+| Question | Owner's choice | Recorded as |
+|---|---|---|
+| WebRTC 95th-percentile measurement run and sampling (OQ-008) | "30-minute run, 1 sample/second (~1800 samples)" | OQ-008 owner input (third); **OQ-008 ANSWERED** |
+| Recording encode profile, level and B-frames (OQ-005) | "High profile, Level 4.2, no B-frames — uniform across CM4 and CM5" | OQ-005 owner input (third) |
+| Recording capture-to-file latency target (OQ-005) | "Require a bounded capture-to-file latency (e.g. < 1 s glass-to-disk)" | OQ-005 owner input (third); **OQ-005 ANSWERED** |
+
+Consequences recorded:
+
+- **Recording encode** = H.264 High profile, Level 4.2, no B-frames, the same on CM4 and CM5. Reasoning: High is the CM4 encoder's default [K-30] and one it offers [D-11]; Level 4.2 because 1080p60 exceeds Level 4.0's macroblock rate [F-40]; no B-frames so the two platforms produce comparable files — CM4 emits none [D-14] and CM5's `x264enc` must be forced B-frame-free (`bframes=0`, caps `profile=baseline`, or `tune=zerolatency`) because its medium-preset default is 3 B-frames [K-29]. Whether 25 Mbit/s fits Level 4.2's maximum bitrate is OQ-073.
+- **Recording capture-to-file latency** = under 1 s glass-to-disk. New **OQ-130** (OPEN): against which drive (the fast NVMe copy, the HDD copy, or both) and over what statistic and sample count the bound is judged, given that the HDD branch can stall up to about 3.0 s from standby to ready [J-30] (RISK-028) and must be decoupled or buffered (OQ-117).
+- **WebRTC measurement run** = a 30-minute run at 1 sample per second (about 1800 samples), with the recording encode and the mirrored HDD writer running. Reasoning: about 1800 samples make a 95th percentile stable, a 30-minute run matches the recording file-split boundary (OQ-129) and covers an HDD stall of up to about 3.0 s [J-30].
+- Registers: **130 OQs (119 OPEN, 11 ANSWERED)**; OQ-005 and OQ-008 ANSWERED; OQ-130 added. Requirements (21), risks (34) and ADRs (9) unchanged. No requirement moved from DRAFT (OQ-017); no ADR status changed.
+
+### Files Modified
+
+All in `docs/`: `OPEN_QUESTIONS.md`, `REQUIREMENTS.md`, `TESTING.md`, `VIDEO_ENCODER.md`, `RECORDING.md`, `STREAMING.md`, `PERFORMANCE.md`, `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `TRACEABILITY.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation only.
+
+### Commands Used
+
+```bash
+git --no-pager status
+grep / view / edit via the assistant's tools
+```
+
+### Test Results
+
+**Documentation consistency check: NOT RUN — tool unavailable.** `doccheck.py`, referenced by earlier entries, is not committed to the repository and is not in the session workspace, so the "557/557 facts cited, 0 problems" check could not be reproduced this session. Status of that check: UNKNOWN — VERIFICATION REQUIRED (the checker tool or its specification is needed). Edits were kept consistent by hand: every superseded statement was annotated with a dated note rather than deleted (Rule 21), and no new fact IDs were cited (only existing [D-11], [D-14], [F-40], [J-30], [K-29], [K-30] were reused).
+
+### Problems Found
+
+- `doccheck.py` is not under version control, so the documented verification step cannot be run from a clean checkout. This breaks Rule 24 traceability for the documentation check. Recommended follow-up: commit the checker (or its specification) to the repository, or record in BUILD_SYSTEM/TESTING how to obtain it.
+- Pre-existing count drift between documents: [TRACEABILITY.md](TRACEABILITY.md) carried "8 ANSWERED" in earlier 2026-10-09 notes while [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) carried "9 ANSWERED". The new TRACEABILITY note states the OPEN_QUESTIONS header (130: 119 OPEN, 11 ANSWERED) is authoritative; the earlier interim notes were left in place (Rule 21).
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PARTIAL. All owner-decision remainders of OQ-005 and OQ-008 are decided and documented; OQ-130 is the only new open item they raised.
+- The documentation consistency check could not be run (tool missing).
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Commit the uncommitted 2026-10-09 documentation once the owner approves. This change stacks on the uncommitted fourth-entry change. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: record recording-encode profile/level, recording latency and WebRTC measurement run
+Commit description: Record the owner decisions of 2026-10-09. OQ-005 ANSWERED:
+  the recording encode is H.264 High profile, Level 4.2, with no B-frames,
+  the same on CM4 and CM5 (CM4 emits no B-frames, D-14; CM5 x264 forced
+  B-frame-free, K-29; Level 4.2 for 1080p60, F-40; 25 Mbit/s vs the level
+  ceiling is OQ-073); and the recording path has a capture-to-file latency
+  target of under 1 s glass-to-disk. OQ-008 ANSWERED: the < 1 s / 95th-
+  percentile WebRTC latency is measured over a 30-minute run at 1 sample per
+  second (about 1800 samples) with the recording running; up to 5 LAN
+  viewers; Chrome, Safari, Firefox. New OQ-130: against which drive, and over
+  what statistic, the recording capture-to-file bound is judged, given the
+  HDD stall (J-30, RISK-028, OQ-117). Propagate to the technical documents.
+  No hardware or code exists; the documentation consistency check could not
+  be run (doccheck.py not in the repository).
+Files changed: docs/** (13 Markdown files, plus the fourth-entry files)
+Reason: Rules 1, 11, 13, 16, 17, 21, 22 - owner decisions and consequences
+  documented, superseded text annotated not deleted
+Tests: documentation consistency check NOT RUN - doccheck.py unavailable
+  (see this entry, Test Results)
+```
+
+2. The owner decides OQ-130 (which drive and which statistic the recording latency is judged against) and the remaining recording-design items (OQ-118 to OQ-121).
+3. Proposed (Claude): commit `doccheck.py` (or its specification) so the documentation check is reproducible; research the Ethernet facts (OQ-098).
+4. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
+
 ## Change history
 
 | Date | Change | By |
@@ -1220,3 +1319,4 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
 | 2026-10-09 | Second 2026-10-09 entry added: commit and push of `f39e661`; owner decisions on latency criterion, viewer reach and recording duration; OQ-129. The first 2026-10-09 entry's Next Step items annotated (pushed; decided in part). | Claude (session 2026-10-09) |
 | 2026-10-09 | Third 2026-10-09 entry added: commit and push of `6ad83d4`; owner decisions on bitrate (OQ-005) and mirrored-drive failure (OQ-129). | Claude (session 2026-10-09) |
 | 2026-10-09 | Fourth 2026-10-09 entry added: commit and push of `b142871`; owner decisions on a drive missing at start and 30-minute file splitting (OQ-129). Third entry's Next Step items annotated. Extended the same day (uncommitted, owner "Not yet") with the drive-return, viewer and browser decisions. | Claude (session 2026-10-09) |
+| 2026-10-09 | Fifth 2026-10-09 entry added: owner decisions on the recording encode (High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples); OQ-005 and OQ-008 ANSWERED; OQ-130 opened. Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
