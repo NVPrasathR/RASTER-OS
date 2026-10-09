@@ -33,11 +33,13 @@ Product work cannot start until the hardware and remaining decisions listed unde
    - **Latency criterion (2026-10-09):** judged at the **95th percentile** — 95 % of camera-to-viewer samples under 1 s, over a sustained run with the recording running (OQ-008). Sample count and run length are still open.
    - **Viewer reach (2026-10-09):** WebRTC viewers on the **LAN only**; internet viewers are not in current scope (OQ-128, RISK-033 kept as reference).
    - **Recording (ADR-009, ACCEPTED):** MP4 written **fragmented**, every recording **mirrored** to a PCIe NVMe SSD and a USB-to-SATA HDD, the HDD in a **self-powered** enclosure. ext4 on the recording volumes is Claude's proposal inside ADR-009, not an owner decision (OQ-120).
-   - **Recording duration (2026-10-09):** no fixed limit — until stopped or the disk is full (OQ-006 ANSWERED). What happens when one mirrored drive fills or fails first, and file splitting, is OQ-129.
+   - **Recording duration (2026-10-09):** no fixed limit — until stopped or the disk is full (OQ-006 ANSWERED).
+   - **Bitrate and rate control (2026-10-09, later):** live encode (RTMP and WebRTC) CBR 17 Mbit/s; recording encode 25 Mbit/s VBR (OQ-005). Whether these fit the signalled H.264 profile and level is not in the register (OQ-073).
+   - **Drive failure (2026-10-09, later):** if one mirrored drive fills, is absent or fails, recording continues on the other drive and the operator is alerted (OQ-129).
 2. **Owner decisions still open** ([OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)):
-   - OQ-005: bitrate and rate control.
    - OQ-008 (remainder): target browsers, number of viewers, and the sample count and run length of the 95th-percentile measurement.
-   - OQ-129: what the recorder does when one mirrored drive fills, is absent or fails; whether long recordings are split into files.
+   - OQ-129 (remainder): whether and at what interval long recordings are split into files; how the operator is alerted (OQ-091); whether a returning drive is used again.
+   - OQ-005 (remainder): the recording encode's profile, level and B-frame settings, and a capture-to-file latency target for recordings, if one is required.
    - OQ-118 to OQ-121 (in part): fragment duration and the acceptable loss on a power cut, recording filesystem, NVMe SSD and adapter choice.
    - OQ-007 (RTMP destinations), OQ-010 (sustained-operation envelope), OQ-113 (AAC licensing).
    - OQ-018 to OQ-021: bridge board(s), wiring of INT/RESET and audio I2S.
@@ -56,7 +58,8 @@ Product work cannot start until the hardware and remaining decisions listed unde
   - `6efadce` docs: two H.264 encodes - recording and shared live (OQ-005);
   - `54269bf` "update 9oct" (2026-10-09, committed under the owner's git identity without a Rule 15 proposal): research topics J and K, ADR-009, OQ-116 and the new OQs and risks, registers only. Its message does not follow Rule 15; it was left unchanged because it is already on `origin` (see [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md), 2026-10-08 fourth entry).
   - "docs: propagate ADR-009 and live-latency decision, verify topics J and K" (2026-10-09, approved by the owner): the 2026-10-09 documentation catch-up. *(Pushed 2026-10-09 at the owner's request: `54269bf..f39e661`.)*
-  - "docs: record latency criterion, LAN-only viewers and recording duration" (2026-10-09; owner: "Commit and push"): the owner decisions of 2026-10-09, committed and pushed.
+  - `6ad83d4` docs: record latency criterion, LAN-only viewers and recording duration (2026-10-09; owner: "Commit and push"; pushed `f39e661..6ad83d4`).
+  - "docs: record live and recording bitrates and drive-failure policy" (2026-10-09; owner: "Commit and push"): the later 2026-10-09 decisions, committed and pushed.
 - [x] Owner's engineering rules stored verbatim in [ENGINEERING_RULES.md](ENGINEERING_RULES.md), loaded every session through `CLAUDE.md`.
 - [x] Source research: **557 facts in 11 topics (A–K)**, each independently fact-checked: 512 CONFIRMED, 45 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED ([REFERENCES.md](REFERENCES.md)). Topics J (recording storage and power loss) and K (live latency) were added on 2026-10-08.
 - [x] Requirements: 21 (16 DRAFT, 4 PROPOSED, 1 DEFERRED — REQ-ENC-002 H.265) — [REQUIREMENTS.md](REQUIREMENTS.md).
@@ -116,8 +119,9 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 ## Next Step
 
 1. *(Done: the catch-up commit `f39e661` was pushed on 2026-10-09, and the owner-decision commit was committed and pushed on 2026-10-09.)*
-2. The owner decides the open owner-decision OQs under Current Objective, starting with OQ-005 (bitrate and rate control) and OQ-129 (mirror behaviour when one drive fills or fails).
-3. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
+2. *(Done: the bitrate and drive-failure decisions were committed and pushed on 2026-10-09.)*
+3. The owner decides the remaining owner-decision items under Current Objective: OQ-129 file splitting and alert method, and the OQ-008 remainder.
+4. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
 
 ## Change history
 
@@ -132,3 +136,4 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 | 2026-10-08 | Two-encode decision recorded (OQ-005: recording + shared live; OQ-115 added); commit `d2d217e` pushed; next step updated. | Claude (session 2026-10-08) |
 | 2026-10-09 | Brought up to date with commit `54269bf` (research topics J and K, ADR-009 ACCEPTED, OQ-116 ANSWERED) and the 2026-10-09 documentation catch-up: Current Phase reworded (PHASE 1 in progress); phase plan rows for PHASE 1, 4 and 5; Current Objective restructured into decided items, open owner decisions (OQ-008 now includes how the < 1 s target is judged) and hardware including recording storage; Completed (commits `6efadce` and `54269bf`, 557 facts, 9 ADRs, 34 risks, 128 OQs); Blocked (recording design items); Known Problems (RISK-026, RISK-028, RISK-031, RISK-034 added); Last Verified, Hardware and Next Step. The 2026-10-08 statement that the two-encode decision was uncommitted was stale: it was committed as `6efadce`. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 recorded: latency judged at the 95th percentile and LAN-only WebRTC viewers (OQ-008), recording until stopped or disk full (OQ-006 ANSWERED), new OQ-129; Current Phase, phase plan, Current Objective, Completed (push of `f39e661`; 129 OQs) and Next Step updated. | Claude (session 2026-10-09) |
+| 2026-10-09 | Later owner decisions of 2026-10-09 recorded: live encode CBR 17 Mbit/s and recording 25 Mbit/s VBR (OQ-005), drive-failure policy (OQ-129); commit `6ad83d4` and its push recorded; Current Objective and Next Step updated. | Claude (session 2026-10-09) |

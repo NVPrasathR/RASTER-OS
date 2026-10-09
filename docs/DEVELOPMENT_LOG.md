@@ -935,7 +935,7 @@ WARNINGS (7):
 
 ### Next Step
 
-1. Commit this change once the owner approves. *(Done: owner, 2026-10-09: "Commit and push"; committed with this message and pushed.)* Proposed commit (Rule 15):
+1. Commit this change once the owner approves. *(Done: owner, 2026-10-09: "Commit and push"; committed with this message and pushed — `6ad83d4`, `f39e661..6ad83d4`.)* Proposed commit (Rule 15):
 
 ```text
 Commit title: docs: record latency criterion, LAN-only viewers and recording duration
@@ -957,6 +957,128 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
 2. The owner decides OQ-005 (bitrate and rate control) and OQ-129 (mirror behaviour when one drive fills or fails; file splitting).
 3. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
 
+---
+
+## 2026-10-09 (third entry) — Commit and push of the decisions update; owner decisions on bitrate and drive failure
+
+### Objective
+
+Commit and push the second 2026-10-09 change as approved, record the owner's answers on bitrate, rate control and mirrored-drive failure, and propagate them.
+
+### Starting State
+
+The second 2026-10-09 change was complete and uncommitted. The documentation check passed.
+
+### Changes
+
+1. **Commit and push.** The owner answered "Commit and push". The change was committed as `6ad83d4` "docs: record latency criterion, LAN-only viewers and recording duration" (17 files, counted from the staged set) and pushed `f39e661..6ad83d4`; `git ls-remote` confirmed it.
+2. **Owner decisions** (2026-10-09). Each question had options based on [D-13] (the CM4 encoder accepts 25 kbit/s to 25 Mbit/s, default 10 Mbit/s, VBR or CBR) and [H-29], [K-17] (YouTube: H.264 1080p60 at 17 Mbit/s recommended, 6 Mbit/s minimum, CBR). The options I recommended are marked; the owner chose each recommended option:
+
+   | Question | Owner's choice | Recorded as |
+   |---|---|---|
+   | Live encode (RTMP and WebRTC): bitrate and rate control (OQ-005) | "CBR 17 Mbit/s" (recommended) | OQ-005 owner input; REQ-ENC-001 acceptance "bitrate" superseded; OQ-007 note (the RTMP video bitrate is set by the live encode) |
+   | Recording encode bitrate (OQ-005); VBR was stated in the question | "25 Mbit/s" (recommended) | OQ-005 owner input; REQ-REC-001 note |
+   | One mirrored drive fills, is missing or fails during a recording (OQ-129) | "Continue on the other drive" (recommended; alert the operator) | OQ-129 owner input; ADR-009 Consequences; RISK-028 note |
+
+3. **What stays open**, recorded in the registers:
+   - **OQ-005:** the recording encode's profile, level and B-frame settings, which the technical documents had listed under OQ-005, and a capture-to-file latency target, if one is required. The live encode's settings follow the WebRTC constraints (§7 of VIDEO_ENCODER.md).
+   - **OQ-073:** whether 17 and 25 Mbit/s fit the maximum bitrate of the H.264 profile and level each encoder signals. The register holds only frame-size and macroblock-rate limits [F-40]: NEEDS VERIFICATION (DATASHEET REQUIRED).
+   - **OQ-129:** file splitting; how the operator is alerted (OQ-091); whether a returning drive is used again; and a drive that is already absent when a recording starts. The question was worded "during a recording", so that case is not covered by the choice; where the documents assume it, the assumption is labelled as Claude's reading.
+   - Encoder load at these rates: CM5 CPU (OQ-059) and CM4 with two hardware encodes (OQ-115).
+   - No per-mode values were given, so whether 17 and 25 Mbit/s apply unchanged to, for example, 1080p30 or 720p is not stated.
+4. **Propagation.** Three file-owned agents updated the documents:
+   - `VIDEO_ENCODER`, `STREAMING` and `PERFORMANCE`: settings tables, the RTMP bitrate section, WebRTC per-viewer load as labelled reasoning, and the storage budget at 25 Mbit/s from [J-36] (about 3.15 MB/s, 11.34 GB/h and 88 h per 1 TB per drive; about 6.30 MB/s mirrored).
+   - `RECORDING`, `HARDWARE`, `ARCHITECTURE`, `SOFTWARE_ARCHITECTURE` and `DMA`: recorder design requirement that a failing writer ends only its own copy and raises an operator alert; storage capacity at the decided rate.
+   - `TESTING`, `TRACEABILITY` and `TROUBLESHOOTING`: TEST-ENC-001 sets and measures both bitrates; TEST-REC-001 step 9 expected behaviour is defined for the policy part, with a new step 9 d (a drive that returns, UNDEFINED); TEST-STR-001 and TEST-STR-002 use the live bitrate.
+
+   No new fact IDs were cited.
+5. **Main-session alignment** after the agents finished:
+   - Two agents wrote that OQ-005 "no longer names" the recording encode's profile, level and B-frames, leaving them without an open question. The register keeps them under OQ-005, and the 37 phrases saying OQ-005 was open "only for" the latency target were aligned with it.
+   - One agent stated a drive "absent when the recording starts" as decided. It is now labelled as Claude's reading (OQ-129).
+6. `PROJECT_STATUS.md` updated.
+
+### Files Modified
+
+All in `docs/`: `ARCHITECTURE.md`, `CHANGELOG.md`, `DECISIONS.md`, `DEVELOPMENT_LOG.md`, `DMA.md`, `HARDWARE.md`, `OPEN_QUESTIONS.md`, `PERFORMANCE.md`, `PROJECT_STATUS.md`, `RECORDING.md`, `REQUIREMENTS.md`, `RISKS.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `TESTING.md`, `TRACEABILITY.md`, `TROUBLESHOOTING.md`, `VIDEO_ENCODER.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation and git only.
+
+### Commands Used
+
+```bash
+git add docs/ && git commit -F -          # 6ad83d4, approved message
+git push origin main                      # f39e661..6ad83d4
+python3 -I doccheck.py docs
+git diff -U0 --word-diff=plain -- docs    # Rule 21 audit against 6ad83d4
+```
+
+### Test Results
+
+Documentation consistency check after all edits (`python3 doccheck.py docs`, exit code 0):
+
+```text
+defined: facts=557 REQ=21 ADR=9 RISK=34 OQ=129 TEST(canon)=17 TEST(in TESTING.md)=17
+files=29 distinct facts cited=557/557
+PROBLEMS (0):
+WARNINGS (7):
+```
+
+- The seven warnings are the same known false positives.
+- Rule 21 audit against `6ad83d4`: no committed change-history row was modified. In the registers and technical documents, every deleted word chunk is an in-place extension.
+- **Result: TESTED — PASS** for documentation consistency only. No hardware or software test was possible.
+
+### Problems Found
+
+1. **Orphaned settings.** Two agents dropped the recording encode's profile, level and B-frames from any open question. Fixed by keeping them under OQ-005.
+2. **Owner's wording extended.** "Absent at start" was treated as covered by the owner's choice. Now labelled as Claude's reading and recorded as an open item of OQ-129.
+
+### Root Cause
+
+1. My register text first said OQ-005 stayed open "only" for a capture-to-file target, and the agents followed it.
+2. My OQ-129 entry lists "absent at start" among the cases, but the question put to the owner said "during a recording".
+
+### Solution
+
+Register text corrected before propagation finished. The question wording and the recorded decision are now compared explicitly.
+
+### Current Status
+
+- PARTIAL. Encoding and recording parameters are decided except the items above, and the documentation check passes.
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Commit this change once the owner approves. *(Done: owner, 2026-10-09: "Commit and push"; committed with this message and pushed.)* Proposed commit (Rule 15):
+
+```text
+Commit title: docs: record live and recording bitrates and drive-failure policy
+Commit description: Record the owner decisions of 2026-10-09: live encode CBR
+  17 Mbit/s, recording encode 25 Mbit/s VBR (OQ-005, which stays open for the
+  recording encode's profile, level and B-frames and a capture-to-file
+  latency target); if one mirrored drive fills, is missing or fails during a
+  recording, recording continues on the other drive and the operator is
+  alerted (OQ-129 stays open for file splitting, alert method, drive return
+  and a drive absent at the start). Profile/level bitrate fit is NEEDS
+  VERIFICATION (OQ-073). Propagate to the encoder, streaming, performance,
+  recording, hardware, architecture, DMA, testing, traceability and
+  troubleshooting documents. Record the push of 6ad83d4.
+  No hardware or code exists; nothing is tested.
+Files changed: docs/** (18 Markdown files)
+Reason: Rules 1, 11, 13, 21, 22 - owner decisions and their consequences
+  documented, open items kept visible
+Tests: documentation consistency check - 0 problems, 557/557 facts cited
+  (DEVELOPMENT_LOG.md 2026-10-09, third entry)
+```
+
+2. The owner decides the OQ-129 remainder (file splitting; a drive absent at the start) and the OQ-008 remainder (browsers, viewer count, sample count and run length).
+3. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
+
 ## Change history
 
 | Date | Change | By |
@@ -968,3 +1090,4 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
 | 2026-10-08 | Third 2026-10-08 entry added: two H.264 encodes (OQ-005), push of `d2d217e`. | Claude (session 2026-10-08) |
 | 2026-10-09 | Fourth 2026-10-08 entry added (storage and latency research, ADR-009, OQ-116; reconstructed from evidence because that session wrote none). 2026-10-09 entry added: documentation catch-up and verification. The third 2026-10-08 entry's Next Step items annotated as done or done in part. | Claude (session 2026-10-09) |
 | 2026-10-09 | Second 2026-10-09 entry added: commit and push of `f39e661`; owner decisions on latency criterion, viewer reach and recording duration; OQ-129. The first 2026-10-09 entry's Next Step items annotated (pushed; decided in part). | Claude (session 2026-10-09) |
+| 2026-10-09 | Third 2026-10-09 entry added: commit and push of `6ad83d4`; owner decisions on bitrate (OQ-005) and mirrored-drive failure (OQ-129). | Claude (session 2026-10-09) |

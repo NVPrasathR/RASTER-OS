@@ -37,6 +37,11 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-09: **Owner decisions: bitrate and drive failure.**
+  - Bitrates (OQ-005): live encode (RTMP and WebRTC) CBR 17 Mbit/s; recording encode 25 Mbit/s VBR. OQ-005 stays open for the recording encode's profile, level and B-frames and a capture-to-file latency target. Profile/level bitrate fit is NEEDS VERIFICATION (OQ-073).
+  - Drive failure (OQ-129): if one mirrored drive fills, is missing or fails during a recording, recording continues on the other drive and the operator is alerted. OQ-129 stays open for file splitting, alert method, drive return and a drive absent at the start.
+  - Propagated to 13 technical documents. TEST-ENC-001 sets and measures both bitrates; TEST-REC-001 step 9 expected behaviour is defined for the policy part.
+- 2026-10-09: Pushed `6ad83d4` (latency criterion, LAN-only viewers, recording duration) to `origin/main`.
 - 2026-10-09: **Owner decisions: latency criterion, viewer reach, recording duration.**
   - The < 1 s WebRTC target is judged at the 95th percentile: 95 % of camera-to-viewer samples under 1 s, over a sustained run with the recording running (OQ-008). Sample count and run length are still open.
   - WebRTC viewers are LAN only. Internet viewers (OQ-128, RISK-033) are not in current scope and are kept as reference.
@@ -131,3 +136,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-08 | Two-encode decision; push of `d2d217e`. | Claude (session 2026-10-08) |
 | 2026-10-09 | Storage and latency (topics J and K, ADR-009, OQ-116; commit `54269bf`) and the `6efadce` commit recorded; Known Issues updated (ADR-009 ACCEPTED, RISK-026 to RISK-031, RISK-034, commit message). 2026-10-09 documentation catch-up and verification entry added. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 (latency criterion, LAN-only viewers, recording duration; OQ-006 ANSWERED; OQ-129) and the push of `f39e661` recorded; Known Issues updated. | Claude (session 2026-10-09) |
+| 2026-10-09 | Owner decisions on bitrate (OQ-005) and drive failure (OQ-129), and the push of `6ad83d4`, recorded. | Claude (session 2026-10-09) |
