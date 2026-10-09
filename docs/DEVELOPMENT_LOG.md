@@ -818,7 +818,7 @@ The corrections are in place as dated notes, plus the verifier passes. Text is n
 
 ### Next Step
 
-1. The owner reviews this catch-up and decides whether to commit. *(Done: the owner approved on 2026-10-09 ("Approve"); committed with this message, not pushed at the time.)* Proposed commit (Rule 15):
+1. The owner reviews this catch-up and decides whether to commit. *(Done: the owner approved on 2026-10-09 ("Approve"); committed with this message, not pushed at the time.)* *(Pushed later on 2026-10-09 at the owner's request: `54269bf..f39e661`.)* Proposed commit (Rule 15):
 
 ```text
 Commit title: docs: propagate ADR-009 and live-latency decision, verify topics J and K
@@ -838,9 +838,124 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
   (DEVELOPMENT_LOG.md 2026-10-09)
 ```
 
-2. The owner decides OQ-008 (WebRTC reach and how the < 1 s target is judged), OQ-005 (bitrate and rate control) and OQ-006 (maximum recording duration). *(Owner, 2026-10-09: "okay"; the decisions themselves are still open.)*
+2. The owner decides OQ-008 (WebRTC reach and how the < 1 s target is judged), OQ-005 (bitrate and rate control) and OQ-006 (maximum recording duration). *(Owner, 2026-10-09: "okay"; the decisions themselves are still open.)* *(Decided in part later on 2026-10-09: OQ-008 criterion and reach, OQ-006 duration — see the second 2026-10-09 entry. OQ-005 is still open.)*
 3. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage. *(Owner, 2026-10-09: "okay".)*
 
+
+---
+
+## 2026-10-09 (second entry) — Commit and push of the catch-up; owner decisions on latency criterion, viewer reach and recording duration
+
+### Objective
+
+Commit and push the catch-up as approved, record the owner's answers on how the < 1 s target is judged, where WebRTC viewers are and how long a recording may run, and propagate them.
+
+### Starting State
+
+The 2026-10-09 catch-up was complete and uncommitted. The documentation check passed (0 problems, 557 of 557 facts cited).
+
+### Changes
+
+1. **Commit and push.**
+   - The owner approved the proposed commit ("Approve"). It was committed as `f39e661` "docs: propagate ADR-009 and live-latency decision, verify topics J and K", with the approved message (26 files, counted from the staged set).
+   - The owner answered "Push now": pushed `54269bf..f39e661`. `git ls-remote` confirmed `refs/heads/main = f39e661`.
+2. **Owner decisions** (2026-10-09). Each was asked as a multiple-choice question; the owner's choice is quoted:
+
+   | Question | Owner's choice | Recorded as |
+   |---|---|---|
+   | How is the < 1 s WebRTC target judged? (OQ-008) | "95th percentile < 1 s" (presented as: 95 % of samples under 1 s over a sustained run with the recording running) | OQ-008 owner input; REQ-STR-002 latency-criterion line. OQ-008 stays OPEN for browsers, viewer count, sample count and run length. |
+   | Where are WebRTC viewers? (OQ-008) | "LAN only" | OQ-008 owner input; REQ-STR-002 acceptance item superseded; OQ-128 and RISK-033 marked not in current scope (kept OPEN as reference); OQ-074 scope note |
+   | Maximum length of one recording? (OQ-006) | "Until stopped / disk full" | **OQ-006 ANSWERED** (every part now decided); REQ-REC-001 acceptance item superseded; ADR-009 Consequences note |
+
+   The 95th-percentile option was my recommendation, labelled as my reasoning when it was presented. The other two questions had no recommended option.
+3. **New OQ-129** (OPEN): what the recorder does when one mirrored drive fills, is absent or fails before the other, and whether long recordings are split into files. With no duration limit, a drive filling becomes a normal end state, and the mirror's drives may differ in size. Known so far: [J-36] sizing reasoning, [J-44] `splitmuxsink`, [J-33] absent-disk boot delay. Register: 129 OQs, 121 OPEN, 8 ANSWERED.
+4. **Propagation.** Four file-owned agents marked every outdated statement with a dated note:
+   - `STREAMING`, `PERFORMANCE` and `VIDEO_ENCODER`;
+   - `ARCHITECTURE` and `SOFTWARE_ARCHITECTURE`;
+   - `RECORDING` and `HARDWARE`;
+   - `TESTING`, `TRACEABILITY` and `TROUBLESHOOTING`.
+
+   They made no new fact claims; the only citations used were existing ones ([J-36], [J-43], [J-44]). The internet-viewer material is kept and labelled not in current scope, as was done for the deferred H.265 material. TEST-STR-002 now states the 95th-percentile criterion; its internet-viewer step is kept as reference. TEST-REC-001 gains step 9 (one drive fills first; the HDD is removed during a recording; file splitting if chosen). Its required behaviour is UNDEFINED until OQ-129 is decided. `ATEM.md` and `DMA.md` were checked and needed no change.
+5. **Main session.** I updated the registers (`OPEN_QUESTIONS`, `REQUIREMENTS`, `RISKS`, `DECISIONS`) and `PROJECT_STATUS.md`. I also reviewed the agents' diffs and swept for unmarked outdated statements; one was left in REQ-REC-001, and it is now marked.
+
+### Files Modified
+
+All in `docs/`: `ARCHITECTURE.md`, `CHANGELOG.md`, `DECISIONS.md`, `DEVELOPMENT_LOG.md`, `HARDWARE.md`, `OPEN_QUESTIONS.md`, `PERFORMANCE.md`, `PROJECT_STATUS.md`, `RECORDING.md`, `REQUIREMENTS.md`, `RISKS.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `TESTING.md`, `TRACEABILITY.md`, `TROUBLESHOOTING.md`, `VIDEO_ENCODER.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation and git only.
+
+### Commands Used
+
+```bash
+git add docs/ && git commit -F -          # f39e661, approved message
+git push origin main                      # 54269bf..f39e661
+git ls-remote --heads origin main         # f39e661
+python3 -I doccheck.py docs
+git diff -U0 --word-diff=porcelain -- docs   # Rule 21 audit against f39e661
+```
+
+### Test Results
+
+Documentation consistency check after all edits (`python3 doccheck.py docs`, exit code 0):
+
+```text
+defined: facts=557 REQ=21 ADR=9 RISK=34 OQ=129 TEST(canon)=17 TEST(in TESTING.md)=17
+files=29 distinct facts cited=557/557
+PROBLEMS (0):
+WARNINGS (7):
+```
+
+- The seven warnings are the same false positives as in the first 2026-10-09 entry.
+- Rule 21 audit against `f39e661`: no committed change-history row was modified. In the registers and technical documents, every deleted word chunk is an in-place extension, a status field or a count. `PROJECT_STATUS.md` and the changelog's Known Issues are current-state lists and were rewritten in place, as in earlier sessions; each change is recorded in its change history.
+- **Result: TESTED — PASS** for documentation consistency only. No hardware or software test was possible.
+
+### Problems Found
+
+1. **My error, corrected before commit.** I first appended today's register notes to change-history rows already committed in `f39e661` (`RISKS.md`, `REQUIREMENTS.md`, `DECISIONS.md`), which would have rewritten history. I moved them into new rows; the audit shows no committed row changed.
+2. One outdated duration statement in REQ-REC-001 was missed by the register pass and found by the sweep. It is now marked.
+
+### Root Cause
+
+1. I reused the "append to this session's row" pattern after the row had been committed.
+
+### Solution
+
+1. New change-history rows for each new change set once the earlier rows are committed; the agents were briefed the same way.
+
+### Current Status
+
+- PARTIAL. The decisions are recorded and propagated, and the documentation check passes.
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Commit this change once the owner approves. *(Done: owner, 2026-10-09: "Commit and push"; committed with this message and pushed.)* Proposed commit (Rule 15):
+
+```text
+Commit title: docs: record latency criterion, LAN-only viewers and recording duration
+Commit description: Record the owner decisions of 2026-10-09: the < 1 s WebRTC
+  target is judged at the 95th percentile (OQ-008; sample count and run length
+  still open); WebRTC viewers are LAN only (OQ-128 and RISK-033 kept as
+  reference, not in current scope); recordings run until stopped or the disk is
+  full (OQ-006 ANSWERED). Add OQ-129 (mirror behaviour when one drive fills or
+  fails; file splitting). Mark the affected statements in the technical
+  documents; TEST-STR-002 criterion and TEST-REC-001 step 9. Record the push of
+  f39e661. No hardware or code exists; nothing is tested.
+Files changed: docs/** (17 Markdown files)
+Reason: Rules 1, 11, 13, 21, 22 - owner decisions and their consequences
+  documented, outdated text marked, not deleted
+Tests: documentation consistency check - 0 problems, 557/557 facts cited
+  (DEVELOPMENT_LOG.md 2026-10-09, second entry)
+```
+
+2. The owner decides OQ-005 (bitrate and rate control) and OQ-129 (mirror behaviour when one drive fills or fails; file splitting).
+3. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
 
 ## Change history
 
@@ -852,3 +967,4 @@ Tests: documentation consistency check - 0 problems, 557/557 facts cited
 | 2026-10-08 | Second 2026-10-08 entry added: H.265 deferred (OQ-103), commit `df3591d` and push. | Claude (session 2026-10-08) |
 | 2026-10-08 | Third 2026-10-08 entry added: two H.264 encodes (OQ-005), push of `d2d217e`. | Claude (session 2026-10-08) |
 | 2026-10-09 | Fourth 2026-10-08 entry added (storage and latency research, ADR-009, OQ-116; reconstructed from evidence because that session wrote none). 2026-10-09 entry added: documentation catch-up and verification. The third 2026-10-08 entry's Next Step items annotated as done or done in part. | Claude (session 2026-10-09) |
+| 2026-10-09 | Second 2026-10-09 entry added: commit and push of `f39e661`; owner decisions on latency criterion, viewer reach and recording duration; OQ-129. The first 2026-10-09 entry's Next Step items annotated (pushed; decided in part). | Claude (session 2026-10-09) |

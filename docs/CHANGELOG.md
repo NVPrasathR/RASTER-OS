@@ -37,6 +37,13 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-09: **Owner decisions: latency criterion, viewer reach, recording duration.**
+  - The < 1 s WebRTC target is judged at the 95th percentile: 95 % of camera-to-viewer samples under 1 s, over a sustained run with the recording running (OQ-008). Sample count and run length are still open.
+  - WebRTC viewers are LAN only. Internet viewers (OQ-128, RISK-033) are not in current scope and are kept as reference.
+  - Recordings run until stopped or the disk is full: **OQ-006 ANSWERED**.
+  - New OQ-129: mirror behaviour when one drive fills, is absent or fails; file splitting.
+  - Affected statements in the technical documents are marked superseded. TEST-STR-002 now states the criterion; TEST-REC-001 gains step 9.
+- 2026-10-09: Pushed `f39e661` (documentation catch-up) to `origin/main` at the owner's request.
 - 2026-10-09: **Documentation catch-up for `54269bf`, and verification of topics J and K.**
   - ADR-009 (fragmented MP4 mirrored to NVMe SSD and HDD), the < 1 s WebRTC target (RTMP best-effort; OQ-116) and the topic J/K facts are now in every affected technical document:
     - `RECORDING`, `PERFORMANCE`, `DMA`, `STREAMING`, `VIDEO_ENCODER`, `HARDWARE`, `DEVICE_TREE`, `BUILD_SYSTEM`, `RELEASE`, `ARCHITECTURE`, `SOFTWARE_ARCHITECTURE`, `V4L2`, `CSI_PIPELINE`, `TC358743_DRIVER`, `TESTING`, `TRACEABILITY` and `TROUBLESHOOTING`;
@@ -103,7 +110,8 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - No code exists. Every requirement is NOT STARTED.
 - No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001, ADR-003 and ADR-009 are ACCEPTED.
 - H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
-- The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125), and how the target is judged is not yet defined (OQ-008).
+- The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125). It is judged at the 95th percentile (owner, 2026-10-09); the sample count and run length are not yet defined (OQ-008).
+- Mirror behaviour when one recording drive fills, is absent or fails is undecided (OQ-129).
 - Recording storage (ADR-009): on CM4 the NVMe SSD takes the only PCIe lane and the HDD shares USB 2.0 (RISK-026); UAS bridge faults (RISK-027); HDD stalls could back-pressure the shared encoder and live path (RISK-028); fragmented MP4 compatibility (RISK-029); residual loss on a power cut (RISK-030).
 - The GStreamer WebRTC publishing elements are not packaged for Raspberry Pi OS trixie, and WHEP is still a draft (RISK-034).
 - Commit `54269bf` has a non-Rule-15 message ("update 9oct"); it is on the shared remote and was not rewritten.
@@ -122,3 +130,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-08 | H.265 deferral and push recorded. | Claude (session 2026-10-08) |
 | 2026-10-08 | Two-encode decision; push of `d2d217e`. | Claude (session 2026-10-08) |
 | 2026-10-09 | Storage and latency (topics J and K, ADR-009, OQ-116; commit `54269bf`) and the `6efadce` commit recorded; Known Issues updated (ADR-009 ACCEPTED, RISK-026 to RISK-031, RISK-034, commit message). 2026-10-09 documentation catch-up and verification entry added. | Claude (session 2026-10-09) |
+| 2026-10-09 | Owner decisions of 2026-10-09 (latency criterion, LAN-only viewers, recording duration; OQ-006 ANSWERED; OQ-129) and the push of `f39e661` recorded; Known Issues updated. | Claude (session 2026-10-09) |
