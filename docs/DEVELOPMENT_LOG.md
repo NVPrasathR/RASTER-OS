@@ -2025,6 +2025,84 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check
 
 ---
 
+## 2026-10-12 (seventh entry) — Commit and push of the ADR decisions; ADR-007 (GStreamer) and ADR-012 (Python 3) proposed
+
+### Objective
+
+The owner asked when coding starts. Claude answered that the application waits on ADR-007 (framework, OPEN), offered to write it up, and the owner said "write".
+
+### Starting State
+
+`main` at `7d7d2de`; the sixth-entry decisions were then committed and pushed as **`78b6d70`** (`7d7d2de..78b6d70`) on the owner's "Commit and push".
+
+### Changes
+
+1. **ADR-007:** a dated "Proposal (2026-10-12)" section appended — **GStreamer**; status OPEN → PROPOSED (status note appended; index cell). It explains why the decision need not wait for bring-up (those tests measure hardware both frameworks use alike; the platform question was settled by ADR-004), gives seven sourced reasons ([L-43] FFmpeg's CM4 encoder wrapper cannot set bitrate mode or level; [M-56], [M-57] fan-out; [M-53], [M-54], [M-60] frame-rate halving; [J-39], [J-41], [J-44] fragmented 30-minute recording, with the note that fragmented mode disables robust muxing; [K-05], [F-45], [F-33], [K-31] publishing; [I-44], [I-45], [I-46] audio; [D-37] official example), a pipeline sketch, the known gaps ([K-32], OQ-118, OQ-112, OQ-131, the `rtspclientsink` package) and the alternatives. Evidence tables unchanged.
+2. **ADR-012 (PROPOSED):** application language Python 3 with PyGObject; C and Rust as alternatives; shell for bring-up scripts; proposed repository layout (`app/`, `tests/`, `scripts/`, `image/`, `tools/`); development on a Linux machine with `videotestsrc` and a software encoder before the hardware arrives. No register fact covers the bindings — BUILD TEST REQUIRED.
+3. **OQ-132** (application language) added; OQ-015 note. DECISIONS header 7 ACCEPTED, 4 PROPOSED, 0 OPEN, 1 SUPERSEDED; OQ header 132 (107 OPEN, 25 ANSWERED).
+4. Notes in SOFTWARE_ARCHITECTURE and TRACEABILITY; PROJECT_STATUS and CHANGELOG; commit `78b6d70` recorded.
+5. Not annotated on purpose: lines elsewhere that call ADR-007 "OPEN" — it is still undecided; they will be annotated when the owner accepts or rejects the proposal (the doc check flags them then).
+6. **Owner decisions, the same exchange:** "Accept GStreamer" — **ADR-007 ACCEPTED** (OQ-015 ANSWERED); language **"C"** — not the proposed Python, so **ADR-012 SUPERSEDED BY ADR-013** and **ADR-013 (C, GStreamer native API) added as ACCEPTED** (OQ-132 ANSWERED), keeping the record that Python was proposed and C chosen (Rule 13). DECISIONS header 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED; OQ header 132 (105 OPEN, 27 ANSWERED). The doc check then listed 65 stale lines (ADR-007 ×64, ADR-012 ×1); all annotated by script, with change-history rows in the 13 files touched. Owner: "Commit, push, start coding".
+
+### Files Modified
+
+`docs/`: `DECISIONS.md`, `OPEN_QUESTIONS.md`, `SOFTWARE_ARCHITECTURE.md`, `TRACEABILITY.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None (no code yet).
+
+### Commands Used
+
+```bash
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- Documentation consistency check — **TESTED — PASS** (documentation only): `ADR=12 … OQ=132`, 680/680 facts cited, PROBLEMS 0, WARNINGS 0.
+
+### Problems Found
+
+None.
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PASS (documentation consistency). Committed and pushed on the owner's "Commit, push, start coding" (hash recorded in the next entry).
+
+### Next Step
+
+1. Owner: accept or change ADR-007 (GStreamer) and ADR-012 (Python 3 + PyGObject).
+2. If accepted: create the repository layout and start the bring-up scripts and the application skeleton (IMPLEMENTED — NOT TESTED until a CM4 exists).
+3. Owner: buy the bring-up hardware (ADR-011).
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: accept GStreamer (ADR-007) and C (ADR-013) for the application
+Commit description: Add the ADR-007 proposal for GStreamer (FFmpeg's CM4 encoder wrapper cannot set
+  bitrate mode or level; documented fan-out, frame-rate halving, fragmented 30-minute recording and
+  RTSP publishing to MediaMTX) and record its acceptance (OQ-015 ANSWERED). Record Claude's Python
+  proposal as ADR-012 and the owner's choice of C as ADR-013 (ACCEPTED; ADR-012 SUPERSEDED;
+  OQ-132 added and ANSWERED). Annotate the 65 stale ADR-007 status lines. Record commit 78b6d70.
+Files changed: docs/** (17 Markdown files)
+Reason: Rules 1, 3, 13, 15, 22, 23
+Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -2047,3 +2125,5 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check
 | 2026-10-12 | 2026-10-12 fourth entry added: commit and push of `91ff869`; OQ-131 non-1080 decision (keep source resolution; 720p at Level 3.2 or above). | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 fifth entry added: ADR-010, ADR-008 recommendation, research topic M, RISK-035, ADR-011; commit `b8091fd` recorded. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 sixth entry added: commit and push of `7d7d2de`; ADR-010, ADR-008, ADR-011 ACCEPTED; ADR-006 SUPERSEDED; W3 extension; 77 status notes. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 seventh entry added: `78b6d70` recorded; ADR-007 GStreamer proposal; ADR-012; OQ-132. | Claude (session 2026-10-12) |
+| 2026-10-12 | Seventh entry extended: owner decisions (ADR-007 ACCEPTED; C chosen — ADR-013 ACCEPTED, ADR-012 SUPERSEDED); commit message updated before commit. | Claude (session 2026-10-12) |

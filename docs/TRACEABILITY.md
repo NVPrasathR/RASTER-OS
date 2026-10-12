@@ -62,7 +62,7 @@ This document is that chain for PACSCORDER. The requirements come from [REQUIREM
 >
 > **Once more on 2026-10-09** (owner decisions of 2026-10-09 on OQ-129, second set; recorded in the registers; this document only traces them):
 > - Drive missing at start: if one mirrored drive is already missing when a recording is started, **the recording starts on the available drive and the operator is alerted** (OQ-129; REQ-REC-001).
-> - File splitting: recordings are **split into a new file every 30 minutes** (OQ-129; REQ-REC-001). The splitting mechanism is not decided (ADR-007 OPEN); whether the candidate, GStreamer `splitmuxsink`, works with `mp4mux` in fragmented mode is NEEDS VERIFICATION (OQ-118).
+> - File splitting: recordings are **split into a new file every 30 minutes** (OQ-129; REQ-REC-001). The splitting mechanism is not decided (ADR-007 OPEN); whether the candidate, GStreamer `splitmuxsink`, works with `mp4mux` in fragmented mode is NEEDS VERIFICATION (OQ-118). *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 > - OQ-129 stays OPEN only for whether a drive that comes back during a recording is used again; how the operator is alerted is OQ-091 (operator interface). *(Superseded — OQ-129 ANSWERED 2026-10-09: a drive that returns is used again from the next file. Note added 2026-10-12.)*
 >
 > Counts unchanged: 129 OQs (121 OPEN, 8 ANSWERED), 34 risks, 21 requirements, 9 ADRs, 17 canonical tests. No requirement acceptance status, ADR status, test ID or test mapping changed. Implementation and test status are unchanged.
@@ -100,6 +100,7 @@ This document is that chain for PACSCORDER. The requirements come from [REQUIREM
 > - Registers: 680 facts (A–M), 11 ADRs (4 ACCEPTED, 6 PROPOSED, 1 OPEN), 35 risks, 131 OQs (108 OPEN, 23 ANSWERED), 21 requirements, 17 canonical tests.
 
 > **Owner decisions, later on 2026-10-12:** ADR-008 ACCEPTED (486 MHz; OQ-099 ANSWERED); ADR-010 ACCEPTED and ADR-006 SUPERSEDED BY ADR-010 (legacy video-node control; OQ-014 ANSWERED) — REQ-CAP-001 to REQ-CAP-004 now trace to ADR-010; ADR-011 ACCEPTED (bring-up boards; OQ-018 stays OPEN for HW REV A). Registers: 11 ADRs (7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED); 131 OQs (106 OPEN, 25 ANSWERED).
+> - *(Later.)* Proposals for the owner: **ADR-007** GStreamer (OQ-015) and **ADR-012** Python 3 + PyGObject (new OQ-132). Registers: 12 ADRs (7 ACCEPTED, 4 PROPOSED, 0 OPEN, 1 SUPERSEDED); 132 OQs (107 OPEN, 25 ANSWERED). *(Decided the same day: **ADR-007 ACCEPTED** (GStreamer; OQ-015 ANSWERED); the owner chose **C** — ADR-012 SUPERSEDED BY **ADR-013 (ACCEPTED)**; OQ-132 ANSWERED. Registers: 13 ADRs (9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED); 132 OQs (105 OPEN, 27 ANSWERED).)*
 
 ## How to read the matrix
 
@@ -219,7 +220,7 @@ The source research of 2026-10-08 added topic H (H.265 software encoding and tra
 | REQ-STR-001 | H-24 to H-27, H-29, H-30, I-40, I-42 to I-44, I-46 | [REQUIREMENTS.md](REQUIREMENTS.md) REQ-STR-001; RISK-025; OQ-106, OQ-107, OQ-113 | TEST-STR-001 |
 | REQ-STR-002 | H-31 to H-36, I-41, I-45, I-47 | [REQUIREMENTS.md](REQUIREMENTS.md) REQ-STR-002; RISK-019; OQ-108 | TEST-STR-002 |
 | ADR-004 (OPEN) *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* — platform | H-04, H-05, H-19 to H-23, I-05 to I-07, I-10, I-13 | [DECISIONS.md](DECISIONS.md) ADR-004 Analysis; OQ-011 | TEST-ENC-001, TEST-AUD-001 |
-| ADR-007 (OPEN) — media framework | H-08 to H-13, H-15, H-16, H-26, H-27, H-30, H-31, H-37, H-38, I-26, I-33 to I-39, I-41, I-44 to I-46 | [DECISIONS.md](DECISIONS.md) ADR-007; RISK-024, RISK-025; OQ-107, OQ-112 | TEST-STR-001, TEST-AUD-001 |
+| ADR-007 (OPEN) — media framework | H-08 to H-13, H-15, H-16, H-26, H-27, H-30, H-31, H-37, H-38, I-26, I-33 to I-39, I-41, I-44 to I-46 | [DECISIONS.md](DECISIONS.md) ADR-007; RISK-024, RISK-025; OQ-107, OQ-112 | TEST-STR-001, TEST-AUD-001 *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)* |
 
 *(Note added 2026-10-12: the CM5 runs named in this table are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
@@ -238,7 +239,7 @@ No requirement acceptance, ADR status or test mapping changed with this evidence
 | REQ-STR-001 | K-15 to K-18 | [REQUIREMENTS.md](REQUIREMENTS.md) REQ-STR-001; RISK-019; OQ-007, OQ-116, OQ-127 | TEST-STR-001 (latency recorded, best-effort; no pass or fail on latency) |
 | REQ-STR-002 | K-01 to K-12, K-14, K-26, K-34 to K-38, K-41 to K-45 | [REQUIREMENTS.md](REQUIREMENTS.md) REQ-STR-002; RISK-031 to RISK-034; OQ-008, OQ-059, OQ-115, OQ-125, OQ-126, OQ-128 | TEST-STR-002 (CM4 and CM5; LAN viewers, and internet viewers separately if OQ-008 puts them in scope) *(later on 2026-10-09: LAN viewers only; internet viewers not in current scope — OQ-008, OQ-128, RISK-033)* |
 | ADR-004 (OPEN) *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* — platform | J-01 to J-06, J-08, J-09, J-11, J-13 to J-15, J-17 to J-19, J-37, K-27, K-28, K-30, K-32 to K-35, K-39, K-45 | [DECISIONS.md](DECISIONS.md) ADR-004 Analysis; RISK-026, RISK-031; OQ-059, OQ-115, OQ-121, OQ-123, OQ-124, OQ-125 | TEST-REC-001, TEST-ENC-001, TEST-STR-002 |
-| ADR-007 (OPEN) — media framework | J-38, J-39, J-44, J-45, K-02, K-03, K-05 to K-10, K-27 to K-32, K-36; also [F-45] | [DECISIONS.md](DECISIONS.md) ADR-007; RISK-024, RISK-028, RISK-029, RISK-032, RISK-034; OQ-117, OQ-118, OQ-125, OQ-126 | TEST-STR-002, TEST-REC-001 |
+| ADR-007 (OPEN) — media framework | J-38, J-39, J-44, J-45, K-02, K-03, K-05 to K-10, K-27 to K-32, K-36; also [F-45] | [DECISIONS.md](DECISIONS.md) ADR-007; RISK-024, RISK-028, RISK-029, RISK-032, RISK-034; OQ-117, OQ-118, OQ-125, OQ-126 | TEST-STR-002, TEST-REC-001 *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)* |
 | ADR-009 (ACCEPTED) — recording storage and power-loss safety | J-01, J-03, J-05, J-06, J-08, J-11, J-13 to J-15, J-17, J-19, J-27 to J-32, J-35 to J-41, J-43, J-45 | [DECISIONS.md](DECISIONS.md) ADR-009; RISK-026 to RISK-030; OQ-117 to OQ-122, OQ-124 | TEST-REC-001, TEST-PERF-001 |
 
 *(Note added 2026-10-12: the CM5 runs named in this table are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
@@ -277,7 +278,7 @@ V4L2 / Media Controller — PROPOSED, not decided: Media Controller mode on ever
     Implementation: NOT STARTED
     ↓
 Capture application — EDID load, timing query, pad and video-node formats, streaming
-    Design: SOFTWARE_ARCHITECTURE.md · ADR-007 (OPEN)
+    Design: SOFTWARE_ARCHITECTURE.md · ADR-007 (OPEN)   [2026-10-12: ADR-007 ACCEPTED: GStreamer]
     Implementation: NOT STARTED
     ↓
 1080p60 test — TEST-CAP-002 (after TEST-HW-001, TEST-DRV-001, TEST-DRV-002, TEST-PLT-001, TEST-CAP-001)
@@ -474,3 +475,6 @@ Nothing (no hardware exists as of 2026-10-06). Every Implementation cell is `NOT
 | 2026-10-12 | State note for research topic M, ADR-010, ADR-011 and RISK-035, with register counts. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | State note: owner decisions on ADR-006/008/010/011 and the new register counts. | Claude (session 2026-10-12) |
+| 2026-10-12 | State note: ADR-007 and ADR-012 proposals; counts. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | State note: ADR-007 ACCEPTED, ADR-013 (C) ACCEPTED, ADR-012 SUPERSEDED; counts. | Claude (session 2026-10-12) |

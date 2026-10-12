@@ -144,7 +144,7 @@ Consequences:
 The separate `bcm2835-isp` driver (the "fully programmable ISP", `video13`–`video16` in the official list [D-07]) creates two instances with base node numbers 13 and 20 [D-26].
 
 - The node numbers that actually appear on a PACSCORDER image are UNKNOWN — HARDWARE TEST REQUIRED (OQ-043).
-- **PROPOSED (Claude's reasoning; to be decided under ADR-007, which is OPEN):** the application finds the encoder by its card name `bcm2835-codec-encode` [D-08], not by a hard-coded `/dev/video11` path.
+- **PROPOSED (Claude's reasoning; to be decided under ADR-007, which is OPEN):** the application finds the encoder by its card name `bcm2835-codec-encode` [D-08], not by a hard-coded `/dev/video11` path. *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 - *(Added 2026-10-08, two encodes.)* There is one encode node [D-06]. Reasoning: the recording encode and the live encode (owner, OQ-005) would therefore both use this node, as two encode sessions at the same time. Whether `bcm2835-codec` and the firmware allow two concurrent encode sessions, and at what combined rate, is not in the source register: UNKNOWN — KERNEL SOURCE INSPECTION REQUIRED, HARDWARE TEST REQUIRED (OQ-115).
 
 ### 3.3 Interface: V4L2 stateful memory-to-memory encoder
@@ -989,3 +989,4 @@ v4l2-ctl --list-formats-out -d 11
 | 2026-10-12 | Later still on 2026-10-12: §7.1 note — 50 Hz-family sources go out at 25 fps (OQ-131); 40 ms frame period in the budget terms (reasoning). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: §6 bullet — non-1080 sources keep their resolution on the live encode; 720p at 17 Mbit/s must signal Level 3.2 or above ([L-01], [L-02], [L-06]). | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |

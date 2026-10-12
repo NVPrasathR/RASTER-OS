@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 131 questions registered: 106 OPEN, 25 ANSWERED |
+| Document status | Active — 132 questions registered: 105 OPEN, 27 ANSWERED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply, recording storage *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H, I, J and K) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -12,7 +12,7 @@ This is the single register of everything PACSCORDER does not yet know and every
 
 ## How to use this register
 
-An OQ is closed only with evidence. To close one, add these fields under the entry without changing the original text: **Answer** (what was found or decided), **Evidence** (a fact ID, a datasheet section, an owner statement with date, or a TEST ID whose result is recorded in [TESTING.md](TESTING.md)), **Answered on** (date) and **Answered by**. Then change **Status** to `ANSWERED` and update every linked REQ, ADR and RISK and every document that carried the UNKNOWN marker. Never delete or renumber an entry (Rules 14 and 21). If an answer later proves wrong, add a dated note and set the status back to `OPEN`. A question made irrelevant by a decision (for example a platform that is dropped) is marked `ANSWERED` with that decision as its evidence. New questions take the next free number after the highest ID in use (OQ-090 to OQ-101 were added on 2026-10-06 after the cross-document review; OQ-102 and OQ-103 on 2026-10-07; OQ-104 to OQ-114 on 2026-10-08 from research topics H and I) and are placed in the matching category section, so numbers inside a category need not be contiguous. *(Added 2026-10-08, later: OQ-115 and OQ-116 were added after owner decisions of 2026-10-08, and OQ-117 to OQ-128 from research topics J (recording storage) and K (live latency). Category 12, Recording & storage, was added for the recording questions that fit no earlier category.)* *(2026-10-12: OQ-131 added after the live-encode decision.)*
+An OQ is closed only with evidence. To close one, add these fields under the entry without changing the original text: **Answer** (what was found or decided), **Evidence** (a fact ID, a datasheet section, an owner statement with date, or a TEST ID whose result is recorded in [TESTING.md](TESTING.md)), **Answered on** (date) and **Answered by**. Then change **Status** to `ANSWERED` and update every linked REQ, ADR and RISK and every document that carried the UNKNOWN marker. Never delete or renumber an entry (Rules 14 and 21). If an answer later proves wrong, add a dated note and set the status back to `OPEN`. A question made irrelevant by a decision (for example a platform that is dropped) is marked `ANSWERED` with that decision as its evidence. New questions take the next free number after the highest ID in use (OQ-090 to OQ-101 were added on 2026-10-06 after the cross-document review; OQ-102 and OQ-103 on 2026-10-07; OQ-104 to OQ-114 on 2026-10-08 from research topics H and I) and are placed in the matching category section, so numbers inside a category need not be contiguous. *(Added 2026-10-08, later: OQ-115 and OQ-116 were added after owner decisions of 2026-10-08, and OQ-117 to OQ-128 from research topics J (recording storage) and K (live latency). Category 12, Recording & storage, was added for the recording questions that fit no earlier category.)* *(2026-10-12: OQ-131 added after the live-encode decision.)* *(2026-10-12: OQ-132 added with ADR-012.)*
 
 Conventions used in every entry:
 
@@ -42,7 +42,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-012 | OS and image build basis (ADR-003) | 1 Owner decisions | OWNER DECISION REQUIRED | ANSWERED |
 | OQ-013 | TC358743 driver strategy (ADR-002) | 1 Owner decisions | OWNER DECISION REQUIRED | OPEN |
 | OQ-014 | Capture control model (ADR-006) | 1 Owner decisions | OWNER DECISION REQUIRED | ANSWERED |
-| OQ-015 | Userspace media framework (ADR-007) | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
+| OQ-015 | Userspace media framework (ADR-007) | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-016 | Is HDMI CEC required? | 1 Owner decisions | OWNER DECISION REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | OPEN |
 | OQ-017 | Acceptance of DRAFT and PROPOSED requirements | 1 Owner decisions | OWNER DECISION REQUIRED | OPEN |
 | OQ-018 | PACSCORDER hardware composition (bridge board, carrier, inputs, Rule 8 items) | 2 Hardware & bridge board | OWNER DECISION REQUIRED; VENDOR CONFIRMATION REQUIRED | OPEN |
@@ -159,6 +159,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-129 | Mirrored recording without a duration limit: one drive full, absent or failed; file splitting | 12 Recording & storage | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-130 | Recording capture-to-file < 1 s: against which drive, and with what statistic, is it judged? | 12 Recording & storage | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-131 | Live encode at 1080p30 from other input modes: frame-rate and resolution conversion | 7 Encoding & DMA | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | OPEN |
+| OQ-132 | Application language (ADR-012) | 1 Owner decisions | OWNER DECISION REQUIRED | ANSWERED |
 
 *(Note added 2026-10-12: the Pi 5 / CM5 rows — category 6 (OQ-049 to OQ-055, OQ-124) and OQ-059, OQ-060 — are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001. Their Status stays OPEN.)* *(Superseded later on 2026-10-12: on the owner's instruction these ten questions are ANSWERED as made irrelevant by ADR-004; OQ-108, listed elsewhere as CM5-related, is an H.265 question and stays OPEN.)*
 
@@ -438,16 +439,21 @@ Product requirements and pending decisions that only the owner can make. Each on
 ## OQ-015 — Userspace media framework (ADR-007)
 
 - **Question:** Which framework carries capture, encode, recording, RTMP and WebRTC: GStreamer, FFmpeg, a direct V4L2 application, or a combination?
-- **Why it matters:** ADR-007 (OPEN), REQ-DMA-001, REQ-ENC-001, REQ-REC-001, REQ-STR-001, REQ-STR-002; licensing (OQ-087).
+- **Why it matters:** ADR-007 (OPEN), REQ-DMA-001, REQ-ENC-001, REQ-REC-001, REQ-STR-001, REQ-STR-002; licensing (OQ-087). *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 - **Known so far:**
   - GStreamer covers RTMP (`rtmp2sink`) [F-33] and WebRTC (`webrtcbin`, no signalling) [F-42]; its V4L2 M2M elements support `dmabuf-import` [D-53]; official documentation gives a `v4l2h264enc` pipeline [D-37].
   - Upstream FFmpeg's V4L2 M2M code is MMAP-only, so each frame is copied [D-44]; Raspberry Pi OS's patched FFmpeg adds DMABUF input [D-45].
   - The `rpicam-apps` direct V4L2 path imports DMABUFs into `/dev/video11` [D-34].
   - *(Added 2026-10-08, research topics H and I.)* HEVC over RTMP: GStreamer 1.26.2 `flvmux` cannot carry H.265 [H-27]; FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV [H-26] (OQ-107). A/V timestamps: in a `v4l2src` + `alsasrc` pipeline, `alsasrc` normally provides the pipeline clock and then does not use ALSA driver timestamps [I-35], [I-36], while `v4l2src` maps monotonic buffer timestamps through a measured delay [I-37]; FFmpeg's ALSA and V4L2 inputs use different clock bases by default [I-38] (OQ-112). *(2026-10-08, later: the HEVC-over-RTMP part is deferred — REQ-ENC-002; not in current scope (OQ-103 ANSWERED: H.264 only), so it does not drive this decision; see the ADR-007 scope note. The A/V timestamp part is in current scope.)*
   - *(Added 2026-10-08, research topics J and K.)* WebRTC publishing: MediaMTX documents RTSP-client publishing as the recommended way for GStreamer to publish to it; WebRTC publishing with `whipclientsink` needs GStreamer 1.22 or later and H.264 Baseline [K-05]. The gst-plugins-rs plugin that provides `webrtcsink` and `whipclientsink` is packaged neither in Debian trixie nor in the Raspberry Pi archive as of 2026-10-08 [K-06]. Default latencies that must be set explicitly: `webrtcbin` 200 ms [K-07], `rtpbin`/`rtpjitterbuffer` 200 ms [K-08], `rtspclientsink`/`rtspsrc` 2000 ms [K-09] (OQ-126). *(Corrected 2026-10-09: "must be set explicitly" is Claude's reasoning, not a register fact. Per the reasoning in [K-10], the `webrtcbin` and `rtpbin`/`rtpjitterbuffer` values apply only where RTP is received inside the live path, and whether `rtspclientsink`'s 2000 ms delays the sending side is unknown (OQ-126).)* Fragmented MP4 recording is available in both frameworks: GStreamer `mp4mux` `fragment-duration` and `fragment-mode` [J-39], `splitmuxsink` [J-44]; FFmpeg `frag_keyframe` and `hybrid_fragmented` [J-45] (OQ-118).
+- *(Added 2026-10-12.)* Claude proposes **GStreamer** in ADR-007 ("Proposal (2026-10-12)"): FFmpeg's `h264_v4l2m2m` cannot set the bitrate mode or level the owner chose [L-43]; GStreamer covers the fan-out, the frame-rate halving, fragmented 30-minute recording and RTSP publishing to MediaMTX [M-56], [M-54], [J-39], [J-44], [K-05]. The application language is OQ-132 (ADR-012).
 - **Resolution method:** OWNER DECISION REQUIRED, after HARDWARE TEST REQUIRED (capture and encode proven on the candidate platforms). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 - **Resolving test:** TEST-DMA-001, TEST-ENC-001
-- **Status:** OPEN
+- **Answer:** GStreamer (ADR-007 ACCEPTED), per the Proposal (2026-10-12) in ADR-007.
+- **Evidence:** Owner choice of 2026-10-12 ("Accept GStreamer"), on ADR-007's proposal [L-43], [M-56], [M-54], [J-39], [J-44], [K-05].
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner
+- **Status:** ANSWERED
 
 ## OQ-016 — Is HDMI CEC required?
 
@@ -475,7 +481,7 @@ Product requirements and pending decisions that only the owner can make. Each on
 
 - **Question:** How is the userspace software structured: one process or several services? What threading model, and what inter-process interface between the capture control, pipeline, recorder, streaming and ATEM components?
 - **Why it matters:** REQ-ARCH-001, REQ-CAP-004, ADR-007; [SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md) marks these as "decision needed".
-- **Known so far:** No source fact applies; this is a design decision. Candidate media frameworks are compared in ADR-007 (OPEN). `webrtcbin` has no built-in signalling transport [F-42], so a WebRTC design needs its own signalling component.
+- **Known so far:** No source fact applies; this is a design decision. Candidate media frameworks are compared in ADR-007 (OPEN). `webrtcbin` has no built-in signalling transport [F-42], so a WebRTC design needs its own signalling component. *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 - **Resolution method:** OWNER DECISION REQUIRED (to be recorded as an ADR).
 - **Resolving test:** —
 - **Status:** OPEN
@@ -580,6 +586,20 @@ Product requirements and pending decisions that only the owner can make. Each on
 - **Added:** 2026-10-08 (after the owner set the < 1 s latency target)
 
 ---
+
+## OQ-132 — Application language (ADR-012)
+
+- **Question:** In which language is the PACSCORDER application written — Python 3 with the GStreamer GObject-Introspection bindings (ADR-012, PROPOSED), C, or Rust? *(Superseded 2026-10-12 — ADR-012 SUPERSEDED BY ADR-013 (C).)*
+- **Why it matters:** ADR-012, ADR-007, REQ-ARCH-001, REQ-BLD-002 (image content), Rule 25 (maintainability); OQ-090 (process model).
+- **Known so far:** ADR-012 records the options and Claude's reasoning; no register fact covers the language bindings (BUILD TEST REQUIRED on the image).
+- **Resolution method:** OWNER DECISION REQUIRED.
+- **Resolving test:** TEST-BLD-001 (the image contains the runtime), TEST-PERF-001 (long-running behaviour)
+- **Answer:** C, using GStreamer's native API (ADR-013 ACCEPTED; ADR-012's Python proposal SUPERSEDED).
+- **Evidence:** Owner choice of 2026-10-12 ("C").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner
+- **Status:** ANSWERED
+- **Added:** 2026-10-12
 
 # 2. PACSCORDER hardware & bridge board
 
@@ -2061,7 +2081,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Raspberry Pi's external-storage guide uses `nofail` in its fstab example and warns that an absent disk adds 90 s to boot; appending `x-systemd.device-timeout=30` shortens that wait to 30 s rather than removing it (CORRECTED) [J-33] (see OQ-120).
   - No register fact covers how `mp4mux`, `splitmuxsink` or the FFmpeg MP4 muxer behave when the disk is full: NEEDS VERIFICATION.
 - **Owner input (2026-10-09):** if one mirrored drive fills, is absent or fails during a recording, **recording continues on the drive that still works and the operator is alerted** ("Continue on the other drive"). The option was presented with Claude's reasoning that the mirror exists for redundancy and stopping would lose the recording. Still open here: whether and at what interval long recordings are split into files; how the operator is alerted (OQ-091, operator interface); whether a drive that comes back during a recording is used again; and whether a recording starts on one drive when the other is already absent at the start (the question was put as "fills, is missing or fails during a recording").
-- **Owner input (2026-10-09, second):** (1) if one drive is already missing when a recording is started, **the recording starts on the available drive and the operator is alerted** ("Start on the available drive"). (2) Long recordings are **split into a new file every 30 minutes** ("Split every 30 minutes"). Reasoning from [J-36]: at 25 Mbit/s plus the research's assumed 192 kbit/s AAC, a 30-minute file is about 5.67 GB per drive. Candidate mechanism, not a decision (ADR-007 OPEN): GStreamer `splitmuxsink` starts a new file at a video keyframe when the contents are about to cross `max-size-time`, so each file would end at the keyframe before the 30-minute mark, and it can send keyframe requests upstream (`send-keyframe-requests`, effective only when `max-size-bytes` = 0) [J-44]. Whether `splitmuxsink` works with `mp4mux` in fragmented mode, and how FFmpeg would split, is not in the register: NEEDS VERIFICATION (OQ-118). Still open here: whether a drive that comes back during a recording is used again (owner decision), and how `mp4mux`, `splitmuxsink` or the FFmpeg MP4 muxer behave when a disk fills (BUILD TEST REQUIRED). How the operator is alerted belongs to the operator interface (OQ-091).
+- **Owner input (2026-10-09, second):** (1) if one drive is already missing when a recording is started, **the recording starts on the available drive and the operator is alerted** ("Start on the available drive"). (2) Long recordings are **split into a new file every 30 minutes** ("Split every 30 minutes"). Reasoning from [J-36]: at 25 Mbit/s plus the research's assumed 192 kbit/s AAC, a 30-minute file is about 5.67 GB per drive. Candidate mechanism, not a decision (ADR-007 OPEN): GStreamer `splitmuxsink` starts a new file at a video keyframe when the contents are about to cross `max-size-time`, so each file would end at the keyframe before the 30-minute mark, and it can send keyframe requests upstream (`send-keyframe-requests`, effective only when `max-size-bytes` = 0) [J-44]. Whether `splitmuxsink` works with `mp4mux` in fragmented mode, and how FFmpeg would split, is not in the register: NEEDS VERIFICATION (OQ-118). Still open here: whether a drive that comes back during a recording is used again (owner decision), and how `mp4mux`, `splitmuxsink` or the FFmpeg MP4 muxer behave when a disk fills (BUILD TEST REQUIRED). How the operator is alerted belongs to the operator interface (OQ-091). *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 - **Owner input (2026-10-09, third):** a drive that drops out during a recording and comes back **is used again from the next 30-minute file** ("Resume at the next 30-min file"); the gap in the file being written when it dropped out stays. The option was presented with Claude's reasoning that the mirror exists for redundancy; the alternative noted that a drive or USB bridge that drops out repeatedly (RISK-027) argues against it.
 - **Answer:** If one mirrored drive fills, is missing or fails during a recording, recording continues on the other drive and the operator is alerted; a recording started with one drive missing runs on the available drive with an alert; a drive that returns is used again from the next file; recordings are split into a new file every 30 minutes. The alert method is OQ-091. The muxers' behaviour on a full disk and `splitmuxsink` with fragmented `mp4mux` are build-test items, carried by OQ-118.
 - **Evidence:** Owner answers of 2026-10-09: "Continue on the other drive"; "Start on the available drive"; "Split every 30 minutes"; "Resume at the next 30-min file".
@@ -2196,3 +2216,5 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-12 | OQ-014: note on ADR-010 (PROPOSED, legacy video-node mode on the CM4) as the alternative to ADR-006. Counts unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M added as dated "Known so far" bullets to OQ-018 (candidate boards; ADR-011 proposed), OQ-019 (27 MHz on C790/C779), OQ-020 (INT/RESET routing; shared CAM_GPIO), OQ-021 (CM4 IO Board 22-pin connectors, pinout, cables), OQ-024 (3.3 V GPIO bank), OQ-025 (I2S wiring; audio PLL risk, RISK-035) and OQ-131 (`videorate drop-only`, `tee`/`queue`). No status changed; counts unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions: **OQ-014 ANSWERED** (legacy video-node mode, ADR-010) and **OQ-099 ANSWERED** (486 MHz, ADR-008), with Answer/Evidence fields and summary rows; OQ-018 owner input (ADR-011 ACCEPTED; stays OPEN for HW REV A). Header 131: **106 OPEN, 25 ANSWERED**. | Claude (session 2026-10-12) |
+| 2026-10-12 | OQ-015: note on the ADR-007 GStreamer proposal. **New OQ-132** (application language, ADR-012) in category 1. Header 132: 107 OPEN, 25 ANSWERED. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions: **OQ-015 ANSWERED** (GStreamer, ADR-007) and **OQ-132 ANSWERED** (C, ADR-013), with Answer/Evidence fields and summary rows. Header 132: 105 OPEN, 27 ANSWERED. | Claude (session 2026-10-12) |

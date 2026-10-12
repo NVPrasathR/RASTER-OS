@@ -975,7 +975,7 @@ The exact log text is not attested by any source: UNKNOWN.
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - FFmpeg: give the V4L2 input `-ts abs` or `mono2abs`, so that both inputs use one clock base [I-38]. The full command line is NEEDS VERIFICATION (OQ-101).
 - GStreamer: the clock arrangement (the monotonic system clock with ALSA driver timestamps, or the audio clock as pipeline clock) is unmeasured on PACSCORDER (research gap, topic I). Choose it from TEST-AUD-001 measurements (OQ-112).
-- The clock model is to be recorded with ADR-007 (OPEN). The tolerance is UNDEFINED (OQ-112).
+- The clock model is to be recorded with ADR-007 (OPEN). The tolerance is UNDEFINED (OQ-112). *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 
 **Related.** RISK-024, RISK-023 · OQ-040, OQ-112 · TEST-AUD-001, TEST-PERF-001
 
@@ -1118,7 +1118,7 @@ The exact log text is not attested by any source: UNKNOWN.
 1. Check the muxer settings used: `fragment-duration` > 0 in GStreamer, or FFmpeg's `+frag_keyframe` or `hybrid_fragmented`.
 2. Inspect the file's structure. The tool is NEEDS VERIFICATION (OQ-101).
 3. Repeat with TEST-REC-001 step 4.
-4. *(Added 2026-10-09; owner decisions of 2026-10-09 on OQ-129, second set.)* Recordings are split into a new file every 30 minutes (OQ-129), so a recording cut by a power loss is a set of files on each drive (reasoning). Record which file was being written at the cut, and check every file of the recording on both drives, not only the last one (TEST-REC-001 steps 4 and 9 c). The split mechanism is not decided (ADR-007 OPEN), and whether the candidate works with fragmented MP4 is NEEDS VERIFICATION (OQ-118).
+4. *(Added 2026-10-09; owner decisions of 2026-10-09 on OQ-129, second set.)* Recordings are split into a new file every 30 minutes (OQ-129), so a recording cut by a power loss is a set of files on each drive (reasoning). Record which file was being written at the cut, and check every file of the recording on both drives, not only the last one (TEST-REC-001 steps 4 and 9 c). The split mechanism is not decided (ADR-007 OPEN), and whether the candidate works with fragmented MP4 is NEEDS VERIFICATION (OQ-118). *(Superseded 2026-10-12 — ADR-007 ACCEPTED: GStreamer.)*
 
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - Write fragmented MP4, as ADR-009 decides: GStreamer `fragment-duration` > 0, in milliseconds [J-39]; FFmpeg `+frag_keyframe`, which starts a fragment at each video keyframe, or `hybrid_fragmented`, which writes a fragmented file and converts it to a normal one at the end [J-45]. FFmpeg 7.1's muxer documentation says a fragmented file stays decodable if writing is interrupted [J-45]; no register entry states this for GStreamer's fragmented output (TEST-REC-001 step 4 checks it).
@@ -1299,3 +1299,4 @@ Nothing (no hardware exists as of 2026-10-06). No signature in this document has
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only); entries 1.6, 3.3, 3.4, 4.2, 5.1, 6.3, 8.2 (causes shared with CM4 still apply), 9.2 and 10.2 marked not in current scope; symptom-index Pi 5 / CM5-only rows and Pi 4 / Pi 5 / CM5 platform entries noted; 2 stale ADR-004 statements superseded (8.2 "gates CM5 as the product platform", 9.3 "qualify … on each board separately"). Also stale OQ statuses superseded: OQ-129 (ANSWERED 2026-10-09; drive return) in the header, the section 9 introduction, 9.3, 9.4 and 9.5; OQ-008 (ANSWERED 2026-10-09; sample count and run length) in the section 10 introduction. No text deleted; signature count unchanged (49); CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: dated entries in §7 (wrong-sided FFC; `4lane` on a 2-lane board) and §8 (no audio on a third-party board — RISK-035; vendor wiring-image error). | Claude (session 2026-10-12) |
 | 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): dated note that EDID and DV timings go through the Unicam video node; ADR-006 text kept as reference; stale ADR-006/ADR-008/ADR-010/ADR-011 status lines annotated. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |

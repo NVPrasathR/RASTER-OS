@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED |
+| Document status | Active — 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H, I, J and K) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -31,11 +31,13 @@ Fact references such as `[C-37]` point to the source register [REFERENCES.md](RE
 | ADR-004 | Product target platform | ACCEPTED | 2026-10-09 (CM4; opened 2026-10-06) |
 | ADR-005 | Default capture pixel format: UYVY (YCbCr 4:2:2 8-bit) | PROPOSED | 2026-10-06 |
 | ADR-006 | One control model: Media Controller mode on every platform | SUPERSEDED BY ADR-010 | 2026-10-06 (decided 2026-10-12) |
-| ADR-007 | Userspace media framework | OPEN | 2026-10-06 |
+| ADR-007 | Userspace media framework | ACCEPTED | 2026-10-06 (GStreamer proposed 2026-10-12) (decided 2026-10-12) |
 | ADR-008 | CSI-2 link frequency: keep the default 486 MHz | ACCEPTED | 2026-10-06 (decided 2026-10-12) |
 | ADR-009 | Recording storage and power-loss safety: fragmented MP4 mirrored to NVMe and a self-powered USB-SATA HDD | ACCEPTED | 2026-10-08 |
 | ADR-010 | Capture control model on the CM4: legacy (video-node) mode, the stock overlay default (alternative to ADR-006) | ACCEPTED | 2026-10-12 (decided 2026-10-12) |
 | ADR-011 | Bring-up TC358743 bridge boards for HW REV A (Geekworm C790 ×2, X1301, Auvidea B102 if obtainable) | ACCEPTED | 2026-10-12 (decided 2026-10-12) |
+| ADR-012 | Application language: Python 3 with GStreamer GObject-Introspection bindings | SUPERSEDED BY ADR-013 | 2026-10-12 (decided 2026-10-12) |
+| ADR-013 | Application language: C with GStreamer's native API | ACCEPTED | 2026-10-12 |
 
 ---
 
@@ -323,7 +325,7 @@ Userspace media framework for capture, encode, record and stream.
 
 ## Status
 
-OPEN — 2026-10-06 (OQ-015).
+OPEN — 2026-10-06 (OQ-015). *(2026-10-12: **PROPOSED — GStreamer**, see "Proposal (2026-10-12)" below; owner decision OQ-015.)* *(Superseded 2026-10-12: **ACCEPTED — GStreamer**, owner "Accept GStreamer" (OQ-015 ANSWERED). The Proposal (2026-10-12) section is now the decision.)*
 
 ## Options and evidence
 
@@ -372,6 +374,41 @@ Not yet made. Decide after bring-up proves capture (TEST-CAP-002) and encode (TE
 *(Added 2026-10-08; the decision status is unchanged.)* The decision should also record the HEVC-over-RTMP path (OQ-107) and the A/V clock model (OQ-112), measured with TEST-AUD-001 and TEST-STR-001. *(2026-10-08, later: the HEVC-over-RTMP path is needed only if REQ-ENC-002 is re-activated — see the scope note above; the A/V clock model is still in scope.)*
 
 *(Added later on 2026-10-08, research topics J and K; the decision status is unchanged.)* The decision should also record the live publishing route (RTSP to MediaMTX [K-05], or a self-built gst-plugins-rs for WHIP [K-06]; RISK-034), the explicit latency setting of every buffering element in the live path (OQ-126, RISK-032), the fragmented-MP4 settings (OQ-118) and the HDD-branch decoupling (OQ-117), measured with TEST-STR-002 and TEST-REC-001.
+
+## Proposal (2026-10-12)
+
+*Added 2026-10-12. Claude's recommendation; the decision is the owner's (OQ-015). The evidence tables above are unchanged.*
+
+**Proposed decision: GStreamer** (the Raspberry Pi OS 1.26.2 packages [G-26], [G-27]; ADR-003) as the userspace media framework for capture, both encodes, recording and live publishing.
+
+**Why now, not after bring-up.** The Decision section above deferred the choice until TEST-CAP-002 and TEST-ENC-001 had run on the candidate platforms. Those tests measure the TC358743 link and the CM4 hardware encoder, which both frameworks use the same way; the platform question they were meant to inform was settled by ADR-004. The evidence gathered since then discriminates between the frameworks on its own, and the application cannot be written until the framework is chosen.
+
+**Reasons (each from the register; reasoning where marked):**
+
+1. **The owner's encoder settings can be applied.** FFmpeg's `h264_v4l2m2m` sets neither the bitrate mode nor the H.264 level [L-43], so the CBR live encode and the Level 4.2 recording encode (OQ-005) cannot be configured through it as written. GStreamer's `v4l2h264enc` takes profile and level from caps and other controls from `extra-controls` [L-55], [L-61], [L-62], [L-63], [D-53].
+2. **One capture, two encoders, three outputs.** `tee` with a `queue` per branch is GStreamer's documented fan-out [M-56]; queues can block or be leaky [M-57] (OQ-117, OQ-126). For FFmpeg, fan-out is not in the register (NEEDS VERIFICATION above).
+3. **The 1080p30 / 25 fps live encode (OQ-131).** `videorate drop-only=true` halves 60 or 50 fps with no added latency and no held buffer [M-53], [M-54] (reasoning [M-60]).
+4. **Recording per ADR-009.** Fragmented `mp4mux` [J-39]; `splitmuxsink` starts a new file at a keyframe for the 30-minute split [J-44]; `filesink` can fsync [J-41]. Note from [J-39]: fragmented mode silently disables robust muxing if both are set — use fragmented only (ADR-009).
+5. **Live publishing without extra packages.** MediaMTX documents RTSP-client publishing as the recommended way for GStreamer to publish [K-05]; MediaMTX then serves WebRTC readers (reported by MediaMTX) [F-45]; no gst-plugins-rs is needed (RISK-034). RTMP: `flvmux` + `rtmp2sink` [F-33]. An IDR can be forced when a viewer joins [K-31].
+6. **Audio.** `alsasrc`, `opusenc` (WebRTC) and `voaacenc` / `avenc_aac` (MP4, RTMP) are packaged [I-44], [I-45], [I-46].
+7. **The official Raspberry Pi example** streams with `v4l2h264enc` [D-37].
+
+**Proposed pipeline (sketch, not a design commitment; element settings are decided in the design, OQ-118, OQ-126, OQ-127):**
+
+```text
+v4l2src (Unicam video node, ADR-010) ─ tee ─┬─ queue ─ v4l2h264enc (High, L4.2, VBR 25 Mbit/s) ─ h264parse ─ tee ─┬─ queue ─ splitmuxsink (fragmented mp4mux, 30 min) → NVMe SSD
+                                             │                                                                     └─ queue (decoupled, OQ-117) ─ splitmuxsink → HDD
+                                             └─ queue ─ videorate drop-only (30/1 or 25/1) ─ v4l2h264enc (CB, L4 or 3.2, CBR 17 Mbit/s, SPS/PPS repeated)
+                                                        ─ h264parse ─ tee ─┬─ rtspclientsink → MediaMTX (WebRTC/WHEP to LAN viewers)
+                                                                           └─ flvmux ─ rtmp2sink → RTMP destination(s) (OQ-007)
+alsasrc ─ tee ─ opusenc (WebRTC) / voaacenc or avenc_aac (MP4, RTMP)
+```
+
+**Known gaps (to resolve in bring-up and design, not reasons against):** `v4l2h264enc` reports 0 latency to the pipeline, so encode latency must be measured [K-32] (OQ-125); `splitmuxsink` with fragmented `mp4mux` is a build test (OQ-118); the package providing `rtspclientsink` on Raspberry Pi OS is NEEDS VERIFICATION (above); the A/V clock model (OQ-112); the `videorate` drop pattern on real capture timestamps (OQ-131).
+
+**Alternatives kept:** FFmpeg (rejected for now by reason 1 and the fan-out gap); a direct V4L2 application (full control [D-34], but muxing, the mirrored writers and publishing would have to be written — reasoning).
+
+**Consequences if accepted:** the PACSCORDER application is a GStreamer application that builds its pipeline in code (not `gst-launch-1.0`); the language is ADR-012. The open items listed in the Decision section above (A/V clock, live latency settings, fragmented-MP4 settings, HDD decoupling) become design tasks in [SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md).
 
 ---
 
@@ -566,6 +603,75 @@ HW REV A is chosen only after, on the candidate board: TEST-HW-001, TEST-DRV-002
 
 ---
 
+# ADR-012
+
+## Title
+
+Application language: Python 3 with the GStreamer GObject-Introspection bindings (PyGObject).
+
+## Status
+
+PROPOSED — 2026-10-12 (Claude's recommendation; owner decision OQ-132). Depends on ADR-007 (GStreamer, PROPOSED). *(Superseded 2026-10-12: **SUPERSEDED BY ADR-013** — the owner chose **C**, one of the alternatives listed below, instead of the proposed Python 3 (OQ-132 ANSWERED). This ADR is kept as the record of the proposal (Rule 13).)*
+
+## Context
+
+- With GStreamer (ADR-007), every per-frame operation — capture, conversion, encoding, muxing, file writing, publishing — runs inside GStreamer elements. The application builds the pipeline and runs the control plane: EDID and DV timings at start and on source change (REQ-CAP-003, REQ-CAP-004), drive failure and return (OQ-129), file splitting, operator alerts (OQ-091), configuration and logging (OQ-092), and start/stop. Reasoning: the language is therefore not on the per-frame path, and its speed matters little.
+- The product must stay understandable by another senior embedded engineer (Rule 25) and run unattended for long recordings (OQ-006: until stopped or the disk is full).
+- No register fact covers the language bindings. The Raspberry Pi OS packages for them are BUILD TEST REQUIRED (see Consequences).
+
+## Decision (proposed)
+
+Write the PACSCORDER application in **Python 3**, using GStreamer through its GObject-Introspection bindings (PyGObject). Keep per-frame work out of Python: if a custom per-frame step is ever needed, write it as a GStreamer element in C.
+
+Reasoning (Claude): fastest to write, read and change during bring-up, when the pipeline settings will change often; the control-plane code is small; and the media path stays in compiled GStreamer elements either way.
+
+## Alternatives Considered
+
+- **C** (GStreamer's native API): smallest footprint and no interpreter; more code and manual memory management for the same control plane.
+- **Rust** (GStreamer Rust bindings): memory safety for a long-running service; slower to iterate during bring-up, and a Rust toolchain is needed to build. Not in the register — NEEDS VERIFICATION if chosen.
+- **Shell + `gst-launch-1.0`:** fine for bring-up scripts (kept for that), but cannot handle source changes, drive failure and alerts.
+
+## Consequences
+
+- Bring-up scripts stay in shell (`scripts/`); the application is a Python package. Proposed repository layout, if accepted: `app/` (the `pacscorder` Python package), `tests/` (unit tests, runnable on any Linux machine with a test source), `scripts/` (bring-up), `image/` (the `rpi-image-gen` configuration, ADR-003), `tools/` (repository tools).
+- Development can start before the hardware arrives: the pipeline can run on a Linux machine with `videotestsrc` and a software encoder standing in for `v4l2src` and `v4l2h264enc`; on the CM4 only those elements change (reasoning).
+- BUILD TEST REQUIRED on the product image: the Python 3 version, the PyGObject and GStreamer introspection packages, and their footprint (REQ-BLD-002).
+- Long-running behaviour (memory over a multi-hour recording) is measured in TEST-PERF-001.
+
+---
+
+# ADR-013
+
+## Title
+
+Application language: C, using GStreamer's native API.
+
+## Status
+
+ACCEPTED — 2026-10-12. Owner decision (OQ-132 ANSWERED): "C", chosen over the Python 3 proposal of ADR-012, which this ADR supersedes.
+
+## Context
+
+- ADR-007 (ACCEPTED 2026-10-12): the application is a GStreamer application; per-frame work runs inside GStreamer elements, and the application builds the pipeline and runs the control plane (ADR-012 Context).
+- ADR-012 recorded the options — Python 3 with PyGObject (proposed), C, Rust — with Claude's reasoning; the owner chose C.
+
+## Decision
+
+Write the PACSCORDER application in **C**, against GStreamer's native C API (the same API the GStreamer elements are written in). Bring-up scripts stay in shell.
+
+## Alternatives Considered
+
+As listed in ADR-012: Python 3 with PyGObject (proposed there), Rust, shell + `gst-launch-1.0`.
+
+## Consequences
+
+- The application is a C program linked against GStreamer; no language runtime beyond the C library is needed on the image (reasoning). Its smaller footprint and absence of an interpreter suit an embedded image (REQ-BLD-002).
+- Memory and resource management are manual: every GStreamer object reference and bus message must be released. Long-running behaviour (memory over a multi-hour recording) is measured in TEST-PERF-001; development builds should run under a leak checker on the development machine (BUILD TEST REQUIRED for the tool chosen).
+- The repository layout proposed in ADR-012 applies with `app/` holding C sources. The application build system is a separate technical choice, recorded when the first code is added.
+- Development can start before the hardware arrives, as in ADR-012: the pipeline runs on a Linux machine with `videotestsrc` and a software encoder standing in for `v4l2src` and `v4l2h264enc`.
+
+---
+
 # Verification status
 
 ## Verified from sources (fact IDs)
@@ -612,3 +718,5 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-12 | **ADR-010 added (PROPOSED):** capture control model on the CM4 — legacy video-node mode, the stock overlay default — as the CM4-only alternative to ADR-006 (owner decision OQ-014); index row; header 4 ACCEPTED, **5 PROPOSED**, 1 OPEN. ADR-006 review note cross-references ADR-010. ADR-008: Claude's recommendation to accept it as written (its decision does not depend on the CM5 reason). No accepted decision changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-011 added (PROPOSED):** bring-up bridge boards for HW REV A from research topic M — 2 × Geekworm C790, 1 × X1301, an Auvidea B102 if obtainable; HW REV A fixed only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001 pass. Index row; header 4 ACCEPTED, **6 PROPOSED**, 1 OPEN. | Claude (session 2026-10-12) |
 | 2026-10-12 | **Owner decisions:** ADR-008 **ACCEPTED** (486 MHz; OQ-099 ANSWERED), ADR-010 **ACCEPTED** and ADR-006 **SUPERSEDED BY ADR-010** (legacy video-node mode on the CM4; OQ-014 ANSWERED), ADR-011 **ACCEPTED** (bring-up boards). Status notes appended; index status cells updated; header 7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-007: Proposal (2026-10-12) added — GStreamer** (status OPEN → PROPOSED; evidence tables unchanged; why decide before bring-up; seven sourced reasons; pipeline sketch; known gaps). **ADR-012 added (PROPOSED):** application language Python 3 with PyGObject; proposed repository layout. Index rows; header 7 ACCEPTED, 4 PROPOSED, 0 OPEN, 1 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-12 | **Owner decisions:** ADR-007 **ACCEPTED** (GStreamer; OQ-015 ANSWERED); the owner chose **C** for the application, so ADR-012 (Python, proposed) is **SUPERSEDED BY ADR-013** and **ADR-013 (C) is added as ACCEPTED** (OQ-132 ANSWERED). Header 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
