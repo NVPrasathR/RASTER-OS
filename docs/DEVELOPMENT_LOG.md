@@ -1779,6 +1779,85 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check; ba
 
 ---
 
+## 2026-10-12 (fourth entry) — Commit and push of the 25 fps decision; non-1080 sources keep their resolution (OQ-131)
+
+### Objective
+
+Act on the owner's answers: "Commit and push" the third-entry changes; OQ-131 — "Keep source resolution" for non-1080 inputs.
+
+### Starting State
+
+`main` at `c9d7e19` (= `origin/main`); the third-entry changes uncommitted.
+
+### Changes
+
+1. Committed the third-entry changes with the proposed message as **`91ff869`**; fast-forward push `c9d7e19..91ff869`.
+2. **OQ-131 owner input (second):** non-1080 inputs keep their resolution on the live encode (no scaling step). Recorded as Claude's reading, **to be confirmed by the owner**: the frame-rate rule (60 Hz → 30 fps, 50 Hz → 25 fps) also applies, so a 720p60 source goes out as 720p30. *(Confirmed by the owner later on 2026-10-12 ("okay"): 720p sources follow the 30/25 fps rule — 720p60 goes out as 720p30, 720p50 as 720p25.)*
+3. **Consequence found (reasoning from [L-01], [L-02], [L-06]):** 720p30 fits Level 3.1 by macroblock rate, but Level 3.1 caps Constrained Baseline at 14 Mbit/s — below the 17 Mbit/s live bitrate — so a 720p live encode must signal at least Level 3.2 (20 Mbit/s, 85 %). Level 3.1 is libwebrtc's default `42e01f` [F-39], so the browser test (OQ-073) must cover 720p at Level 3.2. Whether 17 Mbit/s applies unchanged at 720p was never decided (OQ-005: no per-mode values).
+4. Propagated to OQ-073, the 2026-10-12 owner-decision boxes (ARCHITECTURE, SOFTWARE_ARCHITECTURE, STREAMING), REQ-ENC-001, VIDEO_ENCODER §6, TRACEABILITY. OQ-131 stays OPEN only for the 60 Hz method and its cost. No new Stage 0 run: 720p sessions are lighter than the runs already in the matrix (R6, R7 cover a 720p live encode beside a 1080p60 recording).
+
+### Files Modified
+
+`docs/`: `OPEN_QUESTIONS.md`, `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `REQUIREMENTS.md`, `VIDEO_ENCODER.md`, `TRACEABILITY.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None.
+
+### Commands Used
+
+```bash
+git commit -F <message> && git fetch origin && git push origin main   # 91ff869
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- Documentation consistency check — **TESTED — PASS** (documentation only): PROBLEMS 0, WARNINGS 0.
+- Insertions only; tables intact.
+
+### Problems Found
+
+None new. One point needs the owner's confirmation (Changes 2).
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PASS (documentation consistency). The non-1080 decision is uncommitted, pending owner approval.
+- Product work: BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Owner: approve the commit below, and confirm that 720p sources follow the 30/25 fps rule. *(Confirmed by the owner later on 2026-10-12 ("okay"): 720p sources follow the 30/25 fps rule — 720p60 goes out as 720p30, 720p50 as 720p25.)*
+2. Owner: review ADR-006 and ADR-008.
+3. Owner: obtain a CM4 + IO Board + 12 V supply and run TEST-ENC-001 Stage 0 (product runs R4, R9, R3).
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: live encode keeps non-1080 source resolution (OQ-131)
+Commit description: Record the owner decision of 2026-10-12 that non-1080 inputs keep their
+  resolution on the live encode (no scaling). Note that a 720p live encode at 17 Mbit/s must
+  signal at least Level 3.2, because Level 3.1 caps Constrained Baseline at 14 Mbit/s
+  (reasoning from ITU-T H.264 Table A-1, [L-01], [L-02], [L-06]); OQ-073's browser test must
+  cover it. OQ-131 stays OPEN for the 60 Hz method. Record the commit and push of 91ff869.
+Files changed: docs/** (10 Markdown files)
+Reason: Rules 1, 3, 11, 12, 15, 21, 22
+Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -1798,3 +1877,4 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check; ba
 | 2026-10-12 | 2026-10-12 entry added (doc check rebuilt, ADR-004 scope sweep, OQ-129 propagation, hand-commit catch-up, research topic L, TEST-ENC-001 Stage 0). Seventh 2026-10-09 entry's Next Step items 1 and 2 annotated (committed by hand as `3c823b6` "mmit", reworded before push to `27c44d9`; sweep done). | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 second entry added: commit `1f5c0e0`, reword of `3c823b6` to `27c44d9`, push `049d1ee..1f5c0e0`; live encode 1080p30 and OQ-131; CM5-only OQs ANSWERED; doccheck W3 refinement. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 third entry added: commit and push of `c9d7e19`; OQ-131 50 Hz decision (25 fps); Stage 0 run R9. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 fourth entry added: commit and push of `91ff869`; OQ-131 non-1080 decision (keep source resolution; 720p at Level 3.2 or above). | Claude (session 2026-10-12) |

@@ -92,6 +92,7 @@ The kernel-side pipeline these responsibilities sit on is described in [ARCHITEC
 > **Owner decisions of 2026-10-12** (recorded in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); this document only traces them):
 > - **Live encode resolution and frame rate: 1080p30** (OQ-005), shared by RTMP and WebRTC. Reasoning: 1080p30 fits Level 4, and 17 Mbit/s CBR is 85 % of the Constrained Baseline Level 4 ceiling [L-13], [L-14]. How 60 Hz and 50 Hz captures and non-1080 inputs reach 1080p30 is **OQ-131** (OPEN).
 > - *(Later on 2026-10-12.)* **50 Hz-family sources: live encode at 25 fps** (owner; OQ-131) — 1080p50 halved, 1080p25 passed through. Encoder load with a 1080p50 recording: 2.5× the 1080p30 specification (reasoning from [L-14], [D-10]). OQ-131 stays OPEN for the 60 Hz method and non-1080 inputs.
+> - *(Later on 2026-10-12.)* **Non-1080 sources keep their resolution** on the live encode (owner; OQ-131) — no scaling step. A 720p live encode at 17 Mbit/s must signal at least Level 3.2 (reasoning [L-01], [L-02], [L-06]; OQ-073).
 > - **Encoder load (reasoning from [L-14] and [D-10]):** the recording encode at the capture rate plus the live 1080p30 encode is 3.0× the CM4 encoder's 1080p30 specification on the 4-lane configuration (1080p60 capture) and 2.67× on the 2-lane configuration (1080p50). The first measurement is TEST-ENC-001 Stage 0 (OQ-115, RISK-002).
 > - **CM5-only open questions** (OQ-049 to OQ-055, OQ-059, OQ-060, OQ-124) are ANSWERED as made irrelevant by ADR-004 (CM4).
 
@@ -1332,3 +1333,4 @@ Nothing (no hardware exists as of 2026-10-06). No userspace software exists. Eve
 | 2026-10-12 | Follow-up after the sweep: note on "uniform on CM4 and CM5" in the OQ-005 owner-decision box. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later on 2026-10-12: new "Owner decisions of 2026-10-12" box (live encode 1080p30, OQ-131, encoder load, CM5-only OQs ANSWERED). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: bullet in the 2026-10-12 owner-decision box — 50 Hz-family sources, live encode at 25 fps (OQ-131). | Claude (session 2026-10-12) |
+| 2026-10-12 | Later still on 2026-10-12: box bullet — non-1080 sources keep their resolution on the live encode (OQ-131; Level 3.2 for 720p at 17 Mbit/s). | Claude (session 2026-10-12) |
