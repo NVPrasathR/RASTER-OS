@@ -1280,6 +1280,43 @@ Rule 22 (do not guess) forbids inventing these. Each stays open until an ADR in 
 
 ---
 
+## 10. Implementation — slice C1 (added 2026-10-12)
+
+The first code, written in C against GStreamer (ADR-007, ADR-013) and built with CMake (ADR-014). **Status: IMPLEMENTED — NOT TESTED on PACSCORDER hardware.** The `dev` backend has been built and tested on the development machine only (see [TESTING.md](TESTING.md), "Development tests"); the `cm4` backend has never run.
+
+| File | Responsibility |
+|---|---|
+| `app/src/main.c` | Entry point: GStreamer init, options, pipeline, Ctrl-C / SIGTERM → clean stop |
+| `app/src/config.c`, `config.h` | Command-line options with the owner decisions as defaults (OQ-005, OQ-006, OQ-129, OQ-131); `pacs_config_live_fps()` halves capture rates above 30 fps |
+| `app/src/pipeline.c`, `pipeline.h` | Builds and runs the pipeline; logs file open/close; counts frames per branch |
+| `app/src/h264_level.c`, `h264_level.h` | Lowest H.264 level that fits size, rate and bit rate (ITU-T Table A-1 [L-01] to [L-07]); no GStreamer dependency |
+| `tests/test_h264_level.c`, `tests/smoke_record.sh` | Development tests |
+| `scripts/bringup/tc358743.sh` | Bring-up helper: EDID, DV timings, format, capture check on the CM4 (NOT YET RUN ON PACSCORDER HARDWARE) |
+
+**Pipeline (slice C1):**
+
+```text
+source ─ tee ─┬─ queue ─ recording encoder ─ caps ─ h264parse ─ tee ─┬─ queue ─ splitmuxsink (mp4mux, fragmented) → dir 1
+              │                                                    └─ queue ─ splitmuxsink (mp4mux, fragmented) → dir 2
+              └─ queue ─ videorate drop-only ─ caps (live rate) ─ live encoder ─ caps ─ h264parse ─ fakesink
+```
+
+| Element | `cm4` backend | `dev` backend (stand-in) | Source |
+|---|---|---|---|
+| Source | `v4l2src` on the Unicam video node, UYVY | `videotestsrc is-live`, I420 | ADR-010; ADR-005 (PROPOSED); [L-38], [L-39] |
+| Recording encoder | `v4l2h264enc`, caps High / Level 4.2, `extra-controls` VBR 25 Mbit/s, I-period 60 | `x264enc` zerolatency, preset superfast, caps High | OQ-005; [L-61], [L-62], [L-63]; [K-27], [K-28] |
+| Live encoder | `v4l2h264enc`, caps Constrained Baseline / lowest fitting level, CBR 17 Mbit/s, SPS/PPS repeated | `x264enc` zerolatency, preset ultrafast | OQ-005, OQ-131; [L-13]; [D-15] |
+| Frame-rate drop | `videorate drop-only=true`, caps at half the capture rate above 30 fps | same | OQ-131; [M-53], [M-54] |
+| Writers | `splitmuxsink`, new file every `--split-seconds` (1800), keyframe requests; `mp4mux fragment-duration` = `--fragment-ms` | same | ADR-009, OQ-129; [J-39], [J-44] |
+| Live output | `fakesink` (publishing is a later slice) | same | — |
+
+**Not in slice C1 (open work):** RTSP publishing to MediaMTX and RTMP (ADR-007); audio (REQ-CAP-006); EDID and DV-timings handling and source changes inside the application (REQ-CAP-003, REQ-CAP-004 — the bring-up script does them for now); drive failure, return and alerts (OQ-129, OQ-091); **HDD-branch decoupling — the writer queues keep GStreamer's default blocking limits, so an HDD stall would still back-pressure the recording (OQ-117, RISK-028)**; the fragment duration is a placeholder (OQ-118).
+
+**Observed on the development machine (2026-10-12; GStreamer 1.28.7 from Homebrew, macOS arm64 — not the CM4's 1.26.2):**
+- `x264enc` with the `ultrafast` preset emitted Constrained Baseline even when the caps asked for High; `superfast` emitted High. Only the `dev` stand-in is affected.
+- `gst-discoverer-1.0` reported the second and later fragmented files with cumulative durations (4 s, 8 s, …), while `ffprobe` showed each file starting at 0 with its own length; the smoke test uses `ffprobe`.
+- The first sample of a file can start a fraction of a frame after 0 (0.000167 s seen at 60 fps); the smoke test allows up to one frame period.
+
 ## Verification status
 
 ### Verified from sources (fact IDs)
@@ -1342,3 +1379,4 @@ Nothing (no hardware exists as of 2026-10-06). No userspace software exists. Eve
 | 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): dated note that EDID and DV timings go through the Unicam video node; ADR-006 text kept as reference; stale ADR-006/ADR-008/ADR-010/ADR-011 status lines annotated. | Claude (session 2026-10-12) |
 | 2026-10-12 | Box bullet: ADR-007 (GStreamer) and ADR-012 (Python 3 + PyGObject) proposed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | **§10 Implementation — slice C1 added**: files, pipeline, per-element settings for the `cm4` and `dev` backends with sources, open work (incl. HDD decoupling not done, RISK-028), and observations from the development machine. Status IMPLEMENTED — NOT TESTED on PACSCORDER hardware. | Claude (session 2026-10-12) |

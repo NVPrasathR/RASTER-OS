@@ -41,8 +41,16 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - `docs/REFERENCES.md` topic L: 63 facts (56 CONFIRMED, 7 CORRECTED) on H.264 level bit-rate ceilings (ITU-T H.264 V16), CM4 and CM4 IO Board Ethernet, `bcm2835-codec` concurrency, and encoder-test commands. Register total 620 facts. Raw data: `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
 - `docs/TESTING.md` TEST-ENC-001: Stage 0 procedure (run matrix R1–R7, up to two 1080p60 encodes).
 
+**2026-10-12 — first application code (slice C1)**
+- `CMakeLists.txt`, `app/CMakeLists.txt`, `tests/CMakeLists.txt`: CMake build and CTest (ADR-014).
+- `app/src/` (`main.c`, `config.c/.h`, `pipeline.c/.h`, `h264_level.c/.h`): the PACSCORDER recorder in C on GStreamer — capture, recording encode with fragmented MP4 every 30 minutes mirrored to two directories, live encode at half the capture rate above 30 fps; `cm4` backend (`v4l2src`, `v4l2h264enc` with the owner's settings) and `dev` backend (test source, `x264enc`). IMPLEMENTED — NOT TESTED on PACSCORDER hardware.
+- `tests/test_h264_level.c`, `tests/smoke_record.sh`: development tests, TESTED — PASS on the development machine only.
+- `scripts/bringup/tc358743.sh`: CM4 bring-up helper (EDID, DV timings, format, capture check). NOT YET RUN ON PACSCORDER HARDWARE.
+- **ADR-014 (ACCEPTED):** CMake (owner's choice over the suggested Meson).
+
 ### Changed
 
+- 2026-10-12: **Coding started** — slice C1 documented in SOFTWARE_ARCHITECTURE §10, BUILD_SYSTEM §2A and TESTING "Development tests"; REQ-ARCH-001, REQ-ENC-001, REQ-REC-001 now IMPLEMENTED — NOT TESTED (partial). The GStreamer/C decisions were committed and pushed as `27bb305`.
 - 2026-10-12, latest: **Owner decisions — GStreamer (ADR-007 ACCEPTED) and C (ADR-013 ACCEPTED)**; Claude's Python proposal (ADR-012) SUPERSEDED BY ADR-013. OQ-015 and OQ-132 ANSWERED. 65 stale ADR-007 status lines annotated.
 - 2026-10-12, latest: **ADR-007 proposal — GStreamer** (OPEN → PROPOSED; reasons: FFmpeg's CM4 encoder wrapper cannot set bitrate mode or level [L-43]; documented fan-out, frame-rate halving, fragmented 30-minute recording, RTSP publishing to MediaMTX) with a pipeline sketch. **ADR-012 (PROPOSED):** application language Python 3 with PyGObject, proposed repository layout; new OQ-132. The ADR decisions were committed and pushed as `78b6d70`.
 - 2026-10-12, later still: **Owner decisions** — ADR-010 ACCEPTED (legacy video-node control on the CM4; ADR-006 SUPERSEDED BY ADR-010; OQ-014 ANSWERED), ADR-008 ACCEPTED (486 MHz; OQ-099 ANSWERED), ADR-011 ACCEPTED (bring-up boards: 2 × C790, 1 × X1301, B102 if obtainable). 77 stale status lines annotated across 19 documents; test procedures that used the sub-device node for EDID/DV timings got a note to use the video node. `tools/doccheck.py` W3 now also covers SUPERSEDED ADRs. Topic M round committed and pushed as `7d7d2de`.
@@ -201,3 +209,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-12 | Later still: ADR-006/008/010/011 decisions; doccheck W3 extension; `7d7d2de` recorded. | Claude (session 2026-10-12) |
 | 2026-10-12 | Latest: ADR-007 and ADR-012 proposals; OQ-132; `78b6d70` recorded. | Claude (session 2026-10-12) |
 | 2026-10-12 | Latest: ADR-007 and ADR-013 accepted; ADR-012 superseded. | Claude (session 2026-10-12) |
+| 2026-10-12 | Added: application slice C1, development tests, bring-up script, ADR-014. Changed: requirement implementation statuses; `27bb305` recorded. | Claude (session 2026-10-12) |

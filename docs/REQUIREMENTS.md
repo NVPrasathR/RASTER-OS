@@ -39,7 +39,7 @@ Fact references such as `[C-37]` point to [REFERENCES.md](REFERENCES.md). Open q
 
 | ID | Title | Acceptance | Implementation | Test |
 |---|---|---|---|---|
-| REQ-ARCH-001 | Video pipeline architecture | DRAFT | NOT STARTED | TEST-PLT-001, TEST-DMA-001 |
+| REQ-ARCH-001 | Video pipeline architecture | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) | TEST-PLT-001, TEST-DMA-001 |
 | REQ-PLT-001 | Raspberry Pi platform coverage | DRAFT | NOT STARTED | TEST-PLT-001 |
 | REQ-DRV-001 | TC358743 controlled by a Linux kernel driver | DRAFT | NOT STARTED | TEST-HW-001, TEST-DRV-001 |
 | REQ-CAP-001 | 1920x1080@60 HDMI capture | DRAFT | NOT STARTED | TEST-CAP-002 |
@@ -51,9 +51,9 @@ Fact references such as `[C-37]` point to [REFERENCES.md](REFERENCES.md). Open q
 | REQ-CAP-007 | 2-lane and 4-lane CSI-2 configurations, all frame rates each link carries | DRAFT | NOT STARTED | TEST-CAP-004, TEST-CAP-002 |
 | REQ-CAP-008 | HDMI sources: ATEM switchers and cameras | DRAFT | NOT STARTED | TEST-CAP-001, TEST-CAP-004, TEST-ATEM-001 |
 | REQ-DMA-001 | DMABUF buffer sharing | DRAFT | NOT STARTED | TEST-DMA-001 |
-| REQ-ENC-001 | Video encoding (H.264) | DRAFT | NOT STARTED | TEST-ENC-001 |
+| REQ-ENC-001 | Video encoding (H.264) | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) | TEST-ENC-001 |
 | REQ-ENC-002 | H.265 (HEVC) encoding (deferred) | DEFERRED | NOT STARTED | — (deferred) |
-| REQ-REC-001 | Recording | DRAFT | NOT STARTED | TEST-REC-001 |
+| REQ-REC-001 | Recording | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) | TEST-REC-001 |
 | REQ-STR-001 | RTMP streaming | DRAFT | NOT STARTED | TEST-STR-001 |
 | REQ-STR-002 | WebRTC streaming | DRAFT | NOT STARTED | TEST-STR-002 |
 | REQ-ATEM-001 | Blackmagic ATEM integration | DRAFT | NOT STARTED | TEST-ATEM-001 |
@@ -73,7 +73,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 
 - **Source:** ENGINEERING_RULES.md Rule 5.
 - **Acceptance:** DRAFT — the architecture is mandated by the rules; acceptance criteria are not defined.
-- **Implementation:** NOT STARTED.
+- **Implementation:** NOT STARTED. *(2026-10-12: IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) — the pipeline structure of ADR-007 (capture → tee → recording and live branches) in `app/src/pipeline.c`; the `cm4` backend has not run on hardware; DMABUF, publishing and audio not yet implemented ([SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md) §10).)*
 - **Notes:** The receiver and Media Controller layer differ per platform. Pi 4/CM4 use Unicam [C-09]; Pi 5/CM5 use the RP1 CFE, which supports Media Controller only [C-11], [C-29]. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## REQ-PLT-001 — Raspberry Pi platform coverage
@@ -244,7 +244,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
   - how many simultaneous encodes are needed. *(Answered 2026-10-08 by the owner: two — see **Encodes** above (OQ-005). Acceptance stays DRAFT; bitrate and latency target are still open.)* *(Superseded — OQ-005 ANSWERED 2026-10-09: bitrate and both latency targets are decided. Note added 2026-10-12.)*
   - *(Added 2026-10-09.)* recording encode profile, level and B-frames. *(Answered 2026-10-09 by the owner: H.264 **High profile, Level 4.2, no B-frames**, the same on CM4 and CM5 (OQ-005). High profile is the CM4 encoder's default [K-30] and one it offers [D-11]; Level 4.2 because 1080p60 exceeds Level 4.0's macroblock rate [F-40]; no B-frames so both platforms produce comparable files — the CM4 hardware encoder emits none [D-14] and CM5's `x264enc` must be forced B-frame-free (e.g. `bframes=0`, caps `profile=baseline`, or `tune=zerolatency`) because its medium-preset default is 3 B-frames [K-29]. Whether 25 Mbit/s fits Level 4.2's maximum bitrate is OQ-073.)*
   - *(Added 2026-10-09.)* recording capture-to-file latency target. *(Answered 2026-10-09 by the owner: **under 1 s glass-to-disk** (OQ-005). Consequence (reasoning, not a measurement): the mirrored HDD branch can stall up to about 3.0 s from standby to ready [J-30], so the bound cannot hold on the HDD branch during a stall unless that branch is decoupled or buffered (OQ-117, RISK-028); which drive and which statistic the bound is judged against is OQ-130.)* *(OQ-130 ANSWERED 2026-10-09: judged against the **primary recording target** (the NVMe SSD) at the **95th percentile**; the HDD is a lagging mirror not bound by the target.)*
-- **Implementation:** NOT STARTED.
+- **Implementation:** NOT STARTED. *(2026-10-12: IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) — both encodes with the owner's settings (High / Level 4.2 / VBR 25 Mbit/s; Constrained Baseline / CBR 17 Mbit/s at half the capture rate above 30 fps) for `v4l2h264enc`; never run on a CM4 — TEST-ENC-001 is still BLOCKED — HARDWARE REQUIRED.)*
 - **Notes:**
   - Pi 4/CM4 have a hardware H.264 encoder, officially specified for 1080p30 [D-10].
   - Pi 5/CM5 have no hardware video encoder. Official figure: "H264 1080p30 encode (from ISP) ~30–40% CPU" [G-22].
@@ -285,7 +285,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 - **Owner decisions (2026-10-08, second):** each recording is mirrored to both drives; the HDD is in a self-powered enclosure; MP4 is written fragmented for power-loss safety (ADR-009, ACCEPTED).
 - **Owner decisions (2026-10-09):** recording encode 25 Mbit/s, VBR (OQ-005). If one mirrored drive fills, is absent or fails, recording continues on the other drive and the operator is alerted (OQ-129; file splitting, alert method and drive return still open). *(Later on 2026-10-09: if a drive is missing when a recording starts, the recording starts on the available drive with an operator alert; recordings are split into a new file every 30 minutes (owner; OQ-129). Still open: drive return; alert method, OQ-091.)* *(Later still on 2026-10-09: a drive that returns is used again from the next 30-minute file; OQ-129 ANSWERED. The alert method is OQ-091.)*
 - **Owner decisions (2026-10-09, later — recording encode and latency):** the recording encode is H.264 **High profile, Level 4.2, with no B-frames**, the same settings on CM4 and CM5 (OQ-005; CM4 emits no B-frames [D-14], CM5 `x264enc` forced B-frame-free [K-29], Level 4.2 for 1080p60 [F-40]). The recording path has a **capture-to-file latency target of under 1 s glass-to-disk** (OQ-005). Consequence (reasoning): the mirrored HDD branch can stall up to about 3.0 s from standby to ready [J-30], so the bound cannot hold on that branch during a stall unless it is decoupled or buffered (OQ-117, RISK-028); which drive and which statistic the bound is judged against is OQ-130. *(OQ-130 ANSWERED 2026-10-09: judged against the **primary recording target** (the NVMe SSD) at the **95th percentile**; the HDD is a **lagging mirror** not bound by the target, which refines ADR-009's mirror.)*
-- **Implementation:** NOT STARTED.
+- **Implementation:** NOT STARTED. *(2026-10-12: IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) — fragmented MP4, a new file every 30 minutes, mirrored to two directories (ADR-009, OQ-129); drive failure/return, alerts and HDD-branch decoupling (OQ-117) not yet implemented. Development tests only ([TESTING.md](TESTING.md), "Development tests").)*
 - **Notes (added 2026-10-08; from sources, not hardware; wording, acceptance and status unchanged):**
   - HEVC recording (H.265 is required, REQ-ENC-001): GStreamer 1.26.2 `qtmux`/`mp4mux` and `matroskamux` accept H.265, with `h265parse` needed after `x265enc`; `matroskamux` warns that the `hev1` form is not officially supported [H-37]. FFmpeg 7.1.5's MP4 muxer tags HEVC as `hev1`, `hvc1` or `dvh1`, and its Matroska muxer handles HEVC [H-38]. *(Superseded 2026-10-08, later: OQ-103 ANSWERED — recordings are H.264 only; H.265 is deferred (REQ-ENC-002, DEFERRED). This HEVC note is kept as evidence for REQ-ENC-002 and is not in current scope.)*
   - Audio in recordings (REQ-CAP-006): AAC encoders available in Raspberry Pi OS are FFmpeg's native `aac` (128 kb/s stereo by default; CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. The recorded audio rate must follow the source (RISK-023, OQ-111), and A/V synchronisation is unmeasured (RISK-024, OQ-112).
@@ -434,3 +434,4 @@ Nothing (no hardware exists as of 2026-10-06). No requirement has a test result;
 | 2026-10-12 | Later still on 2026-10-12: REQ-ENC-001 note — 50 Hz-family sources, live encode at 25 fps (OQ-131). No requirement wording, status or ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: REQ-ENC-001 note — non-1080 sources keep their resolution (OQ-131). No requirement wording, status or ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | Implementation status of REQ-ARCH-001, REQ-ENC-001 and REQ-REC-001 changed from NOT STARTED to **IMPLEMENTED — NOT TESTED (partial: slice C1)** in the summary table, with notes on each requirement (what is and is not implemented; nothing run on hardware). No requirement wording or acceptance status changed. | Claude (session 2026-10-12) |

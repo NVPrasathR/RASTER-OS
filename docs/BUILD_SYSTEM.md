@@ -461,6 +461,22 @@ PROPOSED, nothing exists. The YAML syntax, file names and build invocation are n
 
 ---
 
+## 2A. Application build — CMake (ADR-014) (added 2026-10-12)
+
+The PACSCORDER application (C, ADR-013) is built with CMake and tested with CTest.
+
+```bash
+cmake -S . -B build                       # configure (Debug: -DCMAKE_BUILD_TYPE=Debug)
+cmake --build build                       # builds build/app/pacscorder and the unit test
+ctest --test-dir build --output-on-failure  # development tests (TESTING.md, "Development tests")
+```
+
+- The build requires `gstreamer-1.0` ≥ 1.26 and `glib-2.0` through `pkg-config`; 1.26 is what Raspberry Pi OS ships [G-26], [G-27].
+- **Development machine used on 2026-10-12:** macOS 26.6.2 (arm64), Apple clang 21.0.0, CMake from Homebrew, GStreamer **1.28.7** from Homebrew (`brew install gstreamer`; the Xcode licence had to be accepted first). `ffprobe` (Homebrew) is used by the smoke test if present. This is newer than the CM4's GStreamer 1.26.2, so results on this machine do not carry over automatically.
+- **On the CM4:** building natively on Raspberry Pi OS or cross-compiling, and the exact `-dev` packages needed, are BUILD TEST REQUIRED (REQ-BLD-002, TEST-BLD-001).
+- The `cm4` backend needs the V4L2 elements; on a machine without them the program stops with "GStreamer element 'v4l2src' is not available".
+- Build outputs go to `build/`, which `.gitignore` excludes.
+
 ## 3. Alternative: Buildroot
 
 **Status:** documented alternative under ADR-003 (ACCEPTED 2026-10-07). NOT STARTED. ADR-003 provides for re-evaluating it if measured boot time, image size or reproducibility fails a requirement that does not exist yet (OQ-068).
@@ -779,3 +795,4 @@ Items marked *research gap* or *research open question* are **not** register fac
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only); 9 stale ADR-004 statements superseded (Traceability "ADR-004 (OPEN)", intro "side-by-side bring-up (ADR-004 stays OPEN)" and "CM4 + CM5 bring-up … unchanged", §1.3 "all four candidates", "The platform choice is ADR-004 (OPEN)" and "ADR-004 is now a choice per configuration", §2.3 and §2.9 device-layer "ADR-004 OPEN", §3 "both board families"); §1.9 NVMe-boot CM5 items noted; Pi 4 Model B / Pi 5 / CM5 columns, rows or entries noted not in current scope after the tables of the build-paths overview, §1.3, §1.4, §1.5, §2.3, §2.7, §2.8, §2.9, §3.2, §3.3, §3.4, §3.6, §3.7 (with the "Pi 5/CM5 receiver" bullet), §3.8 (pitfalls 1, 6, 8), §4 and §7, and after the §5 layout block (`[pi5]`/`[cm5]` sections). No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | **§2A Application build — CMake (ADR-014) added**: commands, GStreamer version requirement, the development machine used, and the CM4 build as BUILD TEST REQUIRED. | Claude (session 2026-10-12) |

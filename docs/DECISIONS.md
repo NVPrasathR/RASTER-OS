@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED |
+| Document status | Active — 10 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H, I, J and K) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -38,6 +38,7 @@ Fact references such as `[C-37]` point to the source register [REFERENCES.md](RE
 | ADR-011 | Bring-up TC358743 bridge boards for HW REV A (Geekworm C790 ×2, X1301, Auvidea B102 if obtainable) | ACCEPTED | 2026-10-12 (decided 2026-10-12) |
 | ADR-012 | Application language: Python 3 with GStreamer GObject-Introspection bindings | SUPERSEDED BY ADR-013 | 2026-10-12 (decided 2026-10-12) |
 | ADR-013 | Application language: C with GStreamer's native API | ACCEPTED | 2026-10-12 |
+| ADR-014 | Application build system: CMake with pkg-config and CTest | ACCEPTED | 2026-10-12 |
 
 ---
 
@@ -672,6 +673,37 @@ As listed in ADR-012: Python 3 with PyGObject (proposed there), Rust, shell + `g
 
 ---
 
+# ADR-014
+
+## Title
+
+Application build system: CMake, finding GStreamer through pkg-config.
+
+## Status
+
+ACCEPTED — 2026-10-12. Owner decision: "CMake" (Claude had suggested Meson in the question; the owner chose CMake).
+
+## Context
+
+- The application is written in C against GStreamer (ADR-007, ADR-013) and needs a build system that finds GStreamer and GLib, builds the executable and unit tests, and can later cross-compile for the CM4 or build natively on it.
+- Options put to the owner: Meson (GStreamer's own build system), CMake, a plain Makefile.
+
+## Decision
+
+Use **CMake** (minimum version 3.20) with its `PkgConfig` module to find `gstreamer-1.0` and `glib-2.0`, and **CTest** for the tests. The top-level `CMakeLists.txt` is at the repository root; the application is in `app/`, tests in `tests/`.
+
+## Alternatives Considered
+
+- **Meson** — suggested by Claude as GStreamer's own build system; not chosen.
+- **Plain Makefile** — no extra tool, but manual dependency and test handling.
+
+## Consequences
+
+- Development builds: `cmake -S . -B build && cmake --build build && ctest --test-dir build`. Which CMake version Raspberry Pi OS ships, and building natively on the CM4 versus cross-compiling, are BUILD TEST REQUIRED items for the product image (REQ-BLD-002).
+- The minimum GStreamer version requested by the build is 1.26, the version Raspberry Pi OS ships [G-26], [G-27].
+
+---
+
 # Verification status
 
 ## Verified from sources (fact IDs)
@@ -720,3 +752,4 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-12 | **Owner decisions:** ADR-008 **ACCEPTED** (486 MHz; OQ-099 ANSWERED), ADR-010 **ACCEPTED** and ADR-006 **SUPERSEDED BY ADR-010** (legacy video-node mode on the CM4; OQ-014 ANSWERED), ADR-011 **ACCEPTED** (bring-up boards). Status notes appended; index status cells updated; header 7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-007: Proposal (2026-10-12) added — GStreamer** (status OPEN → PROPOSED; evidence tables unchanged; why decide before bring-up; seven sourced reasons; pipeline sketch; known gaps). **ADR-012 added (PROPOSED):** application language Python 3 with PyGObject; proposed repository layout. Index rows; header 7 ACCEPTED, 4 PROPOSED, 0 OPEN, 1 SUPERSEDED. | Claude (session 2026-10-12) |
 | 2026-10-12 | **Owner decisions:** ADR-007 **ACCEPTED** (GStreamer; OQ-015 ANSWERED); the owner chose **C** for the application, so ADR-012 (Python, proposed) is **SUPERSEDED BY ADR-013** and **ADR-013 (C) is added as ACCEPTED** (OQ-132 ANSWERED). Header 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-014 added (ACCEPTED):** application build system CMake (owner's choice over the suggested Meson). Header 10 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |

@@ -35,7 +35,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 | How is video encoded? | [VIDEO_ENCODER.md](VIDEO_ENCODER.md), [DMA.md](DMA.md) (buffer sharing with the encoder), [PERFORMANCE.md](PERFORMANCE.md) (encode budgets) |
 | How is recording performed? | [RECORDING.md](RECORDING.md), [DECISIONS.md](DECISIONS.md) (ADR-009: fragmented MP4 mirrored to NVMe SSD and HDD), [HARDWARE.md](HARDWARE.md) (storage per board) |
 | How is streaming performed? | [STREAMING.md](STREAMING.md), [ATEM.md](ATEM.md) |
-| How is the system built? | [BUILD_SYSTEM.md](BUILD_SYSTEM.md), [RELEASE.md](RELEASE.md) |
+| How is the system built? | [BUILD_SYSTEM.md](BUILD_SYSTEM.md) (§2A: the application, CMake), [RELEASE.md](RELEASE.md) |
 | How is it tested? | [TESTING.md](TESTING.md), [TRACEABILITY.md](TRACEABILITY.md), [PERFORMANCE.md](PERFORMANCE.md) (measurement procedures) |
 | What currently works? | [PROJECT_STATUS.md](PROJECT_STATUS.md), [TESTING.md](TESTING.md) (test status summary; no test has been run), [TRACEABILITY.md](TRACEABILITY.md) |
 | What does not work? | [PROJECT_STATUS.md](PROJECT_STATUS.md), [RISKS.md](RISKS.md), [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
@@ -58,6 +58,15 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 | [RISKS.md](RISKS.md) | Technical risk register `RISK-NNN`. |
 | [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) | Unknowns and owner decisions `OQ-NNN`, with how to resolve each (Rule 22). |
 | [REFERENCES.md](REFERENCES.md) | Source register: every cited fact, with source, tier and verification verdict (Rule 23). |
+
+**Source code** *(added 2026-10-12)*
+
+| Path | Purpose |
+|---|---|
+| `CMakeLists.txt`, `app/` | The PACSCORDER application in C on GStreamer (ADR-007, ADR-013, ADR-014); design in [SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md) §10 |
+| `tests/` | Development tests (unit and smoke), run with CTest — see [TESTING.md](TESTING.md), "Development tests" |
+| `scripts/bringup/` | Bring-up helpers for the CM4 (NOT YET RUN ON PACSCORDER HARDWARE) |
+| `tools/` | Repository tools: `doccheck.py` (convention 10), `encoder_capacity_test.sh` (TEST-ENC-001 Stage 0) |
 
 **Technical**
 
@@ -197,3 +206,4 @@ It must report `PROBLEMS (0)`. It checks that every cited fact and every REQ / A
 | 2026-10-09 | ID schemes (convention 8): source-fact range extended from `A-NN` … `I-NN` to `A-NN` … `K-NN`, because REFERENCES.md gained topics J (recording storage and power loss, J-01 to J-45) and K (live latency, K-01 to K-45) on 2026-10-08. Header "Project phase" brought in line with PROJECT_STATUS.md (PHASE 1 in progress since 2026-10-07; the header still said PHASE 0). Start-here row "How is recording performed?" now also points to ADR-009 and HARDWARE.md storage. No convention, test ID or title changed. | Claude (session 2026-10-09) |
 | 2026-10-12 | Header Last updated; current-state note (still no hardware, code or tests); convention 5 superseded by ADR-004 ACCEPTED (CM4 is the product platform, other boards are reference); ID-scheme table: `ARCH-NNN` row added and fact range extended to `L-NN` (topic L, 2026-10-12); new convention 10: run `python3 tools/doccheck.py docs` before committing documentation. No test ID or title changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | ID schemes: fact range extended to `M-NN` (topic M, 2026-10-12). | Claude (session 2026-10-12) |
+| 2026-10-12 | Source-code index added (`app/`, `tests/`, `scripts/bringup/`, `tools/`); "How is the system built?" points to BUILD_SYSTEM §2A. | Claude (session 2026-10-12) |

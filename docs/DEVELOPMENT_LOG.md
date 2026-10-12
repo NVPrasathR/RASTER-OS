@@ -2103,6 +2103,104 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0
 
 ---
 
+## 2026-10-12 (eighth entry) — Coding started: application slice C1 (C, GStreamer, CMake), development tests, bring-up script
+
+### Objective
+
+The owner chose GStreamer (ADR-007) and C (ADR-013) and said "Commit, push, start coding". Write the first application slice, build it, test it on the development machine, and document it (Rules 16, 17, 24).
+
+### Starting State
+
+- The seventh-entry decisions were committed and pushed as **`27bb305`** (`78b6d70..27bb305`).
+- No code existed. This Mac had Apple clang, CMake, ninja, pkg-config and Homebrew, but no GStreamer, Meson or container runtime. The owner chose **CMake** for the build (ADR-014; Claude had suggested Meson) and allowed `brew install gstreamer`.
+- The first install attempt failed because the Xcode licence was not accepted (`brew` and `cc` both refused); the owner ran `sudo xcodebuild -license accept`, then GStreamer **1.28.7** was installed.
+
+### Changes
+
+1. **ADR-014 (ACCEPTED):** CMake + pkg-config + CTest.
+2. **Application slice C1** (`app/src/`): `main.c` (init, options, Ctrl-C/SIGTERM → end of stream), `config.c/.h` (options; owner decisions as defaults; live rate = capture rate halved above 30 fps, OQ-131), `pipeline.c/.h` (ADR-007 pipeline: capture → tee → recording `encoder → h264parse → tee → queue → splitmuxsink (fragmented mp4mux)` per directory, and live `videorate drop-only → encoder → h264parse → fakesink`; per-branch frame counters; file open/close log), `h264_level.c/.h` (lowest H.264 level from ITU-T Table A-1 [L-01] to [L-07]). Backends: `cm4` (`v4l2src`, `v4l2h264enc` with caps profile/level and `extra-controls` [L-61] to [L-63]) and `dev` (`videotestsrc`, `x264enc`).
+3. **Development tests** (`tests/`): `h264_level` (11 cases) and `smoke_record_dev` (12 s run, 4 s files, two mirrored directories; checks clean end of stream, file count, byte-identical mirrors, fragmented MP4, frame counts, profile and start time).
+4. **Bring-up script** `scripts/bringup/tc358743.sh`: EDID (built-in `hdmi` type or a file [B-24]), `--set-dv-bt-timings query` [C-37], format, capture with fps readout [L-46], [L-48]; logs each run.
+5. **Fixes found by testing on the development machine:** (a) `x264enc` with `ultrafast` produced Constrained Baseline despite `profile=high` caps — the `dev` recording encoder now uses `superfast`; (b) the option table's terminator warning — `G_OPTION_ENTRY_NULL`; (c) the smoke test's first version required the first sample at exactly 0 — a run started at 0.000167 s, so it now allows one frame period. A suspected problem — `gst-discoverer-1.0` showing cumulative durations — turned out to be the tool: `ffprobe` shows each file starting at 0 with its own length.
+6. **Documentation:** SOFTWARE_ARCHITECTURE §10 (implementation), BUILD_SYSTEM §2A (application build), TESTING "Development tests" and bring-up-script pointers in TEST-DRV-002 and TEST-CAP-001; REQUIREMENTS, TRACEABILITY and ARCHITECTURE implementation statuses (REQ-ARCH-001, REQ-ENC-001, REQ-REC-001: IMPLEMENTED — NOT TESTED, partial); docs/README source-code index; root README layout and build steps; PROJECT_STATUS; CHANGELOG.
+
+### Files Modified
+
+- New: `CMakeLists.txt`, `app/CMakeLists.txt`, `app/src/{main.c,config.c,config.h,pipeline.c,pipeline.h,h264_level.c,h264_level.h}`, `tests/{CMakeLists.txt,test_h264_level.c,smoke_record.sh}`, `scripts/bringup/tc358743.sh`.
+- Changed: `README.md`; `docs/`: `DECISIONS.md`, `SOFTWARE_ARCHITECTURE.md`, `BUILD_SYSTEM.md`, `TESTING.md`, `REQUIREMENTS.md`, `TRACEABILITY.md`, `ARCHITECTURE.md`, `README.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None. Development machine only (macOS 26.6.2 arm64).
+
+### Software Changes
+
+First application code (slice C1); development tests; bring-up script. Homebrew GStreamer 1.28.7 installed on the development machine (owner's permission).
+
+### Commands Used
+
+```bash
+brew install gstreamer                    # after: sudo xcodebuild -license accept (owner)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+ctest --test-dir build --output-on-failure
+bash tests/smoke_record.sh build/app/pacscorder      # 5 runs
+./build/app/pacscorder --width 1280 --height 720 --fps 60 --split-seconds 3 --rec-dir <dir>   # Ctrl-C after 5 s
+ffprobe -v error -select_streams v:0 -show_entries stream=profile,start_time,duration <file>
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- Build: no warnings with `-Wall -Wextra` after the fixes above.
+- `h264_level`: **TESTED — PASS** (11/11), development machine.
+- `smoke_record_dev`: **TESTED — PASS**, 5 of 5 runs, development machine (e.g. 755 frames captured, 755 recorded, 378 live; 3–4 files per run; mirrors byte-identical; High profile; fragmented).
+- By hand: Ctrl-C stop completes the open file (3.0 s + 2.0 s, High); bad options exit 2 with a message; `--backend cm4` exits 1 ("'v4l2src' is not available").
+- **None of this is a test of PACSCORDER hardware.** The `cm4` backend, the bring-up script and every canonical test remain BLOCKED — HARDWARE REQUIRED. The development machine runs GStreamer 1.28.7, not the CM4's 1.26.2.
+- Documentation consistency check — TESTED — PASS (PROBLEMS 0, WARNINGS 0).
+
+### Problems Found
+
+See Changes 5. Also: the writer queues use GStreamer's default blocking limits, so an HDD stall would still back-pressure the recording (OQ-117, RISK-028) — documented as open work, not hidden.
+
+### Root Cause
+
+(a) x264's `ultrafast` preset disables High-profile features and x264 signals the profile it actually used; (c) live-source start offsets of a fraction of a frame.
+
+### Solution
+
+As in Changes 5.
+
+### Current Status
+
+- PARTIAL: slice C1 IMPLEMENTED — NOT TESTED on hardware; development tests PASS on the development machine.
+- Uncommitted, pending owner approval.
+
+### Next Step
+
+1. Owner: approve the commit below.
+2. Slices C2 (RTSP to MediaMTX, RTMP), C3 (EDID/DV timings and source changes in the application), C4 (audio), C5 (drive failure/return, HDD decoupling) — each with development tests.
+3. Owner: buy the bring-up hardware (ADR-011); then TEST-ENC-001 Stage 0, the bring-up script, and the first `--backend cm4` run.
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: feat(app): add recorder slice C1 (GStreamer, C, CMake) with development tests
+Commit description: Add the PACSCORDER recorder in C on GStreamer (ADR-007, ADR-013) with a CMake
+  build (ADR-014): capture, a recording encode written as fragmented MP4 in 30-minute files
+  mirrored to two directories, and a live encode at half the capture rate above 30 fps; cm4
+  (v4l2src, v4l2h264enc with the owner's settings) and dev (videotestsrc, x264enc) backends. Add
+  development tests (H.264 level selection; 12 s smoke run) and a CM4 bring-up script. Document the
+  implementation, build and tests; mark REQ-ARCH-001, REQ-ENC-001, REQ-REC-001 IMPLEMENTED — NOT
+  TESTED (partial). Development machine only; nothing has run on PACSCORDER hardware.
+Files changed: CMakeLists.txt, app/**, tests/**, scripts/bringup/tc358743.sh, README.md,
+  docs/** (12 Markdown files)
+Reason: Rules 1, 3, 10, 15, 16, 17, 24
+Tests: ctest — h264_level PASS, smoke_record_dev PASS (5/5 runs) on macOS + GStreamer 1.28.7;
+  python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -2127,3 +2225,4 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0
 | 2026-10-12 | 2026-10-12 sixth entry added: commit and push of `7d7d2de`; ADR-010, ADR-008, ADR-011 ACCEPTED; ADR-006 SUPERSEDED; W3 extension; 77 status notes. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 seventh entry added: `78b6d70` recorded; ADR-007 GStreamer proposal; ADR-012; OQ-132. | Claude (session 2026-10-12) |
 | 2026-10-12 | Seventh entry extended: owner decisions (ADR-007 ACCEPTED; C chosen — ADR-013 ACCEPTED, ADR-012 SUPERSEDED); commit message updated before commit. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 eighth entry added: coding started — slice C1, ADR-014, development tests, bring-up script; `27bb305` recorded. | Claude (session 2026-10-12) |

@@ -338,6 +338,8 @@ Confirm that a source sees no sink until an EDID is written, that writing the ED
 
 ### Setup
 
+*(Added 2026-10-12.)* Helper: `scripts/bringup/tc358743.sh` (`edid`, `timings`, `format`, `capture`, `all`) runs the documented commands [B-24], [C-37], [L-46] on the video node and writes a log for this record. NOT YET RUN ON PACSCORDER HARDWARE; command forms marked NEEDS VERIFICATION in the script (OQ-101).
+
 *(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
 
 *(Added 2026-10-12, research topic M.)* A Raspberry Pi engineer: with no EDID loaded the source sends no output, and the driver does not switch to the detected timings by itself — the timings must be set (community) [M-50].
@@ -510,6 +512,8 @@ BLOCKED — HARDWARE REQUIRED — not run
 Confirm that, for every source mode PACSCORDER must accept, the DV timings are detected and applied through the V4L2 DV-timings API on the TC358743 sub-device, and that the error codes for no signal, unstable signal and out-of-range timing match the driver's documented behaviour.
 
 ### Setup
+
+*(Added 2026-10-12.)* Helper: `scripts/bringup/tc358743.sh` (`edid`, `timings`, `format`, `capture`, `all`) runs the documented commands [B-24], [C-37], [L-46] on the video node and writes a log for this record. NOT YET RUN ON PACSCORDER HARDWARE; command forms marked NEEDS VERIFICATION in the script (OQ-101).
 
 *(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
 
@@ -2099,6 +2103,19 @@ BLOCKED — HARDWARE REQUIRED — not run
 
 ---
 
+## Development tests (not canonical; added 2026-10-12)
+
+These tests check the application's own logic on a development machine. They are **not** canonical tests: they prove nothing about the TC358743, the CM4 or its encoder, and they do not change any canonical test status. Run them with `ctest --test-dir build --output-on-failure` ([BUILD_SYSTEM.md](BUILD_SYSTEM.md) §2A).
+
+| Test | What it checks | Result (2026-10-12, development machine) |
+|---|---|---|
+| `h264_level` (`tests/test_h264_level.c`) | 11 cases of the lowest H.264 level for size, rate, bit rate and profile, against ITU-T Table A-1 reasoning [L-01] to [L-14] — e.g. 1080p60 High 25 Mbit/s → 4.2, 1080p30 CB 17 Mbit/s → 4, 720p30 CB 17 Mbit/s → 3.2 | TESTED — PASS (11/11) |
+| `smoke_record_dev` (`tests/smoke_record.sh`) | The recorder with the `dev` backend, 1280x720@60 for 12 s, a new file every 4 s, mirrored to two directories: clean end of stream; at least 2 files; identical names and byte-identical contents in both directories; every file a fragmented MP4 (`ftyp`, `moof`); recording encodes ≥ 95 % of captured frames; live branch passes 45–55 % (60 → 30 fps); with `ffprobe`: High profile and first sample within one frame of 0 | TESTED — PASS, 5 of 5 runs (example: 755 frames captured, 755 recorded, 378 live; 3–4 files per run) |
+
+Also checked by hand on 2026-10-12: Ctrl-C during a run without `--duration` stops cleanly and completes the open file (two files of 3.0 s and 2.0 s, High profile); bad options exit with code 2 and a message; `--backend cm4` on the Mac exits with code 1 because `v4l2src` is not available.
+
+Environment: macOS 26.6.2 arm64, GStreamer 1.28.7 (Homebrew), x264 stand-in encoder ([BUILD_SYSTEM.md](BUILD_SYSTEM.md) §2A). Observations: [SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md) §10.
+
 ## Documentation checks
 
 Documentation consistency checks are recorded in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md), not here. Examples are cross-checking that every cited fact ID exists in [REFERENCES.md](REFERENCES.md), and that REQ, ADR, RISK, OQ and TEST IDs agree across documents.
@@ -2178,3 +2195,4 @@ Nothing (no hardware exists as of 2026-10-06). No procedure in this document has
 | 2026-10-12 | Research topic M: dated Setup notes in TEST-HW-001 (bring-up boards per ADR-011; cable sidedness, RISK-021), TEST-DRV-002 (no EDID → no output; timings must be set), TEST-CAP-002 (4-lane 22-pin board on CAM1; vendor mode claims differ) and TEST-AUD-001 (run on every candidate board before HW REV A is chosen; RISK-035; wiring). No TEST-ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): a dated Setup note in TEST-DRV-001, TEST-DRV-002, TEST-CAP-001, TEST-CAP-002, TEST-CAP-003 and TEST-PERF-001 — EDID, DV timings and format go through the Unicam video node; Media Controller steps kept as the ADR-006 record. ADR-008 and ADR-011 ACCEPTED notes on stale status lines. No TEST-ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | **Development tests section added** (`h264_level`, `smoke_record_dev`: procedure and results on the development machine — not canonical, no canonical status changed); bring-up script pointer in TEST-DRV-002 and TEST-CAP-001 Setup. | Claude (session 2026-10-12) |
