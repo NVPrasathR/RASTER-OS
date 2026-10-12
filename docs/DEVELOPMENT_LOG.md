@@ -1697,6 +1697,88 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; W3 regression f
 
 ---
 
+## 2026-10-12 (third entry) — Commit and push of the second set; 50 Hz sources go out at 25 fps (OQ-131)
+
+### Objective
+
+Act on the owner's answers: "Commit and push" the second 2026-10-12 set; OQ-131 — "25 fps" for 50 Hz-family sources.
+
+### Starting State
+
+`main` at `1f5c0e0` (= `origin/main`); the second-entry changes uncommitted.
+
+### Changes
+
+1. Committed the second-entry changes with the proposed message as **`c9d7e19`**; `git fetch` confirmed a fast-forward; pushed `1f5c0e0..c9d7e19`.
+2. **OQ-131 owner input:** 50 Hz-family sources → live encode at **25 fps** (1080p50 halved, 1080p25 passed through; no non-integer 50 → 30 conversion). Reasoning from [L-14], [D-10]: with a 1080p50 recording the encoder carries 612,000 macroblocks/s, 2.5× the 1080p30 specification; at 25 fps the frame period is 40 ms, so the frame-period terms of the [K-45] budget grow (reasoning). OQ-131 stays OPEN for the 60 Hz method (dropping every other frame is the obvious choice, not yet decided or tested) and non-1080 inputs.
+3. Propagated to the 2026-10-12 owner-decision boxes (ARCHITECTURE, SOFTWARE_ARCHITECTURE, STREAMING), REQ-ENC-001, VIDEO_ENCODER §7.1, RISK-002, PERFORMANCE, TRACEABILITY.
+4. TEST-ENC-001 Stage 0 and `tools/encoder_capacity_test.sh`: run **R9** (1080p50 recording + 1080p25 live, 2.5×) added; the product runs are **R4** (60 Hz family), **R9** (50 Hz family) and **R3** (1080p30 sources); R8 becomes a margin reference.
+
+### Files Modified
+
+`docs/`: `OPEN_QUESTIONS.md`, `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `REQUIREMENTS.md`, `VIDEO_ENCODER.md`, `RISKS.md`, `PERFORMANCE.md`, `TESTING.md`, `TRACEABILITY.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`; `tools/encoder_capacity_test.sh`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+Test script: run R9.
+
+### Commands Used
+
+```bash
+git commit -F <message> && git fetch origin && git push origin main   # c9d7e19
+python3 tools/doccheck.py docs
+bash -n tools/encoder_capacity_test.sh   # plus stand-in dry run of R9
+```
+
+### Test Results
+
+- Documentation consistency check — **TESTED — PASS** (documentation only): PROBLEMS 0, WARNINGS 0; 620/620 facts cited; 131 OQs.
+- Tables intact; insertions only (no removed text besides "Last updated"-type fields — none this round).
+- Script: syntax passes; stand-in dry run of R9 sets recording Level 4.2 and live Level 4. **NOT YET RUN ON PACSCORDER HARDWARE.**
+
+### Problems Found
+
+None new.
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PASS (documentation consistency). The 25 fps decision is uncommitted, pending owner approval.
+- Product work: BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Owner: approve the commit below.
+2. Owner: OQ-131 remainder — non-1080 inputs (scale to 1080p, or keep the source resolution?); ADR-006 and ADR-008 review.
+3. Owner: obtain a CM4 + IO Board + 12 V supply and run TEST-ENC-001 Stage 0 (product runs R4, R9, R3).
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: live encode at 25 fps for 50 Hz sources (OQ-131)
+Commit description: Record the owner decision of 2026-10-12 that 50 Hz-family sources go out
+  at 25 fps on the live encode (1080p50 halved, 1080p25 passed through); OQ-131 stays OPEN
+  for the 60 Hz method and non-1080 inputs. Add TEST-ENC-001 Stage 0 run R9 (1080p50
+  recording + 1080p25 live, 2.5x the 1080p30 specification); product runs are R4, R9, R3.
+  Record the commit and push of c9d7e19.
+Files changed: docs/** (13 Markdown files), tools/encoder_capacity_test.sh
+Reason: Rules 1, 3, 11, 12, 15, 21, 22
+Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check; bash -n and
+  stand-in dry run of R9
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -1715,3 +1797,4 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; W3 regression f
 | 2026-10-09 | Seventh 2026-10-09 entry added: product platform decided — CM4 (ADR-004 ACCEPTED); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001); OQ-011 ANSWERED. Authoritative and reader-facing docs updated; scope rule set for deep inline CM5 content (follow-up sweep recommended). Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-12 | 2026-10-12 entry added (doc check rebuilt, ADR-004 scope sweep, OQ-129 propagation, hand-commit catch-up, research topic L, TEST-ENC-001 Stage 0). Seventh 2026-10-09 entry's Next Step items 1 and 2 annotated (committed by hand as `3c823b6` "mmit", reworded before push to `27c44d9`; sweep done). | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 second entry added: commit `1f5c0e0`, reword of `3c823b6` to `27c44d9`, push `049d1ee..1f5c0e0`; live encode 1080p30 and OQ-131; CM5-only OQs ANSWERED; doccheck W3 refinement. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 third entry added: commit and push of `c9d7e19`; OQ-131 50 Hz decision (25 fps); Stage 0 run R9. | Claude (session 2026-10-12) |
