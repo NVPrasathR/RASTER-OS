@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Document status | DRAFT — derived from source research only |
-| Last updated | 2026-10-09 |
-| Applies to | TC358743 CSI-2 transmitter; Raspberry Pi 4 Model B, CM4 (CAM0 and CAM1), Pi 5, CM5; both the 2-lane and the 4-lane configuration the product needs (REQ-CAP-007); kernel sources as read on `rpi-6.18.y` [D-01], [E-37]; added 2026-10-09: the receiver's frame-completion term of the < 1 s WebRTC latency target (REQ-STR-002; §7.4) |
+| Last updated | 2026-10-12 |
+| Applies to | TC358743 CSI-2 transmitter; Raspberry Pi 4 Model B, CM4 (CAM0 and CAM1), Pi 5, CM5; *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* both the 2-lane and the 4-lane configuration the product needs (REQ-CAP-007); kernel sources as read on `rpi-6.18.y` [D-01], [E-37]; added 2026-10-09: the receiver's frame-completion term of the < 1 s WebRTC latency target (REQ-STR-002; §7.4) |
 | Implementation status | NOT STARTED |
 | Verification | Source research of 2026-10-06, plus research topic K (live latency) of 2026-10-08 for §7.4 and the related notes in §1, §2 and §12, and [I-33] from research topic I (HDMI audio path) of 2026-10-08 in §7.4 ([REFERENCES.md](REFERENCES.md)). **Nothing in this document has been run or measured on PACSCORDER hardware. No hardware exists as of 2026-10-06 (still none on 2026-10-09).** |
 
@@ -35,16 +35,16 @@ Conventions follow [README.md](README.md):
 - **The driver, not the Device Tree, picks how many lanes carry video.** It computes the lane count at runtime from the active resolution, frame rate and bus format. It reports that count to the receiver without comparing it with the Device Tree `data-lanes` [C-15], [B-31].
 - **The receiver checks the count at STREAMON.** If the bridge asks for more lanes than the receiver endpoint has, STREAMON fails with `-EINVAL`. Fewer lanes are accepted [C-16], [B-32].
 - **The default link is 972 Mbps per lane** (`link-frequency` 486 MHz). The overlay declares a 27 MHz reference clock [C-12], [A-45].
-- **1080p60 needs a 4-lane port at the supported link rates.** At the default rate 1080p60 needs 3 lanes in UYVY and 4 in RGB888 [C-47]. Of the four candidate platforms, only CM4 CAM1, Pi 5 and CM5 have 4-lane ports; Pi 4 Model B has a single 2-lane connector [C-01], [C-02], [C-04], [C-05]. A 4-lane port is necessary but not shown sufficient for 1080p60 UYVY: at 972 Mbps the driver uses 3 of the 4 lanes, which is unproven (OQ-038; §13; link frequency: ADR-008, OQ-099).
+- **1080p60 needs a 4-lane port at the supported link rates.** At the default rate 1080p60 needs 3 lanes in UYVY and 4 in RGB888 [C-47]. Of the four candidate platforms, only CM4 CAM1, Pi 5 and CM5 have 4-lane ports; Pi 4 Model B has a single 2-lane connector [C-01], [C-02], [C-04], [C-05]. *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* A 4-lane port is necessary but not shown sufficient for 1080p60 UYVY: at 972 Mbps the driver uses 3 of the 4 lanes, which is unproven (OQ-038; §13; link frequency: ADR-008, OQ-099).
 - **2-lane ports are limited.** Pi 4 Model B and CM4 CAM0 are limited to 1080p50 UYVY or 1080p30 RGB888 [C-37], [C-48].
-- **The product needs both lane counts.** The owner requires a 2-lane and a 4-lane configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; owner 2026-10-07, OQ-001 ANSWERED). Recorded interpretation: 1080p60 is required on the 4-lane configuration; the 2-lane configuration is capped at the 2-lane limit above. The platform for each configuration is not chosen (ADR-004, OPEN). See §11.3.
-- **Pi 5/CM5 use a fallback D-PHY rate.** The downstream RP1 CFE driver cannot read a link rate from this bridge, so it always programs its D-PHY for 999 Mbps [C-31], [B-49].
+- **The product needs both lane counts.** The owner requires a 2-lane and a 4-lane configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; owner 2026-10-07, OQ-001 ANSWERED). Recorded interpretation: 1080p60 is required on the 4-lane configuration; the 2-lane configuration is capped at the 2-lane limit above. The platform for each configuration is not chosen (ADR-004, OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* See §11.3.
+- **Pi 5/CM5 use a fallback D-PHY rate.** The downstream RP1 CFE driver cannot read a link rate from this bridge, so it always programs its D-PHY for 999 Mbps [C-31], [B-49]. *(Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4); Pi 5 / CM5 kept as reference, ARCH-001. Note added 2026-10-12.)*
 - **Capture adds at least one frame's readout on CM4 and about one on CM5.** *(Added 2026-10-09; research topic K / OQ-116.)* Unicam on CM4 and RP1 CFE on CM5 complete each buffer only at frame end, so a frame reaches userspace at least one frame's readout time after its first line on CM4 [K-34] and about one frame's readout time later on CM5 [K-35]. This is one term of the owner's < 1 s camera-to-viewer target for WebRTC viewers (REQ-STR-002); see §7.4. Nothing has been measured (OQ-125).
 - **Unresolved items that matter for REQ-CAP-001 and the 4-lane configuration of REQ-CAP-007:**
   - capture with 3 of 4 lanes active (OQ-038);
   - the hard-coded FIFO trigger level (OQ-035, RISK-006);
   - the clock-lane mode mismatch (OQ-037);
-  - the effect of the 999 Mbps D-PHY setting (OQ-050, RISK-011).
+  - the effect of the 999 Mbps D-PHY setting (OQ-050, RISK-011). *(Pi 5 / CM5 only: not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4); kept as reference, ARCH-001. Note added 2026-10-12.)*
 
 ---
 
@@ -79,6 +79,8 @@ Media Controller graph
   ▼
 V4L2 capture video node → frame buffers in memory  (continued in DMA.md)
 ```
+
+*(Note added 2026-10-12: the Pi 4 Model B, Pi 5 / CM5 and RP1 CFE lines of this diagram, and the Pi 5 entity-name reports below, are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference (Rule 14), Pi 5 / CM5 under ARCH-001.)*
 
 Community reports show the bridge's media entity name following its I2C bus [C-28] (community, CORRECTED):
 
@@ -236,6 +238,8 @@ Which driver and mode actually bind on a running Pi 4/CM4: **HARDWARE TEST REQUI
 
 ### 7.2 RP1 CFE — Pi 5 and CM5
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 / BCM2712 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 | Property | Value | Source |
 |---|---|---|
 | DT nodes | `rp1_csi0` (`csi@110000`) and `rp1_csi1` (`csi@128000`), compatible `raspberrypi,rp1-cfe` | [C-29] |
@@ -273,6 +277,8 @@ A Raspberry Pi engineer gave a Pi 5 capture sequence and reported capturing with
 | Lane check at STREAMON | Yes [B-32] | Yes [B-32] |
 | Allowed endpoint lane counts | 1, 2, 4 [C-17] | Not in the source register |
 
+*(Note added 2026-10-12: the RP1 CFE (Pi 5, CM5) column and the Pi 4B entries are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference (Rule 14), Pi 5 / CM5 under ARCH-001.)*
+
 ### 7.4 Frame completion and capture latency (added 2026-10-09)
 
 *Added 2026-10-09; research topic K / OQ-116.* The owner's target, set on 2026-10-08, is under 1 second camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (REQ-STR-002; OQ-116 ANSWERED). The receiver contributes one term of that budget. The full budget is in [PERFORMANCE.md](PERFORMANCE.md) (latency budget section). Nothing has been measured (OQ-125, RISK-031).
@@ -283,6 +289,8 @@ A Raspberry Pi engineer gave a Pi 5 capture sequence and reported capturing with
 | Buffer completed | Only at Frame End [K-34] | In the end-of-frame handler [K-35] |
 | Capture cost | A frame reaches userspace at least one frame's readout time after its first line [K-34] | About one frame's readout time [K-35] |
 | No empty buffer queued | The frame goes to a dummy buffer and is dropped, not queued [K-34] | Not stated in the register entry, which records `min_queued_buffers = 1` [K-35]: UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED) |
+
+*(Note added 2026-10-12: the RP1 CFE — CM5 column is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 - **Pi 4 Model B and Pi 5.** Reasoning: the same downstream drivers bind there (§7.1, §7.2; [C-09], [C-29]), so the same behaviour is expected; [K-34] and [K-35] are stated for CM4 and CM5 only.
 - **Size of the term.** Reasoning (a labelled budget, not a measurement; CORRECTED) [K-45]: for a CM4 1080p30 WebRTC/WHEP viewer on a LAN the budget takes capture readout as about 33.3 ms, one frame period at 30p. The readout time on PACSCORDER hardware, on CM4 or CM5 and at each mode, is UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED; OQ-125, TEST-STR-002).
@@ -313,6 +321,8 @@ The driver offers exactly two media bus codes [A-09], [B-34]:
 |---|---|---|---|---|---|---|
 | `MEDIA_BUS_FMT_RGB888_1X24` | 0, **probe default** | 24 [C-15] | `SRGB`, full range [B-34] | `V4L2_PIX_FMT_RGB24` [C-34] | `V4L2_PIX_FMT_BGR24` [C-34]; the sequence a Raspberry Pi engineer reported uses `BGR3` [C-33] (community) | On CM4, bytes in memory were reported as B,G,R and explained by a Raspberry Pi engineer [C-35] (community). RISK-016, OQ-045. |
 | `MEDIA_BUS_FMT_UYVY8_1X16` | 1 | 16 [C-15] | `SMPTE170M`, BT.601 limited range [B-34]. The research reports that this also applies to 720p/1080p sources (research gap, topic B; OQ-041). | `V4L2_PIX_FMT_UYVY` [C-34] | `V4L2_PIX_FMT_UYVY` [C-34] | CSI-2 data type YUV422_8B [C-34]. `CONFCTL` `YCBCRFMT = 422_8_BIT` [A-09]. **PROPOSED default (ADR-005).** |
+
+*(Note added 2026-10-12: the "CFE fourcc (Pi 5/CM5)" column is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 - The register header also defines 12-bit 4:2:2 and colour-bar output codes, which the driver does not use [A-10].
 - Official Raspberry Pi documentation: only RGB888 and YUV422 have been tested [C-37].
@@ -445,6 +455,8 @@ All of the following are **Reasoning** from the tables above. None has been meas
 | **Pi 5** (either port) | 4 per port (22-pin, 0.5 mm) [C-04] | RP1 CFE `rp1_csi0` / `rp1_csi1` [C-29] | `tc358743` → `tc358743-pi5`; `4lane`, `cam0` [C-11], [G-13] | The overlays README still says "Uses Unicam 1" and calls `4lane` CM-CAM1-only — stale text [C-13], [B-45]. Whether `4lane` combined with `cam0` sets 4 lanes on `csi0`: NEEDS VERIFICATION (OQ-049). 999 Mbps D-PHY [C-31]. A wrongly sided 22-to-15-pin adapter can swap GND and 3V3, as reported by a Raspberry Pi engineer [C-45] (community); RISK-021. |
 | **CM5** | 4 per MIPI interface (MIPI0 on the CM4 CAM1 pins, MIPI1 on the CM4 DSI1 pins); no CM4-style CAM0 [C-05] | RP1 CFE [C-29] | As Pi 5 [C-11] | I2C mapping depends on the carrier board [C-27], [B-44]. CM5 IO Board CAM/DISP 1 needs J6 jumpers [C-06]. CM5 on a CM4 IO Board: the CAM1 connector pairing is open (OQ-052). |
 
+*(Note added 2026-10-12: the Pi 4 Model B, Pi 5 and CM5 rows are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference (Rule 14), Pi 5 / CM5 under ARCH-001.)*
+
 Lanes actually routed by the PACSCORDER bridge board and carrier: **UNKNOWN — VERIFICATION REQUIRED (VENDOR CONFIRMATION REQUIRED, HARDWARE TEST REQUIRED; OQ-018, OQ-021).**
 
 The "Overlay and parameters" column names overlay parameters, not `config.txt` syntax. Only `dtoverlay=tc358743,<param>=<val>` [G-12] and appending `,cam0` [C-39] are attested. Bare boolean parameters such as `4lane`, and several parameters on one line, are NEEDS VERIFICATION (OQ-100; see [DEVICE_TREE.md](DEVICE_TREE.md)).
@@ -462,14 +474,16 @@ The "Overlay and parameters" column names overlay parameters, not `config.txt` s
 | 1080p30 UYVY / RGB888 | 2 / 2 | Fits [C-48]; RGB888 officially documented [C-37] | Fits [C-48] | Fits | Fits | as Pi 5 |
 | **REQ-CAP-001 (1080p60)** | — | **Cannot be met** at the supported link rates [C-37], [C-48] (RISK-001); 2-lane configuration candidate only (REQ-CAP-007) | **Cannot be met** at the supported link rates [C-37], [C-48] (RISK-001); 2-lane configuration candidate only (REQ-CAP-007) | Feasible by bandwidth and official documentation, which does not state the link rate [C-37]; in UYVY at 972 Mbps it depends on 3 of 4 lanes (OQ-038; ADR-008, OQ-099); NOT STARTED | Feasible by bandwidth; in UYVY at 972 Mbps it depends on 3 of 4 lanes (OQ-038); no official documentation (RISK-012); RISK-011 | as Pi 5 |
 
+*(Note added 2026-10-12: the Pi 4 Model B, Pi 5 and CM5 columns are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference (Rule 14), Pi 5 / CM5 under ARCH-001.)*
+
 - 1080p60: required on the 4-lane configuration; the 2-lane configuration captures every rate its link carries (REQ-CAP-007; OQ-001 ANSWERED by the owner on 2026-10-07). The exact mode list is OQ-002.
-- Product platform: ADR-004 (OPEN), now a choice per lane configuration (§11.3); OQ-011.
+- Product platform: ADR-004 (OPEN), now a choice per lane configuration (§11.3); OQ-011. *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 - Capture format: ADR-005 (PROPOSED), OQ-003.
 - 1080p60 *encode* is a separate constraint. See [VIDEO_ENCODER.md](VIDEO_ENCODER.md) and RISK-002.
 
 ### 11.3 Lane configurations required by REQ-CAP-007
 
-The owner requires both a 2-lane and a 4-lane CSI-2 configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; owner statement of 2026-10-07, "i need 2 lane and 4 lane with all frame rate"; OQ-001 ANSWERED). Recorded interpretation in [REQUIREMENTS.md](REQUIREMENTS.md): 1080p60 is required on the 4-lane configuration; on the 2-lane configuration the physical limit applies. **No platform is chosen here** (ADR-004, OPEN).
+The owner requires both a 2-lane and a 4-lane CSI-2 configuration, each capturing every frame rate its link can carry (REQ-CAP-007, DRAFT; owner statement of 2026-10-07, "i need 2 lane and 4 lane with all frame rate"; OQ-001 ANSWERED). Recorded interpretation in [REQUIREMENTS.md](REQUIREMENTS.md): 1080p60 is required on the 4-lane configuration; on the 2-lane configuration the physical limit applies. **No platform is chosen here** (ADR-004, OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 
 **Candidate connectors per configuration** (from §11.1; a mapping, not a selection):
 
@@ -477,6 +491,8 @@ The owner requires both a 2-lane and a 4-lane CSI-2 configuration, each capturin
 |---|---|---|---|
 | 2-lane | Pi 4 Model B; CM4 CAM0; or a 2-lane bridge board on any 4-lane port (reasoning; board lane count OQ-021) | [C-01], [C-02] | Never set `4lane` (§6) |
 | 4-lane | CM4 CAM1; Pi 5 CAM/DISP1 (CAM/DISP0 with `4lane`: NEEDS VERIFICATION, OQ-049); CM5 MIPI0 / MIPI1 (carrier-dependent, OQ-052) | [C-02], [C-04], [C-05] | 1080p60 UYVY runs on 3 of 4 lanes at 972 Mbps (OQ-038; ADR-008) |
+
+*(Note added 2026-10-12: the Pi 4 Model B, Pi 5 and CM5 candidate connectors are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference (Rule 14), Pi 5 / CM5 under ARCH-001.)*
 
 Whether one bridge-board design can serve both configurations, for example a 4-lane board run with 2 lanes, is UNKNOWN — VERIFICATION REQUIRED (VENDOR CONFIRMATION REQUIRED, HARDWARE TEST REQUIRED; OQ-021).
 
@@ -554,7 +570,7 @@ At 594 Mbps, 1080p50 UYVY and 1080p30 RGB888 use 3 lanes [C-47].
 - Its per-line slack is 1.89 µs (§10.4).
 - ADR-008 (PROPOSED) proposes evaluating this rate in TEST-CAP-002 on a CM4 CAM1 4-lane link only, not on Pi 5/CM5 (§4.5, OQ-099). Adopting it would need a new ADR.
 
-**Resolution:** HARDWARE TEST REQUIRED on each 4-lane candidate (OQ-038). Resolving tests: TEST-CAP-002, TEST-CAP-004.
+**Resolution:** HARDWARE TEST REQUIRED on each 4-lane candidate (OQ-038). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* Resolving tests: TEST-CAP-002, TEST-CAP-004.
 
 ---
 
@@ -577,7 +593,9 @@ At 594 Mbps, 1080p50 UYVY and 1080p30 RGB888 use 3 lanes [C-47].
 | `Unable to determine sensor link rate, using 999 Mbps` (CFE) | Always expected with TC358743 on Pi 5/CM5. | [C-31] |
 | `Device has requested %u data lanes, which is >%u configured in DT` | The current mode/format needs more lanes than are configured. STREAMON fails with `-EINVAL`. | [B-32], [C-16] |
 
-**Pi 5 / CM5 link and pad setup.** Source: a sequence a Raspberry Pi engineer gave and reported capturing with on kernel 6.18.39, the kernel named in that report [C-33] (community). `<M>`, `<N>` and `<TC>` are placeholders (OQ-043).
+*(Note added 2026-10-12: the CFE row (Pi 5 / CM5) is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
+**Pi 5 / CM5 link and pad setup.** Source: a sequence a Raspberry Pi engineer gave and reported capturing with on kernel 6.18.39, the kernel named in that report [C-33] (community). `<M>`, `<N>` and `<TC>` are placeholders (OQ-043). *(Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 procedure is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.)*
 
 ```sh
 # NOT YET RUN ON PACSCORDER HARDWARE.
@@ -621,10 +639,10 @@ media-ctl -d <M> -V '"csi2":4 [fmt:UYVY8_1X16/1920x1080 field:none colorspace:sm
 | REQ-CAP-005 (PROPOSED) | §5–§6: lane pre-check before STREAMON (PROPOSED) | NOT STARTED; TEST-CAP-004 BLOCKED — HARDWARE REQUIRED |
 | REQ-CAP-007 (DRAFT) | §1, §11.2, §11.3: 2-lane and 4-lane configurations and the modes each link carries | NOT STARTED; TEST-CAP-002, TEST-CAP-004 BLOCKED — HARDWARE REQUIRED |
 | REQ-CAP-008 (DRAFT) | §2, §11.3: ATEM and camera HDMI sources (models OQ-102) | NOT STARTED; TEST-CAP-001, TEST-CAP-004, TEST-ATEM-001 BLOCKED — HARDWARE REQUIRED |
-| REQ-PLT-001 | §11: all four platforms | NOT STARTED; TEST-PLT-001 BLOCKED — HARDWARE REQUIRED |
+| REQ-PLT-001 | §11: all four platforms *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); REQ-PLT-001 scoped to CM4; note 2026-10-12.)* | NOT STARTED; TEST-PLT-001 BLOCKED — HARDWARE REQUIRED |
 | REQ-STR-002 (DRAFT) | §7.4, §12 (added 2026-10-09): receiver frame-completion term and the undocumented TC358743 buffering term of the < 1 s WebRTC latency target (owner 2026-10-08; OQ-116 ANSWERED) | NOT STARTED; TEST-STR-002 BLOCKED — HARDWARE REQUIRED |
 | ADR-002 (PROPOSED) | §7.2, §12: patch the in-tree driver only for defects shown on hardware | — |
-| ADR-004 (OPEN) | §11, §11.3: platform choice, per lane configuration (REQ-CAP-007) | — |
+| ADR-004 (OPEN) *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* | §11, §11.3: platform choice, per lane configuration (REQ-CAP-007) | — |
 | ADR-005 (PROPOSED) | §9, §10.6, §13: UYVY default and its 3-lane consequence at 1080p60 | — |
 | ADR-006 (PROPOSED) | §7.1: Media Controller mode on every platform | — |
 | ADR-008 (PROPOSED) | §4.5, §13: keep link-frequency 486 MHz on every platform; evaluate 297 MHz on CM4 CAM1 only (OQ-099) | — |
@@ -637,7 +655,7 @@ media-ctl -d <M> -V '"csi2":4 [fmt:UYVY8_1X16/1920x1080 field:none colorspace:sm
 | RISK-021 | §11.1, §14 | OPEN |
 | RISK-031 | §7.4, §12 (added 2026-10-09) | OPEN |
 
-**Open questions referenced:** OQ-001 (ANSWERED 2026-10-07), OQ-002, OQ-003, OQ-009 (ANSWERED 2026-10-07), OQ-011, OQ-018, OQ-019, OQ-021, OQ-027, OQ-030, OQ-031, OQ-035, OQ-037, OQ-038, OQ-040, OQ-041, OQ-043, OQ-044, OQ-045, OQ-046, OQ-047, OQ-049, OQ-050, OQ-052, OQ-095, OQ-099, OQ-100, OQ-101, OQ-102. *(Added 2026-10-09:)* OQ-116 (ANSWERED 2026-10-08), OQ-125.
+**Open questions referenced:** OQ-001 (ANSWERED 2026-10-07), OQ-002, OQ-003, OQ-009 (ANSWERED 2026-10-07), OQ-011, OQ-018, OQ-019, OQ-021, OQ-027, OQ-030, OQ-031, OQ-035, OQ-037, OQ-038, OQ-040, OQ-041, OQ-043, OQ-044, OQ-045, OQ-046, OQ-047, OQ-049, OQ-050, OQ-052, OQ-095, OQ-099, OQ-100, OQ-101, OQ-102. *(Added 2026-10-09:)* OQ-116 (ANSWERED 2026-10-08), OQ-125. *(Superseded — OQ-011 ANSWERED 2026-10-09: the product platform is the CM4 (BCM2711). Note added 2026-10-12.)*
 
 ---
 
@@ -682,3 +700,4 @@ Every procedure in §14 is **NOT YET RUN ON PACSCORDER HARDWARE**. Every hardwar
 | 2026-10-06 | Cross-document consistency fixes: §4.5 link-frequency recommendation linked to ADR-008 (PROPOSED) and OQ-099, with ADR-008's CM4 CAM1 297 MHz evaluation noted (§4.5, §13 fallback no longer "not proposed"); "4-lane port is necessary but not shown sufficient for 1080p60 UYVY" stated in §1, §11.2 and §15 (OQ-038); Unicam CSI-2 error counters linked to OQ-095 (§14); `v4l2-ctl -d` sub-device form, `media-ctl -d` forms and the video-node format option linked to OQ-101 (§14); `config.txt` parameter-syntax caveat added under §11.1 ([G-12], [C-39], OQ-100); 6.18.39 identified as the kernel of the community report only, with 6.18.50 [G-04] and 6.18.55 [E-37], and "reported as successful" reworded (§7.2, §14); ADR-008 traceability row and OQ list updated. No status changed. | Claude (session 2026-10-06) |
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: both 2-lane and 4-lane configurations required (REQ-CAP-007; OQ-001 ANSWERED) in the header, intro, §1, §2, §6, §11.2 ("Whether 1080p60 is mandatory: OQ-001" replaced; Pi 4 Model B and CM4 CAM0 recorded as 2-lane candidates) and §13; new §11.3 maps candidate connectors to configurations and gives per-configuration supported-mode limits [C-37], [C-48], [C-49], [B-33], lower/fractional-rate reasoning [B-28] (OQ-040), HDMI sources = ATEM outputs and cameras (REQ-CAP-008, OQ-102, [F-23], [B-27]) and the per-configuration EDID note (OQ-002, reasoning [B-24]); §5 EDID note extended; ADR-004 now a per-configuration choice (still OPEN); traceability rows added for REQ-CAP-007 and REQ-CAP-008; OQ list adds OQ-009, OQ-040, OQ-102 and marks OQ-001/OQ-009 ANSWERED. Added citations B-27, B-28, F-23. No platform chosen; no ADR status changed. | Claude (session 2026-10-07) |
 | 2026-10-09 | Live latency (OQ-116 ANSWERED, research topic K): header (Last updated; Applies to adds the REQ-STR-002 receiver term; Verification adds research topic K of 2026-10-08); §1 bullet "Capture adds about one frame's readout" [K-34], [K-35]; §2 diagram lines for the undocumented TC358743 buffering latency [K-38] and frame-end buffer completion [K-34], [K-35]; new §7.4 "Frame completion and capture latency": Unicam (CM4) and RP1 CFE (CM5) timestamp at frame start and complete at frame end [K-34], [K-35] (CFE `CLOCK_MONOTONIC` from [I-33]), Unicam drops into a dummy buffer when none is queued [K-34] (CFE equivalent KERNEL SOURCE INSPECTION REQUIRED), Pi 4 Model B / Pi 5 by reasoning, the budget's 33.3 ms readout term labelled as reasoning [K-45] (CORRECTED), reasoning that V4L2 timestamps cannot show the bridge's delay (OQ-125, OQ-027), pointers to V4L2.md §12.2 and PERFORMANCE.md; §12 row on the bridge's undocumented buffering latency [K-38]; §15 rows REQ-STR-002 and RISK-031, OQ list adds OQ-116 and OQ-125; Verification status adds K-34, K-35, K-38, K-45 and the new reasoning items. No requirement, ADR, risk or OQ status changed; nothing measured. Verifier pass (same date): §1 bullet title "Capture adds about one frame's readout" → "Capture adds at least one frame's readout on CM4 and about one on CM5" ([K-34] says at least one; [K-35] about one); header Verification row now names §1 and [I-33] from research topic I, which §7.4 cites. Main session, same date: "no hardware exists as of" dates restored to their original values with "still none on 2026-10-09" appended (Rule 21). | Claude (session 2026-10-09) |
+| 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4); 11 stale statements superseded or marked (§1 "four candidate platforms", ADR-004 OPEN, the Pi 5/CM5 999 Mbps bullet and unresolved item; §11.2 and §11.3 ADR-004 OPEN; §13 "each 4-lane candidate"; §14 Pi 5 / CM5 procedure; §15 REQ-PLT-001 "all four platforms", ADR-004 (OPEN) row and OQ-011 ANSWERED in the OQ list); §7.2 (RP1 CFE — Pi 5 and CM5) marked not in current scope; Pi 4 Model B / Pi 5 / CM5 rows, columns or lines noted after the §2 diagram and the tables in §7.3, §7.4, §9, §11.1, §11.2, §11.3 and §14. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |

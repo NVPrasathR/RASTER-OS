@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Document status | Active — 34 risks, all OPEN |
-| Last updated | 2026-10-09 |
-| Applies to | PACSCORDER on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5; both the 2-lane and the 4-lane capture configuration (REQ-CAP-007) |
+| Last updated | 2026-10-12 |
+| Applies to | PACSCORDER on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5; both the 2-lane and the 4-lane capture configuration (REQ-CAP-007) *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source research only. No risk has been confirmed or retired by a test; nothing has been tested on PACSCORDER hardware. |
-| Basis | Source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)) and the owner decisions of 2026-10-07 recorded in [REQUIREMENTS.md](REQUIREMENTS.md) (REQ-CAP-007, REQ-CAP-008, REQ-BLD-002; REQ-ATEM-001 scope; second set: CM4 and CM5 evaluated side by side, HDMI audio required, H.264 and H.265, any HDMI camera; *2026-10-08: codec narrowed to H.264 only — OQ-103 ANSWERED, H.265 deferred as REQ-ENC-002*). Source research of 2026-10-08, topics H (H.265/HEVC) and I (HDMI audio) ([REFERENCES.md](REFERENCES.md) [H-01] to [H-43], [I-01] to [I-47]; raw lists in [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json)). *Added later on 2026-10-08:* source research topics J (recording storage on CM4/CM5) and K (live latency) ([REFERENCES.md](REFERENCES.md) [J-01] to [J-45], [K-01] to [K-45]; raw lists in [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json)) and the owner decisions of 2026-10-08 on latency (< 1 s for WebRTC viewers only, RTMP best-effort; OQ-116) and recording (ADR-009: fragmented MP4 mirrored to a PCIe NVMe SSD and a USB-to-SATA HDD in a self-powered enclosure). **No risk below has been confirmed or retired on PACSCORDER hardware** — none exists yet. |
+| Basis | Source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)) and the owner decisions of 2026-10-07 recorded in [REQUIREMENTS.md](REQUIREMENTS.md) (REQ-CAP-007, REQ-CAP-008, REQ-BLD-002; REQ-ATEM-001 scope; second set: CM4 and CM5 evaluated side by side, *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* HDMI audio required, H.264 and H.265, any HDMI camera; *2026-10-08: codec narrowed to H.264 only — OQ-103 ANSWERED, H.265 deferred as REQ-ENC-002*). Source research of 2026-10-08, topics H (H.265/HEVC) and I (HDMI audio) ([REFERENCES.md](REFERENCES.md) [H-01] to [H-43], [I-01] to [I-47]; raw lists in [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json)). *Added later on 2026-10-08:* source research topics J (recording storage on CM4/CM5) and K (live latency) ([REFERENCES.md](REFERENCES.md) [J-01] to [J-45], [K-01] to [K-45]; raw lists in [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json)) and the owner decisions of 2026-10-08 on latency (< 1 s for WebRTC viewers only, RTMP best-effort; OQ-116) and recording (ADR-009: fragmented MP4 mirrored to a PCIe NVMe SSD and a USB-to-SATA HDD in a self-powered enclosure). **No risk below has been confirmed or retired on PACSCORDER hardware** — none exists yet. |
 
 This register lists facts, found in sources, that could stop PACSCORDER meeting a requirement. Each entry names:
 
@@ -20,8 +20,8 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 
 | ID | Risk | Affects | Severity | Status |
 |---|---|---|---|---|
-| RISK-001 | 1080p60 needs a 4-lane CSI-2 link; 2-lane configurations (Pi 4 Model B, CM4 CAM0, 2-lane boards) cannot carry it | REQ-CAP-001, REQ-CAP-007, ADR-004 | High | OPEN |
-| RISK-002 | 1080p60 hardware H.264 encode on Pi 4/CM4 is unproven | REQ-ENC-001, ADR-004 | High | OPEN |
+| RISK-001 | 1080p60 needs a 4-lane CSI-2 link; 2-lane configurations (Pi 4 Model B, CM4 CAM0, 2-lane boards) cannot carry it | REQ-CAP-001, REQ-CAP-007, ADR-004 *(ACCEPTED 2026-10-09 (CM4); note 2026-10-12)* | High | OPEN |
+| RISK-002 | 1080p60 hardware H.264 encode on Pi 4/CM4 is unproven | REQ-ENC-001, ADR-004 *(ACCEPTED 2026-10-09 (CM4); note 2026-10-12)* | High | OPEN |
 | RISK-003 | Pi 5/CM5 have no hardware video encoder | REQ-ENC-001, REQ-STR-001/002 | High | OPEN *(not in current scope since 2026-10-09 — CM5/Pi 5 dropped, ADR-004 ACCEPTED (CM4))* |
 | RISK-004 | TC358743 supply / lifecycle uncertain | Product | High | OPEN |
 | RISK-005 | No public TC358743 register documentation | REQ-DRV-001 | Medium | OPEN |
@@ -31,12 +31,12 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 | RISK-009 | Interlaced inputs (e.g. 1080i) are not supported | REQ-CAP-005, REQ-CAP-008 | Medium | OPEN |
 | RISK-010 | No video until userspace loads an EDID | REQ-CAP-003 | High (if unmitigated) | OPEN |
 | RISK-011 | Pi 5 receiver D-PHY rate fixed at 999 Mbps for this bridge | REQ-CAP-001 on Pi 5/CM5 | Medium | OPEN |
-| RISK-012 | Pi 5/CM5 TC358743 path has no official documentation | REQ-PLT-001, ADR-004 | Medium | OPEN |
+| RISK-012 | Pi 5/CM5 TC358743 path has no official documentation | REQ-PLT-001, ADR-004 *(ACCEPTED 2026-10-09 (CM4); note 2026-10-12)* | Medium | OPEN |
 | RISK-013 | Signal changes detected only by 1 s polling | REQ-CAP-004 | Low | OPEN |
 | RISK-014 | HDMI audio needs a separate I2S path with the stock driver | REQ-CAP-006 | Medium | OPEN |
 | RISK-015 | GPL and patent licensing of software H.264 encoding (extended 2026-10-08 to H.265 and AAC; *HEVC patents not in current scope since 2026-10-08 — H.265 deferred, REQ-ENC-002*) | REQ-ENC-001, REQ-CAP-006 (AAC), product release | Medium | OPEN |
 | RISK-016 | RGB888 pixel-format label differs between receivers | ADR-005 | Low | OPEN |
-| RISK-017 | Raspberry Pi OS image reproducibility needs an archive mirror | REQ-BLD-001, REQ-BLD-002, ADR-003 | Medium | OPEN |
+| RISK-017 | Raspberry Pi OS image reproducibility needs an archive mirror | REQ-BLD-001, REQ-BLD-002, ADR-003 *(ACCEPTED 2026-10-07; note 2026-10-12)* | Medium | OPEN |
 | RISK-018 | ATEM control protocol is reverse-engineered | REQ-ATEM-001 — only if network tally/control is added; not in current scope (owner, 2026-10-07) | Medium | OPEN |
 | RISK-019 | WebRTC browser profile/level and audio codec constraints (H.265 browser support added 2026-10-08; *H.265 part not in current scope — REQ-ENC-002*; *shared live-encode B-frame, profile and keyframe constraints added later on 2026-10-08, topic K*) | REQ-STR-002 | Medium | OPEN |
 | RISK-020 | Contiguous memory (CMA) sizing for capture buffers | REQ-CAP-001, REQ-DMA-001 | Low | OPEN |
@@ -45,15 +45,17 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 | RISK-023 | HDMI audio sample-rate mismatch is not detected by ALSA | REQ-CAP-006, REQ-REC-001, REQ-STR-001, REQ-STR-002 | High (if unmitigated) | OPEN |
 | RISK-024 | A/V synchronisation across separate audio and video clock domains (*encoder latency-reporting evidence added later on 2026-10-08, topic K*) | REQ-CAP-006, REQ-REC-001, REQ-STR-001, REQ-STR-002, ADR-007 | Medium | OPEN |
 | RISK-025 | HEVC over RTMP may force a split GStreamer/FFmpeg architecture *(not in current scope since 2026-10-08 — H.265 deferred, REQ-ENC-002)* | REQ-STR-001, REQ-ENC-001, ADR-007 | Medium | OPEN |
-| RISK-026 | CM4 storage path: NVMe takes the only PCIe lane, the HDD shares USB 2.0, and the IO Board's PCIe slot needs 12 V | REQ-REC-001, ADR-009, ADR-004 | Medium | OPEN |
-| RISK-027 | USB-to-SATA bridge UAS firmware faults (hangs, resets, data loss) | REQ-REC-001, ADR-009 | Medium | OPEN |
-| RISK-028 | HDD stalls back-pressure the mirrored recording into the shared encoder and the live path | REQ-REC-001, REQ-STR-001, REQ-STR-002, REQ-ENC-001, ADR-009 | High (if unmitigated) | OPEN |
-| RISK-029 | Fragmented MP4 is less compatible with players and editors | REQ-REC-001, ADR-009 | Medium | OPEN |
-| RISK-030 | The last seconds of a recording are still lost on a power cut | REQ-REC-001, ADR-009 | Medium | OPEN |
-| RISK-031 | The < 1 s WebRTC target is unproven: most of the latency budget is undocumented | REQ-STR-002, REQ-ENC-001, ADR-004 | Medium | OPEN |
+| RISK-026 | CM4 storage path: NVMe takes the only PCIe lane, the HDD shares USB 2.0, and the IO Board's PCIe slot needs 12 V | REQ-REC-001, ADR-009, ADR-004 *(both ACCEPTED: ADR-009 2026-10-08, ADR-004 2026-10-09 (CM4); note 2026-10-12)* | Medium | OPEN |
+| RISK-027 | USB-to-SATA bridge UAS firmware faults (hangs, resets, data loss) | REQ-REC-001, ADR-009 *(ACCEPTED 2026-10-08; note 2026-10-12)* | Medium | OPEN |
+| RISK-028 | HDD stalls back-pressure the mirrored recording into the shared encoder and the live path | REQ-REC-001, REQ-STR-001, REQ-STR-002, REQ-ENC-001, ADR-009 *(ACCEPTED 2026-10-08; note 2026-10-12)* | High (if unmitigated) | OPEN |
+| RISK-029 | Fragmented MP4 is less compatible with players and editors | REQ-REC-001, ADR-009 *(ACCEPTED 2026-10-08; note 2026-10-12)* | Medium | OPEN |
+| RISK-030 | The last seconds of a recording are still lost on a power cut | REQ-REC-001, ADR-009 *(ACCEPTED 2026-10-08; note 2026-10-12)* | Medium | OPEN |
+| RISK-031 | The < 1 s WebRTC target is unproven: most of the latency budget is undocumented | REQ-STR-002, REQ-ENC-001, ADR-004 *(ACCEPTED 2026-10-09 (CM4); note 2026-10-12)* | Medium | OPEN |
 | RISK-032 | Hidden default latencies and queue backlog in the live path | REQ-STR-002, ADR-007 | Medium | OPEN |
-| RISK-033 | NAT traversal and TURN for internet WebRTC viewers *(not in current scope since 2026-10-09 — LAN-only viewers, OQ-008)* | REQ-STR-002 | Medium | OPEN |
-| RISK-034 | WebRTC publishing stack: gst-plugins-rs not packaged, WHEP still a draft | REQ-STR-002, ADR-007, ADR-003 | Low | OPEN |
+| RISK-033 | NAT traversal and TURN for internet WebRTC viewers *(not in current scope since 2026-10-09 — LAN-only viewers, OQ-008)* *(OQ-008 ANSWERED 2026-10-09; note 2026-10-12)* | REQ-STR-002 | Medium | OPEN |
+| RISK-034 | WebRTC publishing stack: gst-plugins-rs not packaged, WHEP still a draft | REQ-STR-002, ADR-007, ADR-003 *(ACCEPTED 2026-10-07; note 2026-10-12)* | Low | OPEN |
+
+*(Note added 2026-10-12: the Pi 5 / CM5 rows (RISK-011, RISK-012; RISK-003 is annotated in its row) and the Pi 4 Model B mention in RISK-001 are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 ---
 
@@ -63,9 +65,9 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - Reasoning from the driver's lane formula (reasoning-tier entries; A-26 CORRECTED): at the overlay default of 972 Mbps per lane, the driver needs 3 lanes for 1080p60 UYVY and 4 for RGB888 [A-26], [C-47].
   - Official Raspberry Pi documentation: 2 lanes give at most 1080p30 RGB888 / 1080p50 YUV422; 4 lanes on a Compute Module give 1080p60 [C-37].
   - The Pi 4 Model B connector has 2 lanes [C-01]; CM4 CAM0 has 2 lanes [C-02].
-- **Impact:** REQ-CAP-001 cannot be met on Pi 4 Model B, on CM4 CAM0 or on any 2-lane bridge board. Since the owner decision of 2026-10-07 (OQ-001 ANSWERED; REQ-CAP-007, DRAFT), the product needs both a 2-lane and a 4-lane configuration, and 1080p60 is required on 4-lane configurations only. 2-lane configurations remain in scope and are bounded by the physical limit: for 1920x1080, at most 1080p50 UYVY or 1080p30 RGB888 [C-37], [C-48] (C-48 is reasoning). Pi 4 Model B is therefore not excluded from the product, only from 1080p60; it remains a 2-lane candidate (ADR-004, OPEN). On the 4-lane configuration, a 4-lane port is necessary but not shown sufficient: at the default 972 Mbps, 1080p60 UYVY uses 3 of the 4 lanes, which is unproven (OQ-038; RISK-006). ADR-008 (PROPOSED; OQ-099) proposes evaluating 297 MHz on a CM4 CAM1 4-lane link, where the mode uses all 4 lanes.
+- **Impact:** REQ-CAP-001 cannot be met on Pi 4 Model B, on CM4 CAM0 or on any 2-lane bridge board. Since the owner decision of 2026-10-07 (OQ-001 ANSWERED; REQ-CAP-007, DRAFT), the product needs both a 2-lane and a 4-lane configuration, and 1080p60 is required on 4-lane configurations only. 2-lane configurations remain in scope and are bounded by the physical limit: for 1920x1080, at most 1080p50 UYVY or 1080p30 RGB888 [C-37], [C-48] (C-48 is reasoning). Pi 4 Model B is therefore not excluded from the product, only from 1080p60; it remains a 2-lane candidate (ADR-004, OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* On the 4-lane configuration, a 4-lane port is necessary but not shown sufficient: at the default 972 Mbps, 1080p60 UYVY uses 3 of the 4 lanes, which is unproven (OQ-038; RISK-006). ADR-008 (PROPOSED; OQ-099) proposes evaluating 297 MHz on a CM4 CAM1 4-lane link, where the mode uses all 4 lanes.
 - **Open questions:** OQ-001 (ANSWERED 2026-10-07 by the owner), OQ-002 (mode list per lane configuration), OQ-011, OQ-021, OQ-038, OQ-099.
-- **Retire by:** ADR-004 platform choice for the 4-lane configuration (a per-configuration choice since 2026-10-07; still OPEN), then TEST-CAP-002 on that 4-lane platform. For the 2-lane configuration, TEST-CAP-004 records the supported-mode matrix up to the physical limit (REQ-CAP-007).
+- **Retire by:** ADR-004 platform choice for the 4-lane configuration (a per-configuration choice since 2026-10-07; still OPEN), *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* then TEST-CAP-002 on that 4-lane platform. For the 2-lane configuration, TEST-CAP-004 records the supported-mode matrix up to the physical limit (REQ-CAP-007).
 
 ## RISK-002 — 1080p60 hardware encode on Pi 4/CM4 is unproven
 
@@ -74,10 +76,11 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - The driver calls level 4.0 the hardware spec [D-12].
   - Reasoning: 1080p60 needs about twice the specified macroblock rate [D-52].
   - A Raspberry Pi engineer called hardware 1080p60 an "edge case" (community source) [D-50].
-- **Impact:** A CM4 product may capture 1080p60 but be unable to encode it in real time. 1080p60 capture is required on the 4-lane configuration (REQ-CAP-007, owner 2026-10-07), and CM4 CAM1 is a 4-lane candidate (ADR-004, OPEN). Whether the captured 1080p60 must also be encoded at 60 fps is not specified in REQ-ENC-001 (encoding parameters: OQ-005).
+  - *(Added 2026-10-12, research topic L.)* The only official capacity figure is still "1080p30 encode" [L-29]. A Raspberry Pi engineer judged the Pi 4 encoder "probably not enough for two 1080p30 streams" — an opinion, not a measurement (community) [L-30]; decode and encode share the same H264 block (community) [L-31]. The driver opens a separate firmware encoder component per session with no instance limit [L-23], [L-24], [L-25], and scheduling between sessions happens in the firmware [L-27], so two-session capacity cannot be read from source. Reasoning [L-14]: 1080p60 needs Level 4.2. Two 1080p60 encodes are 979,200 macroblocks/s, 4.0× the 1080p30 specification (reasoning from [L-14], [D-10]).
+- **Impact:** A CM4 product may capture 1080p60 but be unable to encode it in real time. 1080p60 capture is required on the 4-lane configuration (REQ-CAP-007, owner 2026-10-07), and CM4 CAM1 is a 4-lane candidate (ADR-004, OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* Whether the captured 1080p60 must also be encoded at 60 fps is not specified in REQ-ENC-001 (encoding parameters: OQ-005).
 - **Open questions:** OQ-056 (measurement, including at `gpu_freq=550`); OQ-096 (owner decision: whether a GPU overclock is acceptable in the product), OQ-115 (two concurrent encodes, added 2026-10-08).
 - **Owner decision (2026-10-08):** two simultaneous encodes (recording + live) are required (REQ-ENC-001). Reasoning: two 1080p30 encodes equal the macroblock rate of one 1080p60 encode, about 2.0× the 1080p30 specification [D-10], [D-52]. Open question: OQ-115.
-- **Retire by:** TEST-ENC-001 (sustained 1080p60 encode on CM4). The "at least 10 minutes" duration used in [TESTING.md](TESTING.md) and [PERFORMANCE.md](PERFORMANCE.md) comes from a research open question (topic D); it is not an owner-accepted criterion (OQ-010, OQ-017).
+- **Retire by:** TEST-ENC-001 (sustained 1080p60 encode on CM4). The "at least 10 minutes" duration used in [TESTING.md](TESTING.md) and [PERFORMANCE.md](PERFORMANCE.md) comes from a research open question (topic D); it is not an owner-accepted criterion (OQ-010, OQ-017). *(Added 2026-10-12: a first, encoder-only measurement — TEST-ENC-001 Stage 0, synthetic source on a CM4, no TC358743 — can be run as soon as a CM4 and IO Board exist; it narrows this risk but does not retire it, because it does not use real capture.)*
 
 ## RISK-003 — No hardware video encoder on Pi 5/CM5
 
@@ -158,12 +161,16 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 
 ## RISK-011 — Pi 5 receiver D-PHY rate fixed at 999 Mbps
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 / BCM2712 (RP1 CFE) material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 - **Evidence:** The CFE driver falls back to 999 Mbps when it cannot determine a sensor link rate [C-31]. Reasoning from driver source: it cannot read one from this bridge, so it always programs 999 Mbps [B-49]. Reasoning: that matches the default 972 Mbps link but not `link-frequency=297000000` (594 Mbps) [C-52].
 - **Impact:** Possible unreliable reception at the non-default link frequency on Pi 5/CM5.
 - **Open questions:** OQ-050, OQ-095, OQ-099.
 - **Retire by:** Using the default link frequency on Pi 5/CM5 (ADR-008, PROPOSED; OQ-099), plus a hardware test of stream stability and CSI-2 error counters. How to read those counters on CFE is not in the source register: UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED; OQ-050). The Unicam counterpart, needed to compare against Pi 4/CM4 on the same modes, is OQ-095.
 
 ## RISK-012 — Pi 5/CM5 path has no official documentation
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 / BCM2712 (RP1 CFE) material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 - **Evidence:**
   - Official TC358743 documentation covers only the Unicam (Pi 4 family) path [C-38].
@@ -200,7 +207,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - *(Added 2026-10-08.)* Reasoning from [I-13], [I-24]: the product captures stereo audio only. The CM5 path is a bring-up gate until TEST-AUD-001 runs on CM5 (research design risk, topic I). Using HDMI audio removes GPIO 18–21 from other uses unless a custom overlay is written (OQ-114). Severity unchanged (Medium): the CM4 path is documented and the CM5 labels resolve, but nothing has been run on PACSCORDER hardware.
 - **Open questions:** OQ-004, OQ-025, OQ-033, OQ-054; added 2026-10-08: OQ-024, OQ-110, OQ-114.
 - **Owner decision (2026-10-07):** audio is required (REQ-CAP-006 DRAFT, OQ-004 ANSWERED), so this risk now affects a firm requirement.
-- **Retire by:** An owner decision on REQ-CAP-006 (OQ-004), then TEST-AUD-001. *(2026-10-08: the owner decision was made on 2026-10-07; what remains is TEST-AUD-001 on CM4 and on CM5, both evaluated in bring-up (ADR-004).)*
+- **Retire by:** An owner decision on REQ-CAP-006 (OQ-004), then TEST-AUD-001. *(2026-10-08: the owner decision was made on 2026-10-07; what remains is TEST-AUD-001 on CM4 and on CM5, both evaluated in bring-up (ADR-004).)* *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 
 ## RISK-015 — GPL and patent licensing of software encoding
 
@@ -317,7 +324,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Impact:** Reasoning from [I-18], [I-22]: if PACSCORDER assumes one constant rate, every recording and stream from a source at another rate has wrong-speed, wrong-pitch audio and a growing A/V offset, with no ALSA error; and after a rate change, audio captured during the detection window of up to about 1 s is mislabelled. Sources are any HDMI camera plus ATEM outputs (REQ-CAP-008), so the rate is not known in advance.
 - **Severity:** High (if unmitigated). Claude's assessment: the failure is silent and affects every output, but the driver already exposes the rate and its change event [I-20], [I-21], so the mitigation lies in PACSCORDER's own software (or in a single-rate EDID; OQ-111).
 - **Open questions:** OQ-111, OQ-020.
-- **Retire by:** Implementing rate detection and ALSA reopen, or a single-rate EDID policy (OQ-111), then TEST-AUD-001 with sources at 44.1 kHz and 48 kHz and a rate change during capture, on CM4 and CM5.
+- **Retire by:** Implementing rate detection and ALSA reopen, or a single-rate EDID policy (OQ-111), then TEST-AUD-001 with sources at 44.1 kHz and 48 kHz and a rate change during capture, on CM4 and CM5. *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 
 ## RISK-024 — A/V synchronisation across separate audio and video clock domains
 
@@ -333,7 +340,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - *(Added later on 2026-10-08.)* Reasoning from [K-32], [K-33], [K-45]: on CM4 the pipeline's latency query leaves out the real video encode time, so A/V alignment and latency calculations that rely on it undercount the video path by roughly 10–23 ms. *(Corrected 2026-10-09: 10 ms is the 720p figure a Raspberry Pi engineer gave (community source) [K-33], and about 23 ms its macroblock-scaled 1080p extrapolation; [K-45]'s worst-case scaling gives about 42 ms at 1080p, and all of these assume the live encode has the hardware encoder to itself, which the recording encode would share (OQ-115).)* Audio-path latency and the browser's own A/V sync are unmeasured, and research noted that the browser may delay video to match audio (research gap, topic K; OQ-125). Severity unchanged (Medium).
 - **Severity:** Medium. Claude's assessment: both frameworks offer clock and timestamp options [I-35], [I-38], but no configuration has been measured on PACSCORDER.
 - **Open questions:** OQ-112, OQ-040; added later on 2026-10-08: OQ-125, OQ-126.
-- **Retire by:** The A/V offset measurement in TEST-AUD-001 and a multi-hour drift check in TEST-PERF-001, with the framework chosen under ADR-007, on CM4 and CM5, against the tolerance set under OQ-112.
+- **Retire by:** The A/V offset measurement in TEST-AUD-001 and a multi-hour drift check in TEST-PERF-001, with the framework chosen under ADR-007, on CM4 and CM5, against the tolerance set under OQ-112. *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 
 ## RISK-025 — HEVC over RTMP may force a split GStreamer/FFmpeg architecture
 
@@ -377,7 +384,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Impact:** A bridge fault during a recording would stop or corrupt the HDD copy (REQ-REC-001, ADR-009) and, through back-pressure, could affect the other outputs (RISK-028). Behaviour can differ between CM4 and CM5, so a bridge qualified on one board is not qualified on the other (reasoning from [J-24]).
 - **Severity:** Medium. Claude's assessment: the fault is reported as affecting only some devices, and a documented fallback exists [J-26], [J-27], but the bridge is not yet chosen (OQ-122).
 - **Open questions:** OQ-122, OQ-117.
-- **Retire by:** Recording the chosen bridge's VID:PID and bound driver per board, then a multi-hour TEST-REC-001 / TEST-PERF-001 soak on CM4 and CM5 with no resets or I/O errors in the kernel log.
+- **Retire by:** Recording the chosen bridge's VID:PID and bound driver per board, then a multi-hour TEST-REC-001 / TEST-PERF-001 soak on CM4 and CM5 with no resets or I/O errors in the kernel log. *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 
 ## RISK-028 — HDD stalls back-pressure the mirrored recording into the shared encoder and the live path
 
@@ -391,7 +398,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Impact:** Reasoning (Claude, from [J-30], [K-36] and ADR-009): if the HDD writer blocks — on spin-up from standby, a UAS reset (RISK-027), an `fsync()`, or the shared USB 2.0 path on CM4 (RISK-026) — and its branch has no buffer that can absorb or drop, the stall propagates back to the recording encode, then to the NVMe copy, and if it reaches the capture queue, into the live encode as frames of added latency or as dropped frames. A 3.0 s stall is three times the whole < 1 s live budget. Research recommends a large or leaky queue in front of the HDD branch and disabling or extending spin-down where the bridge allows (research design risks, topic J — not register facts).
 - **Severity:** High (if unmitigated). Claude's assessment: the stall durations are documented [J-30] *(corrected 2026-10-09: [J-30] documents only standby-to-ready — 2.5 s typical, 3.0 s maximum — for one Seagate BarraCuda 2.5-inch family; stall durations from UAS resets, `fsync()` or the chosen drive are not documented)* and a mirror makes the HDD part of every recording, but the mitigation (an independent HDD branch with its own buffer and overflow policy) lies in PACSCORDER's own pipeline design (OQ-117).
 - **Open questions:** OQ-117, OQ-122, OQ-115, OQ-059, OQ-126.
-- **Retire by:** TEST-REC-001 and TEST-PERF-001 with injected HDD stalls (standby, unplug, forced resets) on CM4 and CM5, showing no gap in the NVMe copy and no change in live latency or frame rate (TEST-STR-002).
+- **Retire by:** TEST-REC-001 and TEST-PERF-001 with injected HDD stalls (standby, unplug, forced resets) on CM4 and CM5, showing no gap in the NVMe copy and no change in live latency or frame rate (TEST-STR-002). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 
 ## RISK-029 — Fragmented MP4 is less compatible with players and editors
 
@@ -428,7 +435,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Impact:** REQ-STR-002's < 1 s target cannot be shown met until measured. On CM4, two encodes sharing the hardware encoder may lengthen the encode term (OQ-115); on CM5, a software encode slower than one frame period builds a backlog (RISK-032; OQ-059). The research design risk that only WebRTC/WHEP has a documented route under 1 s is already reflected in the owner's scoping of the target to WebRTC viewers (OQ-116).
 - **Severity:** Medium. Claude's assessment: the documented terms use under a tenth of the budget [K-45] *(corrected 2026-10-09: [K-45] calls them "documented or extrapolated"; the encode term is scaled from a 720p community figure [K-33])*, and a third-party WHEP service documents under 500 ms [K-14], but the largest terms, especially the browser's jitter buffer and MediaMTX's relay, are unmeasured.
 - **Open questions:** OQ-125, OQ-115, OQ-059, OQ-057, OQ-127.
-- **Retire by:** The camera-to-viewer measurement of OQ-125 in TEST-STR-002 on CM4 and CM5, with the recording encode running, in each target browser.
+- **Retire by:** The camera-to-viewer measurement of OQ-125 in TEST-STR-002 on CM4 and CM5, with the recording encode running, in each target browser. *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 
 ## RISK-032 — Hidden default latencies and queue backlog in the live path
 
@@ -512,3 +519,6 @@ Nothing (no hardware exists as of 2026-10-06). No risk has been confirmed or ret
 | 2026-10-09 | Owner decisions of 2026-10-09: RISK-033 marked not in current scope (LAN-only WebRTC viewers, OQ-008); summary row annotated. No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |
 | 2026-10-09 | RISK-028: owner decision of 2026-10-09 on the drive-failure policy noted (OQ-129). No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 (third set) noted on RISK-019 (browsers, viewer count) and RISK-027 (drive return). No risk added, removed, re-scored or retired. | Claude (session 2026-10-09) |
+| 2026-10-12 | ADR-004 scope sweep: header "Applies to" (all four candidate platforms) and the Basis row's "CM4 and CM5 evaluated side by side" superseded; RISK-011 and RISK-012 (Pi 5/CM5 only) marked not in current scope; note after the summary table on the Pi 5/CM5 rows and the Pi 4 Model B mention in RISK-001; stale ADR-004 (OPEN) statements superseded in RISK-001 (Impact, Retire by) and RISK-002 (Impact); CM5 test plans superseded in the Retire-by lines of RISK-014, RISK-023, RISK-024, RISK-027, RISK-028 and RISK-031; summary-table Affects/Risk cells tagged with the settled status of ADR-003, ADR-004, ADR-009 and OQ-008 (rows RISK-001, RISK-002, RISK-012, RISK-017, RISK-026 to RISK-031, RISK-033, RISK-034), where the OPEN shown is the risk's own status. No risk Status or Severity changed. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
+| 2026-10-12 | **Catch-up row (Rules 1, 21).** The 2026-10-09 platform decision was committed without a row here (hand commit `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12); recorded from `git show`, edits unchanged): RISK-003 summary row and entry marked not in current scope (CM5/Pi 5 dropped, ADR-004 ACCEPTED (CM4)), its Retire-by line marked not run in current scope; RISK-014 scope note (stays in scope for the CM4 audio path; CM5 parts out of scope). | Claude (session 2026-10-12) |
+| 2026-10-12 | RISK-002: research topic L evidence added (official capacity still 1080p30 [L-29]; Raspberry Pi engineers' opinion and the shared H264 block, community [L-30], [L-31]; one firmware component per session, scheduling in firmware [L-23], [L-24], [L-25], [L-27]; two 1080p60 encodes are 4.0× the specification, reasoning). Retire-by note: TEST-ENC-001 Stage 0 narrows the risk but does not retire it. Status and severity unchanged. | Claude (session 2026-10-12) |

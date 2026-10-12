@@ -1,9 +1,9 @@
 # PACSCORDER Source Register (REFERENCES.md)
 | | |
 |---|---|
-| Document status | Active — topics A–G generated 2026-10-06; topics H, I, J and K appended 2026-10-08 (existing entries unchanged) |
+| Document status | Active — topics A–G generated 2026-10-06; topics H, I, J and K appended 2026-10-08; topic L appended 2026-10-12 (existing entries unchanged) |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 22 (unknowns), Rule 23 (source priority) |
-| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I), [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json) (J, K) |
+| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I), [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json) (J, K), [research/2026-10-12-bitrate-network-encoder-research.json](research/2026-10-12-bitrate-network-encoder-research.json) (L) |
 
 Every technical fact used in the PACSCORDER documentation is cited by an ID from this register, for example `[C-37]`.
 
@@ -40,6 +40,7 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 - **2026-10-09 — [K-26] Evidence line.** It gives "(K-29)" as the source of the GOP-60 input; the verifier note corrects this to [K-30], which the corrected Fact already uses.
 - **2026-10-09 — Tier labels to read with care.** [K-36] is tiered `kernel-source`, but its source is kernel documentation (`mmap.rst`), and its second sentence is labelled REASONING; cite the first sentence as kernel documentation and the second as reasoning. [K-37] and [I-37] are tiered `vendor-other` ("official documentation"), but their source is GStreamer source code (`gstv4l2src.c`). [K-35]'s Fact does not name the timestamp clock (only its Evidence does); [I-33] states it. [K-31] and [K-32] are tiered `kernel-source`, but part of each Fact comes from GStreamer source (`gstv4l2videoenc.c`), and [K-32] also cites a raspberrypi/linux issue; read the GStreamer part as GStreamer source.
 - **2026-10-09 — MediaMTX tiers differ between topics.** [F-44] and [F-45] (MediaMTX's own README, configuration and documentation) are tiered `community`; [K-03], [K-04], [K-05], [K-21], [K-24] and [K-41] to [K-44] cite the same kind of MediaMTX source and are tiered `vendor-other`. Neither tier is ranked by Rule 23. Documents attribute every such statement to MediaMTX ("MediaMTX documents…", "reported by MediaMTX"), so the difference does not change any wording rule.
+- **2026-10-12 — Topic L appended.** Researched for the desk-resolvable parts of OQ-073 (H.264 level bit-rate ceilings, from ITU-T H.264 itself rather than FFmpeg's table), OQ-098 (CM4 and CM4 IO Board Ethernet), OQ-115 (kernel-source inspection of `bcm2835-codec` concurrency) and the commands needed for the encoder-only stage of TEST-ENC-001. Claims L-30, L-31, L-33, L-34 and L-35 are forum posts that the researcher read through WebFetch extraction (the forum blocks direct download); see each entry's verdict.
 
 ## Source tiers
 
@@ -68,7 +69,8 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 | [I — HDMI audio capture path: TC358743 → I2S → ALSA → AAC/Opus (research of 2026-10-08)](#topic-i) | 47 | 46 | 1 | 0 | 0 |
 | [J — Recording storage on CM4/CM5: PCIe NVMe, USB-to-SATA HDD, filesystems, power-loss-safe MP4 (research of 2026-10-08)](#topic-j) | 45 | 39 | 6 | 0 | 0 |
 | [K — Sub-second live latency: WebRTC/WHEP, RTMP/HLS, encoder and capture latency (research of 2026-10-08)](#topic-k) | 45 | 39 | 6 | 0 | 0 |
-| **Total** | 557 | 512 | 45 | 0 | 0 |
+| [L — H.264 level bitrate ceilings, CM4 Ethernet, bcm2835-codec encoder concurrency and encoder-test commands (research of 2026-10-12)](#topic-l) | 63 | 56 | 7 | 0 | 0 |
+| **Total** | 620 | 568 | 52 | 0 | 0 |
 
 Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); the raw lists are kept in the JSON file linked above.
 
@@ -5300,3 +5302,588 @@ Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIO
 - **Evidence:** Inputs: (a) capture from frame start to frame end is about 1 frame at 30p = 33.3 ms (K-34/K-35); (b) zero extra frames waiting in V4L2/GStreamer queues if the consumer keeps up, each queued frame adding 33.3 ms (K-36); (c) CM4 hardware encode at 1080p: 10 ms at 720p (3600 macroblocks, K-33) x 8160/3600 macroblocks = about 23 ms (extrapolated, unverified); (d) x264 zerolatency holds back 0 frames (K-28), but its per-frame compute time on BCM2712 is undocumented; (e) MediaMTX relay, LAN transit, browser jitter buffer and decode/render are undocumented here. 33.3 + 23 = about 56 ms documented or extrapolated. Not a measurement: glass-to-glass must be tested.
 - **Original claim (before verification):** REASONING (labelled budget): the documented or extrapolated contributions for a CM4 1080p30 WebRTC/WHEP viewer on a LAN add up to about 60 ms, leaving about 940 ms of the 1 s target for the undocumented parts (HDMI source, TC358743, MediaMTX relay, network, browser jitter buffer, decode and render). On CM5 the encode term is unknown until per-frame x264 time is measured.
 - **Verifier note:** Arithmetic re-checked. 720p = 80x45 = 3600 MBs; 1080p coded = 120x68 = 8160 MBs; ratio 2.267. 10 ms x 2.267 = 22.7 ms; 33.3 + 22.7 = 56 ms, so 'about 60 ms / 940 ms' was a rounding of 56 / 944. Added the worst-case scaling (33.3 + 41.9 = 75 ms) and the shared-encoder caveat: two 1080p30 encodes on hardware specified for 1080p30 is a contention risk. Linear scaling with macroblocks is 6by9's qualitative statement, not a measured curve.
+
+## Topic L
+
+**H.264 level bitrate ceilings, CM4 Ethernet, bcm2835-codec encoder concurrency and encoder-test commands (research of 2026-10-12)** — <a id="topic-l"></a>63 claims. Added 2026-10-12 (session 2026-10-12; researcher + two independent adversarial verifiers).
+
+### L-01
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, level-limits
+- **Fact:** ITU-T H.264 (V16, 06/2026) Table A-1 gives, for Level 3.1: MaxMBPS = 108 000 MB/s, MaxFS = 3 600 MBs, MaxBR = 14 000 and MaxCPB = 14 000. MaxBR is expressed in units of 1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s or cpbBrNalFactor bits/s, and MaxCPB in units of 1000 bits, 1200 bits, cpbBrVclFactor bits or cpbBrNalFactor bits, depending on profile and on VCL vs NAL HRD (see L-06, L-07).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Table A-1 column headers (printed p.298, PDF p.322): 'Level number' | 'Max macroblock processing rate MaxMBPS (MB/s)' | 'Max frame size MaxFS (MBs)' | 'Max decoded picture buffer size MaxDpbMbs (MBs)' | 'Max video bit rate MaxBR (1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s, or cpbBrNalFactor bits/s)' | 'Max CPB size MaxCPB (1000 bits, 1200 bits, cpbBrVclFactor bits, or cpbBrNalFactor bits)' | 'Vertical MV component limit MaxVmvR' | 'Min compression ratio MinCR' | 'MaxMvsPer2Mb'. Row as extracted: "3.1 108 000 3 600 18 000 14 000 14 000 512 4 16" (columns: level, MaxMBPS, MaxFS, MaxDpbMbs, MaxBR, MaxCPB, MaxVmvR, MinCR, MaxMvsPer2Mb).
+
+### L-02
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, level-limits
+- **Fact:** ITU-T H.264 (V16, 06/2026) Table A-1 gives, for Level 3.2: MaxMBPS = 216 000 MB/s, MaxFS = 5 120 MBs, MaxBR = 20 000 and MaxCPB = 20 000. MaxBR is expressed in units of 1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s or cpbBrNalFactor bits/s, and MaxCPB in units of 1000 bits, 1200 bits, cpbBrVclFactor bits or cpbBrNalFactor bits, depending on profile and on VCL vs NAL HRD (see L-06, L-07).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Table A-1 column headers (printed p.298, PDF p.322): 'Level number' | 'Max macroblock processing rate MaxMBPS (MB/s)' | 'Max frame size MaxFS (MBs)' | 'Max decoded picture buffer size MaxDpbMbs (MBs)' | 'Max video bit rate MaxBR (1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s, or cpbBrNalFactor bits/s)' | 'Max CPB size MaxCPB (1000 bits, 1200 bits, cpbBrVclFactor bits, or cpbBrNalFactor bits)' | 'Vertical MV component limit MaxVmvR' | 'Min compression ratio MinCR' | 'MaxMvsPer2Mb'. Row as extracted: "3.2 216 000 5 120 20 480 20 000 20 000 512 4 16" (columns: level, MaxMBPS, MaxFS, MaxDpbMbs, MaxBR, MaxCPB, MaxVmvR, MinCR, MaxMvsPer2Mb).
+
+### L-03
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, level-limits
+- **Fact:** ITU-T H.264 (V16, 06/2026) Table A-1 gives, for Level 4 (4.0): MaxMBPS = 245 760 MB/s, MaxFS = 8 192 MBs, MaxBR = 20 000 and MaxCPB = 25 000. MaxBR is expressed in units of 1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s or cpbBrNalFactor bits/s, and MaxCPB in units of 1000 bits, 1200 bits, cpbBrVclFactor bits or cpbBrNalFactor bits, depending on profile and on VCL vs NAL HRD (see L-06, L-07).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Table A-1 column headers (printed p.298, PDF p.322): 'Level number' | 'Max macroblock processing rate MaxMBPS (MB/s)' | 'Max frame size MaxFS (MBs)' | 'Max decoded picture buffer size MaxDpbMbs (MBs)' | 'Max video bit rate MaxBR (1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s, or cpbBrNalFactor bits/s)' | 'Max CPB size MaxCPB (1000 bits, 1200 bits, cpbBrVclFactor bits, or cpbBrNalFactor bits)' | 'Vertical MV component limit MaxVmvR' | 'Min compression ratio MinCR' | 'MaxMvsPer2Mb'. Row as extracted: "4 245 760 8 192 32 768 20 000 25 000 512 4 16" (columns: level, MaxMBPS, MaxFS, MaxDpbMbs, MaxBR, MaxCPB, MaxVmvR, MinCR, MaxMvsPer2Mb).
+
+### L-04
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, level-limits
+- **Fact:** ITU-T H.264 (V16, 06/2026) Table A-1 gives, for Level 4.1: MaxMBPS = 245 760 MB/s, MaxFS = 8 192 MBs, MaxBR = 50 000 and MaxCPB = 62 500. MaxBR is expressed in units of 1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s or cpbBrNalFactor bits/s, and MaxCPB in units of 1000 bits, 1200 bits, cpbBrVclFactor bits or cpbBrNalFactor bits, depending on profile and on VCL vs NAL HRD (see L-06, L-07).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Table A-1 column headers (printed p.298, PDF p.322): 'Level number' | 'Max macroblock processing rate MaxMBPS (MB/s)' | 'Max frame size MaxFS (MBs)' | 'Max decoded picture buffer size MaxDpbMbs (MBs)' | 'Max video bit rate MaxBR (1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s, or cpbBrNalFactor bits/s)' | 'Max CPB size MaxCPB (1000 bits, 1200 bits, cpbBrVclFactor bits, or cpbBrNalFactor bits)' | 'Vertical MV component limit MaxVmvR' | 'Min compression ratio MinCR' | 'MaxMvsPer2Mb'. Row as extracted: "4.1 245 760 8 192 32 768 50 000 62 500 512 2 16" (columns: level, MaxMBPS, MaxFS, MaxDpbMbs, MaxBR, MaxCPB, MaxVmvR, MinCR, MaxMvsPer2Mb).
+
+### L-05
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, level-limits
+- **Fact:** ITU-T H.264 (V16, 06/2026) Table A-1 gives, for Level 4.2: MaxMBPS = 522 240 MB/s, MaxFS = 8 704 MBs, MaxBR = 50 000 and MaxCPB = 62 500. MaxBR is expressed in units of 1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s or cpbBrNalFactor bits/s, and MaxCPB in units of 1000 bits, 1200 bits, cpbBrVclFactor bits or cpbBrNalFactor bits, depending on profile and on VCL vs NAL HRD (see L-06, L-07).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Table A-1 column headers (printed p.298, PDF p.322): 'Level number' | 'Max macroblock processing rate MaxMBPS (MB/s)' | 'Max frame size MaxFS (MBs)' | 'Max decoded picture buffer size MaxDpbMbs (MBs)' | 'Max video bit rate MaxBR (1000 bits/s, 1200 bits/s, cpbBrVclFactor bits/s, or cpbBrNalFactor bits/s)' | 'Max CPB size MaxCPB (1000 bits, 1200 bits, cpbBrVclFactor bits, or cpbBrNalFactor bits)' | 'Vertical MV component limit MaxVmvR' | 'Min compression ratio MinCR' | 'MaxMvsPer2Mb'. Row as extracted: "4.2 522 240 8 704 34 816 50 000 62 500 512 2 16" (columns: level, MaxMBPS, MaxFS, MaxDpbMbs, MaxBR, MaxCPB, MaxVmvR, MinCR, MaxMvsPer2Mb).
+
+### L-06
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, Baseline, Constrained Baseline, Main, level-limits
+- **Fact:** For the Baseline, Constrained Baseline, Main and Extended profiles the bit-rate/CPB factors are NOT in Table A-2: clause A.3.1 items i) and j) fix them directly at 1000 for VCL HRD (BitRate <= 1000 * MaxBR, CpbSize <= 1000 * MaxCPB) and 1200 for NAL HRD (BitRate <= 1200 * MaxBR, CpbSize <= 1200 * MaxCPB).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Clause A.3.1 'Level limits common to the Baseline, Constrained Baseline, Main, and Extended profiles' (printed p.296-297): "i) For the VCL HRD parameters, BitRate[ SchedSelIdx ] <= 1000 * MaxBR and CpbSize[ SchedSelIdx ] <= 1000 * MaxCPB for at least one value of SchedSelIdx" ... "MaxBR and MaxCPB are specified in Table A-1 in units of 1000 bits/s and 1000 bits, respectively." and "j) For the NAL HRD parameters, BitRate[ SchedSelIdx ] <= 1200 * MaxBR and CpbSize[ SchedSelIdx ] <= 1200 * MaxCPB for at least one value of SchedSelIdx" ... (p.297) "MaxBR and MaxCPB are specified in Table A-1 in units of 1200 bits/s and 1200 bits, respectively."
+
+### L-07
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, High, level-limits
+- **Fact:** For the High, Progressive High and Constrained High profiles, clause A.3.3 items g) (VCL) and h) (NAL) bound BitRate by cpbBrVclFactor * MaxBR and cpbBrNalFactor * MaxBR, and Table A-2 sets cpbBrVclFactor = 1 250 and cpbBrNalFactor = 1 500 for those three profiles (High 10 family: 3 000 / 3 600; High 4:2:2 and 4:4:4 families: 4 000 / 4 800).
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Clause A.3.3 'Profile-specific level limits' (printed p.300-301): "g) In bitstreams conforming to the High , Progressive  High, Constrained  High, High 10, ... profiles, for the VCL HRD parameters, BitRate[  SchedSelIdx ] <= cpbBrVclFactor * MaxBR and CpbSize[ SchedSelIdx ] <= cpbBrVclFactor * MaxCPB for at least one value of SchedSelIdx, where cpbBrVclFactor is specified in Table A-2"; "h) ... for the NAL HRD parameters, BitRate[  SchedSelIdx ] <= cpbBrNalFactor * MaxBR and CpbSize[ SchedSelIdx ] <= cpbBrNalFactor * MaxCPB ... where cpbBrNalFactor is specified in Table A-2". Table A-2 'Specification of cpbBrVclFactor and cpbBrNalFactor' (printed p.302, PDF p.326) as extracted: "Profile cpbBrVclFactor cpbBrNalFactor / High / Progressive High / Constrained High / 1 250 1 500 / High 10 / Progressive High 10 / High 10 Intra / 3 000 3 600 / High 4:2:2 / High 4:2:2 Intra 4 000 4 800 / High 4:4:4 Predictive / High 4:4:4 Intra / CAVLC 4:4:4 Intra / 4 000 4 800".
+
+### L-08
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, HRD, level-limits
+- **Fact:** When the bit_rate_value_minus1[ SchedSelIdx ] syntax element is not present (no explicit HRD bit rate), ITU-T H.264 (06/2026) clause E.2.2 infers BitRate[ SchedSelIdx ] = 1000 * MaxBR for VCL HRD and 1200 * MaxBR for NAL HRD when profile_idc is 66, 77 or 88 (Baseline/Constrained Baseline, Main, Extended), and cpbBrVclFactor * MaxBR (VCL) / cpbBrNalFactor * MaxBR (NAL) otherwise; CpbSize[ SchedSelIdx ] is inferred the same way from MaxCPB. Consequently, a bitstream without HRD parameters meets the BitRate/CpbSize limits of A.3.1 i)/j) and A.3.3 g)/h) by definition, and its HRD behaviour is evaluated with BitRate and CpbSize set at the level ceiling (the encoder's nominal target bitrate is not itself a level-conformance parameter). E.2.1 NOTE 14 and NOTE 15 add that, when nal_hrd_parameters_present_flag (or vcl_hrd_parameters_present_flag) is 0, conformance of the bitstream cannot be verified without the HRD parameters and all buffering period SEI messages (and, if both flags are 0, all picture timing SEI messages) being provided by some means not specified in the Recommendation.
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Clause E.2.2 'HRD parameters semantics' (printed p.447): "When the bit_rate_value_minus1[ SchedSelIdx ] syntax element is not present, the value of BitRate[ SchedSelIdx ] shall be inferred as follows: – If profile_idc is equal to 66, 77, or 88, BitRate[  SchedSelIdx ] shall be inferred to be equal to 1000  * MaxBR for VCL HRD parameters and to be equal to 1200  * MaxBR for NAL HRD parameters, where MaxBR is specified in clause A.3.1. – Otherwise, BitRate[  SchedSelIdx ] shall be inferred to be equal to cpbBrVclFactor  * MaxBR for VCL HRD parameters and to be equal to cpbBrNalFactor  * MaxBR for NAL HRD parameters". Same pattern for CpbSize: "If profile_idc is equal to 66, 77, or 88, CpbSize[  SchedSelIdx ] shall be inferred to be equal to 1000  * MaxCPB for VCL HRD parameters and to be equal to 1200  * MaxCPB for NAL HRD parameters". The last sentence of the statement is an interpretation of A.3.1 i)/j) + E.2.2.
+- **Original claim (before verification):** When an H.264 bitstream carries no bit_rate_value_minus1 (i.e. no explicit HRD bit rate), BitRate is inferred as 1000 * MaxBR (VCL) / 1200 * MaxBR (NAL) for profile_idc 66, 77 or 88 (Baseline/Constrained Baseline, Main, Extended) and as cpbBrVclFactor * MaxBR / cpbBrNalFactor * MaxBR for other profiles; CpbSize is inferred the same way from MaxCPB. Level conformance is therefore evaluated against an HRD running at the level ceiling, not against the encoder's target bitrate.
+- **Verifier note:** Downloaded https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.264-202606-I!!PDF-E&type=items on 2026-10-12: 15 530 891 bytes, 854 pages, sha256 028cf2cf...1b79; cover/running header 'Rec. ITU-T H.264 (V16) (06/2026)'; rec page shows 'Approved in 2026-06-13, Status: In force', PDF posted 2026-07-28; T-REC-H.264 list shows H.264 (06/26) as the only in-force edition. Text extracted with pypdf. E.2.2 'HRD parameters semantics' (printed p.447, PDF p.471) seen verbatim: 'When the bit_rate_value_minus1[ SchedSelIdx ] syntax element is not present, the value of BitRate[ SchedSelIdx ] shall be inferred as follows: - If profile_idc is equal to 66, 77, or 88, BitRate[ SchedSelIdx ] shall be inferred to be equal to 1000 * MaxBR for VCL HRD parameters and to be equal to 1200 * MaxBR for NAL HRD parameters ... - Otherwise, ... cpbBrVclFactor * MaxBR ... cpbBrNalFactor * MaxBR'; same pattern for CpbSize/MaxCPB. The normative part of the claim is correct. Correction is to the final interpretive sentence ('Level conformance is therefore evaluated against an HRD running at the level ceiling'): it omits that A.3.1 i)/j) state that when the *_hrd_parameters_present_flag is 0 BitRate/CpbSize 'are inferred as specified in clause E.2.2', which makes the bit-rate/CPB limit trivially satisfied, and it omits E.2.1 NOTE 14/NOTE 15 (printed p.444, PDF p.468): 'When nal_hrd_parameters_present_flag is equal to 0, the conformance of the bitstream cannot be verified without provision of the NAL HRD parameters and all buffering period SEI messages, and, when vcl_hrd_parameters_present_flag is also equal to 0, all picture timing SEI messages, by some means not specified in this Recommendation | International Standard.' Final statement rewritten to stay within the text.
+
+### L-09
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** H.264, 1080p, level-limits
+- **Fact:** Informative Table A-6 of ITU-T H.264 (06/2026) lists the '1080 HD' format as 1920x1088 luma samples = 8 160 macroblocks, with maximum frame rates of 30.1 fps at Level 4, 30.1 fps at Level 4.1 and 64.0 fps at Level 4.2.
+- **Source:** Rec. ITU-T H.264 (V16) (06/2026) Advanced video coding for generic audiovisual services (free PDF T-REC-H.264-202606-I!!PDF-E, 15 530 891 bytes, posted 2026-07-28; listed as the only 'In force' edition on https://www.itu.int/rec/T-REC-H.264) — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Text extracted from the PDF with pypdf; spacing artefacts reproduced as extracted. Clause A.3.4 'Effect of level limits on frame rate (informative)', "Table A-6 (continued) – Maximum frame rates (frames per second) for some example frame sizes" (printed p.306, PDF p.330): header "Level:     2.2 3 3.1 3.2 4 4.1 4.2"; row "1080 HD 1920 1088 8 160 2 088 960 - - - - 30.1 30.1 64.0".
+
+### L-10
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** H.264, High, level-limits
+- **Fact:** REASONING: Maximum H.264 High-profile bit rates are: Level 4.0 VCL 25 000 000 bit/s, NAL 30 000 000 bit/s; Level 4.1 VCL 62 500 000 bit/s, NAL 75 000 000 bit/s; Level 4.2 VCL 62 500 000 bit/s, NAL 75 000 000 bit/s. Corresponding max CPB sizes: L4.0 VCL 31 250 000 bits / NAL 37 500 000 bits; L4.1 and L4.2 VCL 78 125 000 bits / NAL 93 750 000 bits.
+- **Source:** Calculation from Rec. ITU-T H.264 (06/2026) Table A-1 and Table A-2 — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Inputs: MaxBR L4.0 = 20 000, L4.1 = 50 000, L4.2 = 50 000; MaxCPB L4.0 = 25 000, L4.1 = 62 500, L4.2 = 62 500 (L-03, L-04, L-05). High cpbBrVclFactor = 1 250, cpbBrNalFactor = 1 500 (L-07). Arithmetic: 1250 x 20000 = 25 000 000; 1500 x 20000 = 30 000 000; 1250 x 50000 = 62 500 000; 1500 x 50000 = 75 000 000; 1250 x 25000 = 31 250 000; 1500 x 25000 = 37 500 000; 1250 x 62500 = 78 125 000; 1500 x 62500 = 93 750 000.
+
+### L-11
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** H.264, Constrained Baseline, Main, level-limits
+- **Fact:** REASONING: Maximum H.264 bit rates for Constrained Baseline and Main (factor 1000 VCL / 1200 NAL) are: Level 4.0 VCL 20 000 000 bit/s, NAL 24 000 000 bit/s; Level 4.1 VCL 50 000 000 bit/s, NAL 60 000 000 bit/s; Level 4.2 VCL 50 000 000 bit/s, NAL 60 000 000 bit/s. Max CPB: L4.0 VCL 25 000 000 bits / NAL 30 000 000 bits; L4.1 and L4.2 VCL 62 500 000 bits / NAL 75 000 000 bits.
+- **Source:** Calculation from Rec. ITU-T H.264 (06/2026) Table A-1 and clause A.3.1 — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Inputs: MaxBR L4.0 = 20 000, L4.1 = 50 000, L4.2 = 50 000; MaxCPB 25 000 / 62 500 / 62 500 (L-03, L-04, L-05). Factors 1000 (VCL) and 1200 (NAL) for Baseline/Constrained Baseline/Main/Extended (L-06). Arithmetic: 1000 x 20000 = 20 000 000; 1200 x 20000 = 24 000 000; 1000 x 50000 = 50 000 000; 1200 x 50000 = 60 000 000; 1000 x 25000 = 25 000 000; 1200 x 25000 = 30 000 000; 1000 x 62500 = 62 500 000; 1200 x 62500 = 75 000 000.
+
+### L-12
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** H.264, High, CM4, recording, level-limits
+- **Fact:** REASONING: (a) A 25 Mbit/s (25 000 000 bit/s) VBR High-profile recording encode signalled as Level 4.2 fits under MaxBR: it is 40% of the High L4.2 VCL ceiling (62 500 000 bit/s) and 33.3% of the NAL ceiling (75 000 000 bit/s). The same 25 000 000 bit/s is exactly equal to the High Level 4.0 VCL ceiling (zero margin) and exceeds the Constrained Baseline/Main Level 4.0 VCL ceiling (20 000 000 bit/s). Caveats: conformance is judged on the HRD model (BitRate/CpbSize, inferred per L-08 if the encoder writes no HRD parameters), so VBR short-term peaks must also fit the CPB (High L4.2 VCL CPB 78 125 000 bits); whether the bcm2835 encoder's VBR peaks stay inside that model is HARDWARE TEST REQUIRED.
+- **Source:** Calculation from Rec. ITU-T H.264 (06/2026) Tables A-1/A-2 — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Inputs: High VCL/NAL ceilings L4.2 = 62 500 000 / 75 000 000 bit/s, L4.0 VCL = 25 000 000 bit/s, CPB L4.2 VCL = 78 125 000 bits (L-10); CB/Main L4.0 VCL = 20 000 000 bit/s (L-11); HRD inference (L-08). Project inputs (not re-sourced here): 25 Mbit/s VBR recording target; encoder bitrate control maximum 25 000 000 bps (register D-13). Arithmetic: 25 000 000 / 62 500 000 = 0.40; 25 000 000 / 75 000 000 = 0.333; 25 000 000 / 25 000 000 = 1.00.
+
+### L-13
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** H.264, Constrained Baseline, Main, High, live, level-limits
+- **Fact:** REASONING: (b) A 17 Mbit/s (17 000 000 bit/s) CBR live encode fits under MaxBR at Level 4.0, 4.1 and 4.2 in Constrained Baseline, Main and High. Utilisation of the VCL ceiling: CB/Main L4.0 85.0% (NAL 70.8%); High L4.0 68.0% (NAL 56.7%); CB/Main L4.1 or L4.2 34.0% (NAL 28.3%); High L4.1 or L4.2 27.2% (NAL 22.7%). The tightest case is Constrained Baseline/Main at Level 4.0 (3 000 000 bit/s VCL headroom).
+- **Source:** Calculation from Rec. ITU-T H.264 (06/2026) Tables A-1/A-2 — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Inputs: CB/Main VCL/NAL ceilings L4.0 20 000 000 / 24 000 000, L4.1-4.2 50 000 000 / 60 000 000 (L-11); High VCL/NAL ceilings L4.0 25 000 000 / 30 000 000, L4.1-4.2 62 500 000 / 75 000 000 (L-10). Project input (not re-sourced): 17 Mbit/s CBR live target. Arithmetic: 17/20 = 0.850; 17/24 = 0.708; 17/25 = 0.680; 17/30 = 0.567; 17/50 = 0.340; 17/60 = 0.283; 17/62.5 = 0.272; 17/75 = 0.227.
+
+### L-14
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** H.264, 1080p60, CM4, level-limits
+- **Fact:** REASONING: A 1920x1080 progressive encode occupies 8 160 macroblocks per frame; at 60 fps that is 489 600 MB/s (59.94 fps: about 489 111 MB/s; 50 fps: 408 000 MB/s), which exceeds MaxMBPS 245 760 of Levels 4.0 and 4.1 and fits Level 4.2 (522 240). At 30 fps it is 244 800 MB/s, which fits Level 4.0. Therefore any 1080p50/1080p60 encode must be signalled as Level 4.2 (or higher), while the bcm2835-codec default level is 4.0 (register D-12).
+- **Source:** Calculation from Rec. ITU-T H.264 (06/2026) Tables A-1/A-6 — <https://www.itu.int/rec/T-REC-H.264-202606-I/en>
+- **Evidence:** Inputs: 1080 HD = 1920x1088 = 8 160 MBs (L-09); MaxMBPS L4.0 = 245 760, L4.1 = 245 760, L4.2 = 522 240 (L-03, L-04, L-05); MaxFS 8 192 (L4.0/4.1) and 8 704 (L4.2) both >= 8 160 (L-03..L-05). Arithmetic: 8160 x 60 = 489 600; 8160 x 60000/1001 = 489 110.9; 8160 x 50 = 408 000; 8160 x 30 = 244 800. Cross-check: Table A-6 gives 30.1 fps (L4, L4.1) and 64.0 fps (L4.2) for 1080 HD (L-09). Default level 4.0 is register item D-12 (not re-sourced).
+
+### L-15
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, Ethernet, PHY
+- **Fact:** The CM4 carries an on-board Gigabit Ethernet PHY, the Broadcom BCM54210PE. The datasheet's pinout LED descriptions refer to 1Gbit, 100Mbit and 10Mbit links (i.e. 10/100/1000 operation is implied by the pin descriptions; no explicit speed table is given).
+- **Source:** Raspberry Pi Compute Module 4 Datasheet (Release 4, build date 30/06/2026) — <https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf>
+- **Evidence:** Section 2.2 'Ethernet' (PDF p.6, printed p.5): "The CM4 has an on-board Gigabit Ethernet PHY — the Broadcom BCM54210PE — some of the major features of this PHY include;". Section 1.2 Features (PDF p.5, printed p.4): "• Gigabit Ethernet PHY supporting IEEE 1588". Table 6 Pinout (PDF p.17, printed p.16): pin 17 "Ethernet_nLED2 Active-low Ethernet speed indicator ... A low state indicates the 1Gbit or 100Mbit link"; pin 19 "Ethernet_nLED1 Active-low Ethernet speed indicator ... A low state indicates the 1Gbit or 10Mbit link".
+
+### L-16
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, Ethernet, IEEE 1588, PTP
+- **Fact:** The CM4 Ethernet PHY is IEEE 1588-2008 compliant and exposes Ethernet_SYNC_IN (pin 16) and Ethernet_SYNC_OUT (pin 18) at 3.3 V signalling for IEEE 1588.
+- **Source:** Raspberry Pi Compute Module 4 Datasheet (Release 4, build date 30/06/2026) — <https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf>
+- **Evidence:** Section 2.2 (PDF p.6): "• IEEE 1588-2008 compliant"; (PDF p.7, printed p.6): "The PHY also provides SYNC_IN and SYNC_OUT at 3.3V signalling to support IEEE 1588-2008." Table 6 (PDF p.17): "16 Ethernet_SYNC_IN IEEE1588 SYNC Input pin (CM4_3.3V signal: IOL = 8mA @ VOL < 0.4V)"; "18 Ethernet_SYNC_OUT IEEE1588 SYNC Output pin (CM4_3.3V signal: IOL = 8mA @ VOL < 0.4V)".
+
+### L-17
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, CM4Lite, Ethernet, variants
+- **Fact:** Ethernet is not a variant option on CM4: the CM4 datasheet states that, unless otherwise stated, 'CM4' also refers to CM4Lite and describes the on-board Gigabit Ethernet PHY without qualification; the CM4 product brief (July 2026) marks wireless as 'Optional' and RAM/eMMC as options but lists 'Onboard Gigabit Ethernet PHY supporting IEEE1588' unconditionally. The brief's two ordering tables (standard parts, and extended-temperature -40 to +85 degC 'ET' parts) vary only wireless, RAM and eMMC (the ET table additionally being the extended-temperature range); neither table has an Ethernet column. No CM4 variant without Ethernet is listed (inference from these lists; there is no explicit sentence that all variants have Ethernet).
+- **Source:** Raspberry Pi Compute Module 4 Product Brief (published July 2026) — <https://datasheets.raspberrypi.com/cm4/cm4-product-brief.pdf>
+- **Evidence:** Product brief p.3 'Specification': "Connectivity Optional wireless LAN, 2.4GHz and 5.0GHz IEEE 802.11b/g/n/ac wireless, Bluetooth 5.0, BLE with onboard and external antenna options / Onboard Gigabit Ethernet PHY supporting IEEE1588"; p.4-5 'Pricing' table columns "Part Number Wireless RAM eMMC Price*" (e.g. "CM4001000 0GB (Lite)", "CM4108064 64GB") — no Ethernet column. CM4 datasheet (https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf) PDF p.4: "Note Unless otherwise stated, for this document CM4 also refers to CM4Lite."; Section 2.2: "The CM4 has an on-board Gigabit Ethernet PHY". Statement that no variant lacks Ethernet is an inference from these lists (no explicit sentence 'all variants have Ethernet').
+- **Original claim (before verification):** Ethernet is not a variant option on CM4: the datasheet applies to CM4Lite unless stated otherwise and states the on-board Gigabit PHY without qualification, while the product brief marks wireless as 'Optional' and eMMC/RAM as options but lists 'Onboard Gigabit Ethernet PHY supporting IEEE1588' unconditionally; the ordering table varies only wireless, RAM and eMMC. No CM4 variant without Ethernet is listed.
+- **Verifier note:** Downloaded cm4-product-brief.pdf ('Published July 2026', 8 PDF pages) and cm4-datasheet.pdf (Release 4, build 30/06/2026). Brief PDF p.3 'Specification': 'Connectivity Optional wireless LAN, 2.4GHz and 5.0GHz IEEE 802.11b/g/n/ac wireless, Bluetooth 5.0, BLE with onboard and external antenna options / Onboard Gigabit Ethernet PHY supporting IEEE1588'; 'Memory Options for 1GB, 2GB, 4GB or 8GB LPDDR4 / Options for 0GB (Lite), 16GB, 32GB or 64GB eMMC flash memory'. PDF p.4-5 'Pricing' table columns 'Part Number Wireless RAM eMMC Price*' (CM4001000 ... CM4108064); PDF p.5 second table 'Extended temperature range variants' columns 'Part Number Wireless RAM eMMC Availability Price' (CM4001000ET ... CM4104016ET). Datasheet PDF p.4: 'Note Unless otherwise stated, for this document CM4 also refers to CM4Lite.'; datasheet section 7.2 defers ordering codes to the product brief. Substance confirmed; minor correction: the brief has two ordering tables (the claim mentions one), and the extended-temperature table also has no Ethernet column.
+
+### L-18
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4 IO Board, Ethernet, PoE
+- **Fact:** The CM4 IO Board provides a Gigabit Ethernet RJ45 using a standard 1:1 magjack that supports PoE; the PoE signals are taken to a header for a PoE HAT, which typically supplies +5 V only, so with PoE-only power the PCIe expansion cards and the fan will not function. The datasheet text is internally inconsistent on the PoE header designator (section 2.4 says J5, section 2.2 says 'PoE J9').
+- **Source:** Raspberry Pi Compute Module 4 IO Board datasheet (build-date 2022-06-07, githash 66d4b42-clean) — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** Chapter 2 Features (PDF p.5): "• Gigabit Ethernet RJ45 with PoE support". Section 2.4 'Gigabit Ethernet RJ45' (PDF p.6): "The Raspberry Pi Compute Module 4 IO Board uses a standard 1:1 Ethernet magjack, which supports PoE as well. Additional ESD protection is provided on the Raspberry Pi Compute Module 4 IO Board as it is typically needed in PoE applications. The PoE signals from the RJ45 connector are connected to J5. Typically a PoE HAT will supply +5V to the Raspberry Pi Compute Module 4 IO Board. As a typical PoE HAT doesn’t generate a +12V power rail, PCIe expansion cards and the fan will not function." Section 2.2 (PDF p.5): "If you want to supply an external +5V supply to the board, e.g. via J20 or via PoE J9, then we recommend that L5 be removed." CM4 IO product brief (https://datasheets.raspberrypi.com/cm4io/cm4io-product-brief.pdf, Oct 2020) p.3: "• Gigabit Ethernet socket supporting PoE HAT", "• Standard Raspberry Pi HAT connectors with PoE support".
+
+### L-19
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** BCM2711, CM4, Ethernet
+- **Fact:** Official Raspberry Pi documentation describes the BCM2711 (used in Pi 4B, CM4, Pi 400) as having a 'natively attached Ethernet controller', in contrast to the PCIe link that connects the USB 2.0/3.0 ports; its I/O list includes an 'onboard Ethernet port'.
+- **Source:** Raspberry Pi documentation — Processors — BCM2711 — <https://www.raspberrypi.com/documentation/computers/processors.html#bcm2711>
+- **Evidence:** Rendered page (WebFetch 2026-10-12) and source https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/processors/bcm2711.adoc (master 62ba0a0c, line 3): "This is the Broadcom chip used in the Raspberry Pi 4 Model B, Compute Module 4, and Raspberry Pi 400. ... It has a greatly improved GPU feature set with much faster input/output, due to the incorporation of a PCIe link that connects the USB 2.0 and USB 3.0 ports, and a natively attached Ethernet controller." Line 17: "*I/O:* PCIe bus, onboard Ethernet port, ...".
+
+### L-20
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** BCM2711, CM4, Ethernet, device-tree
+- **Fact:** In rpi-6.18.y the BCM2711 Ethernet MAC is a memory-mapped on-SoC GENET v5 block (node 'genet: ethernet@7d580000', compatible "brcm,bcm2711-genet-v5", under the SoC 'scb' simple-bus, with its own MDIO controller "brcm,genet-mdio-v5"); the CM4 device tree enables it with phy-mode "rgmii-rxid" to a PHY at MDIO address 0. Nothing in these nodes places the MAC behind USB.
+- **Source:** raspberrypi/linux rpi-6.18.y arch/arm/boot/dts/broadcom/bcm2711.dtsi and bcm2711-rpi-cm4.dts — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/broadcom/bcm2711.dtsi>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). bcm2711.dtsi line 545: "scb {"; lines 587-603: "genet: ethernet@7d580000 { compatible = "brcm,bcm2711-genet-v5"; reg = <0x0 0x7d580000 0x10000>; ... interrupts = <GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>; status = "disabled"; genet_mdio: mdio@e14 { compatible = "brcm,genet-mdio-v5"; ...". https://github.com/raspberrypi/linux/blob/rpi-6.18.y/arch/arm/boot/dts/broadcom/bcm2711-rpi-cm4.dts lines 209-221: "&genet { phy-handle = <&phy1>; phy-mode = "rgmii-rxid"; status = "okay"; }; &genet_mdio { phy1: ethernet-phy@0 { /* No PHY interrupt */ reg = <0x0>; brcm,powerdown-enable; }; };".
+
+### L-21
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** Pi 4, CM4, Ethernet, throughput
+- **Fact:** Official Raspberry Pi documentation states Pi 4 Model B Ethernet as 'Gigabit (1 Gb/s) Ethernet RJ45 with PoE+ support' (a link-rate label) and Pi 3 Model B+ as '300 Mb/s Ethernet RJ45 with PoE support'; no measured/achievable Ethernet throughput figure for Pi 4 or CM4 was found in the official documentation or the CM4 datasheet/product brief.
+- **Source:** Raspberry Pi documentation — Raspberry Pi hardware — Introduction (model table) — <https://www.raspberrypi.com/documentation/computers/raspberry-pi.html>
+- **Evidence:** Rendered page (WebFetch 2026-10-12) shows the same two bullets. Source file https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/raspberry-pi/introduction.adoc (master 62ba0a0c): Raspberry Pi 3 Model B+ entry (lines 118-127): "* 300 Mb/s Ethernet RJ45 with PoE support"; Raspberry Pi 4 Model B entry (lines 147-167): "* Gigabit (1 Gb/s) Ethernet RJ45 with PoE+ support". CM4 datasheet and product brief only say "Gigabit Ethernet PHY" (L-15, L-17). Absence of a throughput figure is a negative search result (see gaps).
+
+### L-22
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** CM4, Ethernet, WebRTC, RTMP, MediaMTX
+- **Fact:** REASONING: PACSCORDER live egress of 5 WebRTC viewers + 1 RTMP destination, each carrying the 17 Mbit/s live encode, is 6 x 17 = 102 Mbit/s of video payload, i.e. 10.2% of a 1000 Mbit/s Gigabit link. This ASSUMES MediaMTX relays the single encode without transcoding (one copy per viewer/destination). Audio, RTP/SRTP/UDP/IP/Ethernet header overhead, TCP/RTMP framing, WebRTC retransmissions (NACK/RTX) and any FEC are NOT included (UNKNOWN). If the link negotiates 100 Mbit/s instead of 1000 Mbit/s, 102 Mbit/s of payload alone exceeds it (102%).
+- **Source:** Calculation using CM4 datasheet link speed — <https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf>
+- **Evidence:** Inputs: Gigabit (1000 Mbit/s) PHY with 100/10 Mbit modes also referenced (L-15); 17 Mbit/s CBR live encode (project input, not re-sourced); viewer/destination count 5 + 1 (research brief). Arithmetic: 6 x 17 = 102 Mbit/s; 102 / 1000 = 0.102; 102 / 100 = 1.02. No official throughput figure exists to compare against (L-21).
+
+### L-23
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, encoder, concurrency
+- **Fact:** In rpi-6.18.y bcm2835-v4l2-codec.c, every open() of the encode node allocates a new per-file context (struct bcm2835_codec_ctx via kzalloc), its own control handler and its own v4l2_m2m context, but does NOT create an MMAL component at open time.
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 3365-3376: "static int bcm2835_codec_open(struct file *file) { struct bcm2835_codec_dev *dev = video_drvdata(file); struct bcm2835_codec_ctx *ctx = NULL; ... ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);"; line 3430: "v4l2_ctrl_handler_init(hdl, 13);" (ENCODE case); line 3566: "ctx->fh.m2m_ctx = v4l2_m2m_ctx_init(dev->m2m_dev, ctx, &queue_init);"; lines 3583-3587: "v4l2_fh_add(&ctx->fh, file); atomic_inc(&dev->num_inst); mutex_unlock(&dev->dev_mutex); return 0;". No call to bcm2835_codec_create_component/vchiq_mmal_component_init in bcm2835_codec_open (lines 3365-3595).
+
+### L-24
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, encoder, MMAL, concurrency
+- **Fact:** Each context gets its own firmware MMAL component "ril.video_encode": it is created lazily in queue_setup (i.e. at the first VIDIOC_REQBUFS on either queue of that file handle) if ctx->component is NULL, enabled in start_streaming, and destroyed (vchiq_mmal_component_finalise) in release().
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 110-112: "static const char * const components[] = { "ril.video_decode", "ril.video_encode","; lines 2668-2675: "static int bcm2835_codec_create_component(struct bcm2835_codec_ctx *ctx) { ... ret = vchiq_mmal_component_init(dev->instance, components[dev->role], &ctx->component);"; lines 2842-2859: "static int bcm2835_codec_queue_setup(struct vb2_queue *vq, ... if (!ctx->component) if (bcm2835_codec_create_component(ctx)) return -EINVAL;"; lines 3056-3062: "if (!ctx->component_enabled) { ret = vchiq_mmal_component_enable(dev->instance, ctx->component);"; lines 3611-3612 (bcm2835_codec_release): "if (ctx->component) vchiq_mmal_component_finalise(dev->instance, ctx->component);".
+
+### L-25
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, encoder, concurrency
+- **Fact:** No limit on the number of simultaneous contexts/components was found in bcm2835-v4l2-codec.c (rpi-6.18.y): the per-device counter num_inst is only initialised, incremented in open() and decremented in release(), never compared against a maximum; the file's only -EBUSY path is S_FMT on a queue that is already busy (vb2_is_busy), not an instance limit.
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). All occurrences of num_inst: line 685 "atomic_t		num_inst;", line 3584 "atomic_inc(&dev->num_inst);", line 3617 "atomic_dec(&dev->num_inst);", line 3792 "atomic_set(&dev->num_inst, 0);". Only EBUSY in file, lines 1620-1622: "if (vb2_is_busy(vq)) { v4l2_err(&ctx->dev->v4l2_dev, "%s queue busy\n", __func__); return -EBUSY;". (grep of the 4026-line file.)
+
+### L-26
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, vchiq-mmal, bcm2835-codec, concurrency
+- **Fact:** vchiq-mmal limits each vchiq_mmal_instance to VCHIQ_MMAL_MAX_COMPONENTS = 64 components (a fixed array; the source comment says this matches the maximum permitted by default on the VPU). On exhaustion vchiq_mmal_component_init returns -EINVAL; a firmware-side creation failure logs 'failed to create component %d (Not enough GPU mem?)'. bcm2835_codec_create_component returns -ENOMEM whenever vchiq_mmal_component_init fails (including slot exhaustion), while later port-format failures in the same function return their own error code; queue_setup turns any create_component failure into -EINVAL (so VIDIOC_REQBUFS fails with EINVAL). Each bcm2835-codec role device (decode, encode, isp, image_fx, encode_image) calls vchiq_mmal_init(), which kzalloc()s a separate vchiq_mmal_instance, so the 64-slot array is per device node (the encode node's array is not shared with decode/ISP); whether the firmware's own limit is global is not stated.
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/staging/vc04_services/vchiq-mmal/mmal-vchiq.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/vchiq-mmal/mmal-vchiq.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). mmal-vchiq.c lines 47-51: "/* * maximum number of components supported. * This matches the maximum permitted by default on the VPU */ #define VCHIQ_MMAL_MAX_COMPONENTS 64"; line 191 (struct vchiq_mmal_instance): "struct vchiq_mmal_component component[VCHIQ_MMAL_MAX_COMPONENTS];"; lines 1898-1908: "for (idx = 0; idx < VCHIQ_MMAL_MAX_COMPONENTS; idx++) { if (!instance->component[idx].in_use) { ... } } if (!component) { ret = -EINVAL;	/* todo is this correct error? */"; line 1919: "pr_err("%s: failed to create component %d (Not enough GPU mem?)\n",". bcm2835-v4l2-codec.c lines 2676-2680: "if (ret < 0) { v4l2_err(... "%s: failed to create component %s\n", ...); return -ENOMEM;"; line 3784 (bcm2835_codec_create, called per role at lines 3940-3956): "ret = vchiq_mmal_init(&device->dev, &dev->instance);".
+- **Original claim (before verification):** vchiq-mmal limits each vchiq_mmal_instance to VCHIQ_MMAL_MAX_COMPONENTS = 64 components (a fixed array; the source comment says this matches the VPU's default maximum). On exhaustion vchiq_mmal_component_init returns -EINVAL; a firmware-side creation failure logs '(Not enough GPU mem?)'. bcm2835-codec maps any component-creation failure to -ENOMEM, which queue_setup turns into -EINVAL. Each bcm2835-codec role device calls vchiq_mmal_init() for its own instance, so the 64-slot array is per device node (the encode node's array is not shared with decode/ISP); whether the firmware's own limit is global is not stated.
+- **Verifier note:** Fetched raw.githubusercontent.com/raspberrypi/linux/rpi-6.18.y/... on 2026-10-12; GitHub API reports branch head 4103a989a461 (2026-10-08T21:46:50Z). bcm2835-v4l2-codec.c is 4026 lines, mmal-vchiq.c 2203 lines. mmal-vchiq.c lines 47-51: '/* * maximum number of components supported. * This matches the maximum permitted by default on the VPU */ #define VCHIQ_MMAL_MAX_COMPONENTS 64'; line 191 in struct vchiq_mmal_instance: 'struct vchiq_mmal_component component[VCHIQ_MMAL_MAX_COMPONENTS];'; lines 1898-1908 slot search then 'if (!component) { ret = -EINVAL; /* todo is this correct error? */'; line 1919 'pr_err("%s: failed to create component %d (Not enough GPU mem?)\n",'; lines 2112-2155 vchiq_mmal_init kzalloc()s a new instance per call. bcm2835-v4l2-codec.c 2674-2680: on vchiq_mmal_component_init failure 'return -ENOMEM;'; but lines 2771 and 2780 'goto destroy_component' after vchiq_mmal_port_set_format failures, and the destroy_component label (2831-2835) 'return ret;' - so not every create_component failure is -ENOMEM. queue_setup (2858-2859) returns -EINVAL on any non-zero. bcm2835_codec_create line 3784 'ret = vchiq_mmal_init(&device->dev, &dev->instance);', called per role at 3940-3956. Correction: 'maps any component-creation failure to -ENOMEM' narrowed to vchiq_mmal_component_init failures.
+
+### L-27
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, concurrency
+- **Fact:** bcm2835-codec's m2m device_run() only submits the available input/output buffers to the firmware component and immediately calls v4l2_m2m_job_finish(); it does not wait for the encode to complete. The v4l2-mem2mem job queue therefore does not hold the encoder exclusively for one context for the duration of a frame — scheduling between concurrent encode contexts happens in the firmware (behaviour not visible in kernel source).
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 1324-1383: "static void device_run(void *priv) { ... ret = vchiq_mmal_submit_buffer(dev->instance, &ctx->component->input[0], &src_m2m_buf->mmal); ... ret = vchiq_mmal_submit_buffer(dev->instance, &ctx->component->output[0], &dst_m2m_buf->mmal); ... /* Complete the job here. */ v4l2_m2m_job_finish(ctx->dev->m2m_dev, ctx->fh.m2m_ctx); }" (job_finish at line 1382). Lines 3574-3579: "/* Set both queues as buffered as we have buffering in the VPU. ...*/ v4l2_m2m_set_src_buffered(ctx->fh.m2m_ctx, true); v4l2_m2m_set_dst_buffered(ctx->fh.m2m_ctx, true);". The second sentence of the statement is an interpretation.
+
+### L-28
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, H.264, level-limits, 1080p60
+- **Fact:** A comment in the rpi-6.18.y bcm2835-codec level mapping states that the hardware spec of the H.264 encoder is Level 4.0 and that Levels 4.1/4.2 (and above) exist for correctly encoding the headers and may not be able to keep up with real time.
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 2229-2242 (bcm2835_codec_set_level_profile): "case V4L2_MPEG_VIDEO_H264_LEVEL_4_0: param.level = MMAL_VIDEO_LEVEL_H264_4; break; /* * Note that the hardware spec is level 4.0. Levels above that * are there for correctly encoding the headers and may not * be able to keep up with real-time. */ case V4L2_MPEG_VIDEO_H264_LEVEL_4_1: param.level = MMAL_VIDEO_LEVEL_H264_41; break; case V4L2_MPEG_VIDEO_H264_LEVEL_4_2: param.level = MMAL_VIDEO_LEVEL_H264_42;".
+
+### L-29
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** CM4, BCM2711, H.264, encoder, concurrency
+- **Fact:** The only official encode-capacity statement found for CM4/BCM2711 is a single figure: 'H.264 (up to 1080p60 decode, 1080p30 encode)'. No official statement on the number of simultaneous H.264 encodes or an aggregate encode rate was found.
+- **Source:** Raspberry Pi Compute Module 4 Datasheet (Release 4, build date 30/06/2026) — <https://datasheets.raspberrypi.com/cm4/cm4-datasheet.pdf>
+- **Evidence:** CM4 datasheet section 1.2 Features (PDF p.4, printed p.3): "• H.265 (HEVC) (up to 4Kp60 decode), H.264 (up to 1080p60 decode, 1080p30 encode)". Same figure in CM4 product brief p.3: "Multimedia H.265 (4Kp60 decode); H.264 (1080p60 decode, 1080p30 encode);" and in https://www.raspberrypi.com/documentation/computers/processors.html#bcm2711 (bcm2711.adoc line 15): "*Multimedia:* H.265 (4Kp60 decode); H.264 (1080p60 decode, 1080p30 encode); OpenGL ES, 3.0 graphics". Absence of a concurrency statement is a negative search result.
+
+### L-30
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** Pi 4, CM4, H.264, encoder, concurrency
+- **Fact:** Community (Raspberry Pi engineer jamesh, forum, 2020-03-05): the Pi 4 has the same H.264 encoder as earlier models but can be clocked higher, 'but probably not enough for two 1080p30 streams'. This is an opinion, not a measurement.
+- **Source:** Raspberry Pi Forums — 'CM4 Carrier Board = 1080p encode limit' (t=267082) — <https://forums.raspberrypi.com/viewtopic.php?t=267082>
+- **Evidence:** Post by jamesh, Thu Mar 05, 2020 2:01 pm, replying to 'is the Rpi4 capable of recoding two 1080x1080 videos simultaneously at, say, 30fps': "The Pi4 has the same H264 encoder as the earlier model, but can be clocked higher" ... "but probably not enough for two 1080p30 streams." (Quotes obtained via WebFetch extraction; the forum is behind a Cloudflare challenge for direct download.)
+
+### L-31
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** Pi 4, CM4, H.264, encoder, concurrency
+- **Fact:** Community (Raspberry Pi engineer 6by9, forum, 2020-03-09): H.264 decodes and encodes load the same 'H264 block' (adding two 1024x1024 decodes and a 2048x1024 encode 'tripled the workload of the H264 block'), and the encoder limit is about 2016/2032 pixels wide and 8192 macroblocks per frame.
+- **Source:** Raspberry Pi Forums — 'CM4 Carrier Board = 1080p encode limit' (t=267082) — <https://forums.raspberrypi.com/viewtopic.php?t=267082>
+- **Evidence:** Post by 6by9, Mon Mar 09, 2020 3:26 pm: "(Technically it's 2016 or 2032 wide that is the limit, and 8192 macroblocks/frame)." and "You've also just tripled the workload of the H264 block with two extra 1024x1024 decodes, and a 2048x1024 encode." (Quotes via WebFetch extraction.)
+
+### L-32
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** CM4, H.264, level-limits, 1080p60
+- **Fact:** Community (commit message by Dave Stevenson of Raspberry Pi, raspberrypi/linux, 2021-03-25, for the bcm2835-camera driver which uses the same firmware encoder): 'Whilst the hardware can't achieve the limits of level 4.2 under all situations, it can exceed level 4.0.' A companion commit added the missing V4L2->MMAL mappings for levels 4.1/4.2 to bcm2835-codec.
+- **Source:** raspberrypi/linux PR #4238 commit 6c6b027a 'staging/bcm2835-camera: Add support for H264 levels 4.1 and 4.2' — <https://github.com/raspberrypi/linux/pull/4238>
+- **Evidence:** GitHub API commits of PR 4238: commit 6c6b027a4892f537980fb44024dfa6d2521ab0c8 (Dave Stevenson, 2021-03-25T18:34:50Z): "staging/bcm2835-camera: Add support for H264 levels 4.1 and 4.2 / Whilst the hardware can't achieve the limits of level 4.2 under all situations, it can exceed level 4.0. / Allow selection of levels 4.1 and 4.2."; commit 11fb4aa1b7641cf6466997ba4a7337d01696e897 (2021-03-25T18:28:40Z): "staging/bcm2835-codec: Fix support for levels 4.1 and 4.2 / The driver said it supported H264 levels 4.1 and 4.2, but was missing the V4L2 to MMAL mappings." Tiered community because it is an engineer's statement in a commit message, not code.
+
+### L-33
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** Pi 4, CM4, bcm2835-codec, H.264, level-limits
+- **Fact:** Community (6by9, forum, 2025-06-16): the bcm2835-codec encoder default is Level 4, which allows up to 245,760 macroblocks/s or 1080p30; a 1440x1080 at 50 fps stream (303,750 MB/s) needs at least Level 4.2. In the same thread a user reported that encoding 1440x1080 at 50 fps on /dev/video11 did not work with the default level while 720x576 at 50 fps did.
+- **Source:** Raspberry Pi Forums — 'gstreamer v4l2convert and v4l2h264enc performance' (t=388862) — <https://forums.raspberrypi.com/viewtopic.php?t=388862>
+- **Evidence:** 6by9, Jun 16, 2025 4:51 pm: "The default is level 4 which is up to 245,760 macroblocks/sec, or 1080p30." and "Your stream is 303,750 macroblocks/sec, so needs at least level 4.2."; test pipeline segment "video/x-raw,format=I420,width=1440,height=1080 ! v4l2h264enc ! video/x-h264,level=\(string\)4,profile=high ! fakesink" ("cores at about 6% load on a Pi4"). platux, Jun 16, 2025 4:12 pm: "I did not manage to encode in H264 on /dev/video11 at 1440x1080 at 50 fps." / "at 720x576 it accepts and actually generates a 50 fps stream." (Quotes via WebFetch extraction.)
+
+### L-34
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** Pi 4, CM4, bcm2835-codec, ISP, concurrency
+- **Fact:** Community (6by9, forum, 2025-06-12): both v4l2convert and v4l2h264enc use the ISP, so running them together contends for the ISP in addition to the encoder.
+- **Source:** Raspberry Pi Forums — 'gstreamer v4l2convert and v4l2h264enc performance' (t=388862) — <https://forums.raspberrypi.com/viewtopic.php?t=388862>
+- **Evidence:** 6by9, Jun 12, 2025 5:36 pm: "Both v4l2convert and v4l2h264enc also use the ISP, so you have contention for that resource too." Also: "Accessing SDRAM is not a zero cost exercise." (Quotes via WebFetch extraction.)
+
+### L-35
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** Pi 4, H.264, encoder, throughput, FFmpeg
+- **Fact:** Community (forum user seanp25, Raspberry Pi 4, 2022-03-26): an FFmpeg transcode of a 1920x1080 file with software decode + h264_v4l2m2m hardware encode ran at 54 fps (speed 2.22x) and with hardware decode + hardware encode at 28 fps (1.18x), both at the FFmpeg default bitrate (~225-279 kbit/s output). This shows decode and encode running concurrently on the codec, not two concurrent encodes; the low bitrate makes it non-representative of 17-25 Mbit/s. No report of two concurrent hardware H.264 encodes with measured fps was found.
+- **Source:** Raspberry Pi Forums — 'h264_v4l2m2m decode and encode at once?' (t=331342) — <https://forums.raspberrypi.com/viewtopic.php?t=331342>
+- **Evidence:** seanp25: "Using rpi4 to re-encode H264 to a lower bitrate." Command "ffmpeg -i big_buck_bunny_1080p_h264.mov -c:v h264_v4l2m2m -an -sn -frames 300 output.mp4" -> "frame=  300 fps= 54 q=-0.0 Lsize=     342kB time=00:00:12.45 bitrate= 224.9kbits/s speed=2.22x"; command "ffmpeg -c:v h264_v4l2m2m -i big_buck_bunny_1080p_h264.mov -c:v h264_v4l2m2m -an -sn -frames 300 output.mp4" -> "frame=  300 fps= 28 q=-0.0 Lsize=     424kB time=00:00:12.45 bitrate= 278.7kbits/s speed=1.18x". 6by9 (Mar 15, 2022) reported decode+encode "works fine" with "ffmpeg -c:v h264_v4l2m2m -i big_buck_bunny_1080p_h264.mov -c:v h264_v4l2m2m -frames 300 -b:v 1M -an foo.mp4". (Quotes via WebFetch extraction.)
+
+### L-36
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, BCM2711, H.264, clocks, config.txt
+- **Fact:** Official config.txt documentation: h264_freq is the 'Frequency of the hardware video block in MHz; individual override of the gpu_freq setting'; its default is 500 MHz for 'CM4 & Pi 4B <= R1.3' (and Pi 4B R1.4, Pi 400), and h264_freq_min (minimum used for dynamic frequency clocking) defaults to 250 MHz for the same column.
+- **Source:** Raspberry Pi documentation — config.txt — Overclocking options — <https://www.raspberrypi.com/documentation/computers/config_txt.html#overclocking>
+- **Evidence:** Source https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/config_txt/overclocking.adoc (master 62ba0a0c) lines 29-30: "| h264_freq | Frequency of the hardware video block in MHz; individual override of the `gpu_freq` setting."; lines 109-113: "This table gives the default values for the options on various Raspberry Pi models, all frequencies are stated in MHz." header "| Option | Pi Zero W | Pi 1 | Pi 2 | Pi 3 | Pi 3A+/Pi 3B+ | CM4 & Pi 4B <= R1.3 | Pi 4B R1.4 | Pi 400 | Pi Zero 2 W | Pi 5/500/500+"; lines 139-149 h264_freq: 300 | 250 | 250 | 400 | 400 | 500 | 500 | 500 | 300 | N/A; lines 235-245 h264_freq_min: 250 (all columns except Pi 5: N/A). Rendered page (WebFetch, offset 100000) shows the same rows: "| `h264_freq` | 300 | 250 | 250 | 400 | 400 | 500 | 500 | 500 | 300 | N/A |".
+
+### L-37
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** CM4, BCM2711, clocks, config.txt, ISP
+- **Fact:** Official config.txt documentation: gpu_freq sets core_freq, h264_freq, isp_freq, v3d_freq and hevc_freq together; for 'CM4 & Pi 4B <= R1.3' the defaults are core_freq 500, isp_freq 500, v3d_freq 500, hevc_freq 500 MHz (core_freq_min 200, gpu_freq_min 250); on Pi 4/400/CM4 the max core_freq is 500 by default and 550 with hdmi_enable_4kp60, and individual settings are recommended over gpu_freq when overclocking.
+- **Source:** Raspberry Pi documentation — config.txt — Overclocking options — <https://www.raspberrypi.com/documentation/computers/config_txt.html#overclocking>
+- **Evidence:** overclocking.adoc (master 62ba0a0c) lines 23-24: "| gpu_freq | Sets `core_freq`, `h264_freq`, `isp_freq`, `v3d_freq` and `hevc_freq` together."; defaults table column 'CM4 & Pi 4B <= R1.3': core_freq 500 (lines 127-137), isp_freq 500 (151-161), v3d_freq 500 (163-173), hevc_freq 500 (175-185), core_freq_min 200 (211-221), gpu_freq_min 250 (223-233); lines 318-330: "==== Specific to Raspberry Pi 4, Raspberry Pi 400 and CM4 ... | Display option | Max `core_freq` | Default | 500 | `hdmi_enable_4kp60` | 550"; line 336: "It is recommended when overclocking to use the individual frequency settings (`isp_freq`, `v3d_freq` etc) rather than `gpu_freq`, because the maximum stable frequency will be different for ISP, V3D, HEVC etc."
+
+### L-38
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, videotestsrc, test
+- **Fact:** GStreamer videotestsrc has an 'is-live' gboolean property ('Whether to act as a live source', default false) and a 'pattern' property (default smpte (0)); it generates data indefinitely unless num-buffers is non-zero, in which case it sends EOS after that many frames.
+- **Source:** GStreamer documentation — videotestsrc — <https://gstreamer.freedesktop.org/documentation/videotestsrc/index.html>
+- **Evidence:** "By default the videotestsrc will generate data indefinitely, but if the num-buffers property is non-zero it will instead generate a fixed number of video frames and then send EOS."; Properties: "is-live “is-live” gboolean Whether to act as a live source ... Default value : false"; "pattern “pattern” GstVideoTestSrcPattern * Type of test pattern to generate ... Default value : smpte (0)"; example "gst-launch-1.0 -v videotestsrc pattern=snow ! video/x-raw,width=1280,height=720 ! autovideosink".
+
+### L-39
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, videotestsrc, test
+- **Fact:** videotestsrc's src pad template can output video/x-raw in formats that include I420, NV12, UYVY and YUY2, with width and height in [1, 2147483647] and framerate in [0/1, 2147483647/1], so size/framerate/format can be fixed with a downstream capsfilter.
+- **Source:** GStreamer documentation — videotestsrc (Pad Templates) — <https://gstreamer.freedesktop.org/documentation/videotestsrc/index.html>
+- **Evidence:** Pad Templates, src, video/x-raw: "format: { AYUV_F32, ... Y42B, NV16, NV61, YUY2, YVYU, UYVY, VYUY, I420, YV12, NV12, NV21, ... GRAY8 }" "width: [ 1, 2147483647 ]" "height: [ 1, 2147483647 ]" "framerate: [ 0/1, 2147483647/1 ]".
+
+### L-40
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, fakesink, test
+- **Fact:** fakesink's 'sync' property defaults to FALSE (fakesink overrides GstBaseSink's default of TRUE), so fakesink consumes buffers as fast as they arrive unless sync=true is set; the doc page does not print this default (inherited property), so it is sourced from gstfakesink.c (1.26 branch).
+- **Source:** GStreamer gstfakesink.c (1.26 branch) and fakesink documentation — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gstreamer/plugins/elements/gstfakesink.c>
+- **Evidence:** gstfakesink.c line 63: "#define DEFAULT_SYNC FALSE"; line 262: "gst_base_sink_set_sync (GST_BASE_SINK (fakesink), DEFAULT_SYNC);". gstbasesink.c (1.26) line 298: "#define DEFAULT_SYNC                TRUE". fakesink doc page (https://gstreamer.freedesktop.org/documentation/coreelements/fakesink.html): example "gst-launch-1.0 audiotestsrc num-buffers=1000 ! fakesink sync=false" / "Render 1000 audio buffers (of default size) as fast as possible."
+
+### L-41
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, fpsdisplaysink, test
+- **Fact:** fpsdisplaysink properties: 'video-sink' (sink to use, set only in NULL state), 'text-overlay' (default true), 'signal-fps-measurements' (default false), 'sync' (default true), 'fps-update-interval' (ms, default 500), 'silent' (default false; when true no last_message) and read-only 'last-message'; documented examples include 'fpsdisplaysink text-overlay=false'.
+- **Source:** GStreamer documentation — fpsdisplaysink — <https://gstreamer.freedesktop.org/documentation/debugutilsbad/fpsdisplaysink.html>
+- **Evidence:** "Can display the current and average framerate as a testoverlay or on stdout."; "gst-launch-1.0 videotestsrc ! fpsdisplaysink text-overlay=false"; "fps-update-interval ... Default value : 500"; "last-message “last-message” gchararray The message describing current status Flags : Read Default value : NULL"; "signal-fps-measurements “signal-fps-measurements” gboolean If the fps-measurements signal should be emitted. ... Default value : false"; "silent “silent” gboolean Don't produce last_message events ... Default value : false"; "sync “sync” gboolean Sync on the clock (if the internally used sink doesn't have this property it will be ignored ... Default value : true"; "text-overlay “text-overlay” gboolean Whether to use text-overlay ... Default value : true"; "video-sink “video-sink” GstElement * Video sink to use (Must only be called on NULL state)".
+
+### L-42
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, fpsdisplaysink, gst-launch, test
+- **Fact:** fpsdisplaysink writes its measurement into 'last-message' as 'rendered: N, dropped: N, current: X.XX, average: X.XX' (or '..., fps: X.XX, drop rate: X.XX' when frames drop) and notifies the property; gst-launch-1.0 -v ('Output status information and property notifications') therefore prints these lines, so text-overlay=false with video-sink=fakesink gives a console fps readout.
+- **Source:** GStreamer fpsdisplaysink.c (1.26) and gst-launch-1.0 documentation — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-bad/gst/debugutils/fpsdisplaysink.c>
+- **Evidence:** fpsdisplaysink.c (1.26) lines 404-413: "if (dr == 0.0) { g_snprintf (fps_message, 255, "rendered: %" G_GUINT64_FORMAT ", dropped: %" G_GUINT64_FORMAT ", current: %.2f, average: %.2f", ...); } else { ... ", fps: %.2f, drop rate: %.2f" ..."; then "if (!self->silent) { ... self->last_message = g_strdup (fps_message); ... g_object_notify_by_pspec ((GObject *) self, pspec_last_message);". gst-launch doc (https://gstreamer.freedesktop.org/documentation/tools/gst-launch.html): "-v, --verbose Output status information and property notifications". The final clause of the statement is an inference combining the two.
+
+### L-43
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg, h264_v4l2m2m, bcm2835-codec, test
+- **Fact:** FFmpeg's h264_v4l2m2m encoder ('V4L2 mem2mem H.264 encoder wrapper') is implemented in libavcodec/v4l2_m2m_enc.c and is not documented in ffmpeg-codecs.html. At init it sets these V4L2 controls with VIDIOC_S_EXT_CTRLS: B_FRAMES = 0, HEADER_MODE = SEPARATE, BITRATE (from -b:v), FRAME_RC_ENABLE = 1, GOP_SIZE (from -g), H264_PROFILE (only if a profile is given), and H264_MIN_QP / H264_MAX_QP (from -qmin/-qmax, otherwise 0 and 51). It also sets the frame interval with VIDIOC_S_PARM when a framerate is known, and it sets FORCE_KEY_FRAME when an input frame has pict_type I. No code in the file sets V4L2_CID_MPEG_VIDEO_BITRATE_MODE or V4L2_CID_MPEG_VIDEO_H264_LEVEL.
+- **Source:** FFmpeg source libavcodec/v4l2_m2m_enc.c (master, fetched 2026-10-12, head f2bf7a24) — <https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/v4l2_m2m_enc.c>
+- **Evidence:** Lines 422-427: "#define M2MENC(NAME, LONGNAME, OPTIONS_NAME, CODEC) ... .p.name = #NAME "_v4l2m2m" , CODEC_LONG_NAME("V4L2 mem2mem " LONGNAME " encoder wrapper"),"; line 444: "M2MENC(h264, "H.264", options,       AV_CODEC_ID_H264);"; lines 196-199: "v4l2_set_ext_ctrl(s, MPEG_CID(HEADER_MODE), MPEG_VIDEO(HEADER_MODE_SEPARATE), "header mode", 0); v4l2_set_ext_ctrl(s, MPEG_CID(BITRATE) , avctx->bit_rate, "bit rate", 1); v4l2_set_ext_ctrl(s, MPEG_CID(FRAME_RC_ENABLE), 1, "frame level rate control", 0); v4l2_set_ext_ctrl(s, MPEG_CID(GOP_SIZE), avctx->gop_size,"gop size", 1);"; lines 207-214: "case AV_CODEC_ID_H264: if (avctx->profile != AV_PROFILE_UNKNOWN) { ... v4l2_set_ext_ctrl(s, MPEG_CID(H264_PROFILE), val, "h264 profile", 1);". grep for BITRATE_MODE and H264_LEVEL in the file: no matches. https://ffmpeg.org/ffmpeg-codecs.html contains no 'v4l2m2m' text.
+- **Original claim (before verification):** FFmpeg's h264_v4l2m2m encoder ('V4L2 mem2mem H.264 encoder wrapper') exists in libavcodec/v4l2_m2m_enc.c; it is not documented in ffmpeg-codecs.html. At init it sets V4L2 controls HEADER_MODE (separate), BITRATE (from -b:v), FRAME_RC_ENABLE, GOP_SIZE (from -g), H264_PROFILE (only if a profile is given) and H264 MIN/MAX QP; the file contains no code that sets V4L2_CID_MPEG_VIDEO_BITRATE_MODE or V4L2_CID_MPEG_VIDEO_H264_LEVEL.
+- **Verifier note:** Fetched FFmpeg master libavcodec/v4l2_m2m_enc.c raw (446 lines; last commit touching the file 262d41c804, 2025-08-03). Lines 422-426 M2MENC macro with '.p.name = #NAME "_v4l2m2m"' and 'CODEC_LONG_NAME("V4L2 mem2mem " LONGNAME " encoder wrapper")'; line 444 'M2MENC(h264, "H.264", options, AV_CODEC_ID_H264);'. Lines 196-199 HEADER_MODE_SEPARATE / BITRATE / FRAME_RC_ENABLE / GOP_SIZE are as quoted; lines 207-214 H264_PROFILE only if profile != AV_PROFILE_UNKNOWN. The claim's control list leaves some out: v4l2_check_b_frame_support() (line 153, called from v4l2_prepare_encoder) also sets B_FRAMES=0; v4l2_set_timeperframe() issues VIDIOC_S_PARM when a framerate is known (line 190-191); H264 MIN/MAX QP default to 0/51 because v4l2_m2m_defaults sets qmin/qmax to -1 (lines 407-411, 216-219, 259-269); v4l2_send_frame sets FORCE_KEY_FRAME for frames with pict_type I (line 281). grep for BITRATE_MODE and H264_LEVEL: no matches. Downloaded https://ffmpeg.org/ffmpeg-codecs.html: 0 occurrences of 'v4l2'.
+
+### L-44
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg, lavfi, testsrc2, test
+- **Fact:** FFmpeg's lavfi input device reads frames from a libavfilter graph, and the testsrc2 source ('similar to testsrc, but supports more pixel formats instead of just rgb24') accepts size/s (default 320x240), rate/r (default 25) and duration/d (default: forever), e.g. '-f lavfi -i testsrc2=size=1920x1080:rate=60'.
+- **Source:** FFmpeg Filters Documentation §18.13 and FFmpeg Devices Documentation §3.11 lavfi — <https://ffmpeg.org/ffmpeg-filters.html>
+- **Evidence:** ffmpeg-filters §18.13 'allrgb, allyuv, color, ..., testsrc, testsrc2, yuvtestsrc': "The testsrc2 source is similar to testsrc, but supports more pixel formats instead of just rgb24. This allows using it as an input for other tests without requiring a format conversion."; "size, s Specify the size of the sourced video. ... The default value is 320x240."; "rate, r Specify the frame rate of the sourced video, as the number of frames generated per second. ... The default value is "25"."; "duration, d ... If not specified, or the expressed duration is negative, the video is supposed to be generated forever.". https://ffmpeg.org/ffmpeg-devices.html §3.11 lavfi: "Libavfilter input virtual device. This input device reads data from the open output pads of a libavfilter filtergraph." The example command line in the statement is constructed, not quoted.
+
+### L-45
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** FFmpeg, test, benchmark
+- **Fact:** FFmpeg CLI: -benchmark shows real, system and user time and maximum memory at the end of an encode; -benchmark_all shows it during the encode; -stats (on by default; -nostats disables) logs progress statistics, updated every -stats_period (default 0.5 s); -re reads input at native frame rate (equivalent to -readrate 1) — without -re a lavfi source is consumed as fast as the encoder accepts it.
+- **Source:** ffmpeg Documentation (ffmpeg.html) — <https://ffmpeg.org/ffmpeg.html>
+- **Evidence:** "-benchmark (global) Show benchmarking information at the end of an encode. Shows real, system and user time used and maximum memory consumption. Maximum memory consumption is not supported on all systems, it will usually display as 0 if not supported."; "-benchmark_all (global) Show benchmarking information during the encode."; "-stats (global) Log encoding progress/statistics as "info"-level log (see -loglevel). It is on by default, to explicitly disable it you need to specify -nostats."; "-stats_period time (global) Set period at which encoding progress/statistics are updated. Default is 0.5 seconds."; "-re (input) Read input at native frame rate. This is equivalent to setting -readrate 1." The final clause ('as fast as...') is an inference.
+
+### L-46
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** v4l2-ctl, v4l-utils, m2m, test
+- **Fact:** v4l2-ctl can drive a memory-to-memory device with '--stream-mmap --stream-out-mmap' (man page example). Per its --help-streaming text (v4l-utils 1.30.1): --stream-mmap <count> captures with mmap (default 3 buffers); --stream-out-mmap <count> outputs with mmap (default 4 buffers); --stream-from <file> streams from a file, and by default a test pattern is generated; --stream-to <file> writes captured data to a file (default: discard); --stream-count <count> stops after <count> buffers (default: forever).
+- **Source:** v4l2-ctl(1) man page (Debian trixie, v4l-utils 1.30.1) and v4l-utils utils/v4l2-ctl/v4l2-ctl-streaming.cpp (tag v4l-utils-1.30.1) — <https://manpages.debian.org/trixie/v4l-utils/v4l2-ctl.1.en.html>
+- **Evidence:** Man page EXAMPLES: "Stream video from a memory-to-memory device: v4l2-ctl --stream-mmap --stream-out-mmap"; "v4l2-ctl --stream-mmap --stream-count=1 --stream-to=file.raw". The individual streaming options are not described in the man page; they are in streaming_usage() of https://git.linuxtv.org/v4l-utils.git/tree/utils/v4l2-ctl/v4l2-ctl-streaming.cpp?h=v4l-utils-1.30.1 lines 298-301: "--stream-count <count> stream <count> buffers. The default is to keep streaming forever."; 317-319: "--stream-to <file> stream to this file. The default is to discard the data."; 332-334: "--stream-mmap <count> capture video using mmap() [VIDIOC_(D)QBUF] count: the number of buffers to allocate. The default is 3."; 340-342: "--stream-from <file> stream from this file. The default is to generate a pattern. If <file> is '-', then the data is read from stdin."; 381-383: "--stream-out-mmap <count> output video using mmap() [VIDIOC_(D)QBUF] count: the number of buffers to allocate. The default is 4."
+
+### L-47
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** v4l2-ctl, v4l-utils, m2m, test
+- **Fact:** v4l2-ctl -x/--set-fmt-video-out width=<w>,height=<h>,pixelformat=<pf>,... sets the video OUTPUT format via VIDIOC_S_FMT, where pixelformat is a format index from --list-formats-out or a fourcc string (e.g. YU12, NV12, UYVY).
+- **Source:** v4l-utils utils/v4l2-ctl/v4l2-ctl-vidout.cpp (tag v4l-utils-1.30.1) — <https://git.linuxtv.org/v4l-utils.git/tree/utils/v4l2-ctl/v4l2-ctl-vidout.cpp?h=v4l-utils-1.30.1>
+- **Evidence:** Lines 13 and 30-36 of the usage text: "--list-formats-out [<mbus_code>|all] display supported video output formats."; "-x, --set-fmt-video-out" / "--try-fmt-video-out width=<w>,height=<h>,pixelformat=<pf>,field=<f>,colorspace=<c>, xfer=<xf>,ycbcr=<y>,hsv=<hsv>,quantization=<q>, premul-alpha=<0/1>,bytesperline=<bpl>,sizeimage=<sz> set/try the video output format [VIDIOC_S/TRY_FMT] pixelformat is either the format index as reported by --list-formats-out, or the fourcc value as a string." The example fourccs in the statement come from L-53.
+
+### L-48
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** v4l2-ctl, v4l-utils, m2m, test
+- **Fact:** During streaming without --verbose, v4l2-ctl prints one character per dequeued capture buffer ('K', 'P', 'B' from buffer flags, otherwise '<') and periodically ' NN.NN fps' to stderr, computed from buffer timestamps; for TIMESTAMP_COPY (m2m output) queues v4l2-ctl stamps each output buffer with the current clock when queuing it, so on an encoder the printed fps reflects the rate at which source frames were queued (a proxy for throughput only when the encoder is the bottleneck — HARDWARE TEST REQUIRED to confirm on bcm2835-codec).
+- **Source:** v4l-utils utils/v4l2-ctl/v4l2-ctl-streaming.cpp (tag v4l-utils-1.30.1) — <https://git.linuxtv.org/v4l-utils.git/tree/utils/v4l2-ctl/v4l2-ctl-streaming.cpp?h=v4l-utils-1.30.1>
+- **Evidence:** Lines 492-497: "static void set_time_stamp(cv4l_buffer &buf) { if ((buf.g_flags() & V4L2_BUF_FLAG_TIMESTAMP_MASK) != V4L2_BUF_FLAG_TIMESTAMP_COPY) return; buf.s_timestamp_clock(); }"; lines 1505-1506: "double ts_secs = buf.g_timestamp().tv_sec + buf.g_timestamp().tv_usec / 1000000.0; fps_ts.add_ts(ts_secs, buf.g_sequence(), buf.g_field());"; lines 1512-1517: "if (buf.g_flags() & V4L2_BUF_FLAG_KEYFRAME) ch = 'K'; else if (buf.g_flags() & V4L2_BUF_FLAG_PFRAME) ch = 'P'; ..."; lines 1538-1545: "if (!verbose) { stderr_info("%c", ch); ... if (fps_ts.has_fps()) { ... stderr_info(" %.02f fps", fps_ts.fps());". Interpretation of what the number means on an m2m encoder is reasoning.
+
+### L-49
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** vcgencmd, CM4, H.264, clocks, test
+- **Fact:** Official docs: 'vcgencmd measure_clock [clock]' returns the current frequency of the named clock and accepts 'h264' ('H.264 block'), as well as arm, core, isp, v3d, uart, pwm, emmc, pixel, vec, hdmi and dpi.
+- **Source:** Raspberry Pi documentation — Raspberry Pi OS — Utilities — vcgencmd — <https://www.raspberrypi.com/documentation/computers/os.html#vcgencmd>
+- **Evidence:** Source https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/os/graphics-utilities.adoc (master 62ba0a0c); rendered page content confirmed by WebFetch 2026-10-12. Lines 91-134: "==== `measure_clock [clock]` This returns the current frequency of the specified clock. Accepts the following clock values:" table rows "| `arm` | Arm core(s)", "| `core` | GPU core", "| `h264` | H.264 block", "| `isp` | Image Sensor Pipeline", "| `v3d` | 3D block", "| `uart` | UART", "| `pwm` | PWM block (analogue audio output)", "| `emmc` | SD card interface", "| `pixel` | Pixel valves", "| `vec` | Analogue video encoder", "| `hdmi` | HDMI", "| `dpi` | Display Parallel Interface"; line 136: "For example, `vcgencmd measure_clock arm`".
+
+### L-50
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** vcgencmd, CM4, thermal, test
+- **Fact:** Official docs: 'vcgencmd measure_temp' returns the SoC temperature from its internal sensor; on Raspberry Pi 4, 'measure_temp pmic' returns the PMIC temperature.
+- **Source:** Raspberry Pi documentation — Raspberry Pi OS — Utilities — vcgencmd — <https://www.raspberrypi.com/documentation/computers/os.html#vcgencmd>
+- **Evidence:** Source https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/os/graphics-utilities.adoc (master 62ba0a0c); rendered page content confirmed by WebFetch 2026-10-12. Lines 86-89: "==== `measure_temp` Returns the temperature of the SoC as measured by its internal temperature sensor. On Raspberry Pi 4, `measure_temp pmic` returns the temperature of the PMIC."
+
+### L-51
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** vcgencmd, CM4, thermal, power, test
+- **Fact:** Official docs: 'vcgencmd get_throttled' returns a bit pattern: bit 0 (0x1) undervoltage detected, bit 1 (0x2) Arm frequency capped, bit 2 (0x4) currently throttled, bit 3 (0x8) soft temperature limit active, bit 16 (0x10000) undervoltage has occurred, bit 17 (0x20000) Arm frequency capping has occurred, bit 18 (0x40000) throttling has occurred, bit 19 (0x80000) soft temperature limit has occurred.
+- **Source:** Raspberry Pi documentation — Raspberry Pi OS — Utilities — vcgencmd — <https://www.raspberrypi.com/documentation/computers/os.html#vcgencmd>
+- **Evidence:** Source https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/os/graphics-utilities.adoc (master 62ba0a0c); rendered page content confirmed by WebFetch 2026-10-12. Lines 45-84: "==== `get_throttled` Returns the throttled state of the system. This is a bit pattern. A bit being set indicates the following meanings:" | Bit | Hexadecimal value | Meaning | rows: "0 | `0x1` | Undervoltage detected"; "1 | `0x2` | Arm frequency capped"; "2 | `0x4` | Currently throttled"; "3 | `0x8` | Soft temperature limit active"; "16 | `0x10000` | Undervoltage has occurred"; "17 | `0x20000` | Arm frequency capping has occurred"; "18 | `0x40000` | Throttling has occurred"; "19 | `0x80000` | Soft temperature limit has occurred".
+
+### L-52
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, pixel-format, v4l2h264enc
+- **Fact:** bcm2835-codec's static supported_formats[] table (rpi-6.18.y) includes V4L2_PIX_FMT_YUV420 ('YU12', I420), V4L2_PIX_FMT_NV12 and V4L2_PIX_FMT_UYVY, mapped to MMAL_ENCODING_I420, MMAL_ENCODING_NV12 and MMAL_ENCODING_UYVY. The encode node's OUTPUT-queue (raw input) format list is built at probe time by bcm2835_codec_get_supported_fmts(). It queries MMAL_PARAMETER_SUPPORTED_ENCODINGS on input port 0 of the firmware component ril.video_encode and keeps only the returned MMAL encodings that match an entry's mmal_fmt in that table. Bayer entries are also dropped when the disable_bayer module parameter is set. So the kernel source alone cannot prove which raw formats the encoder accepts: the firmware decides.
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 171-219 (supported_formats[]): ".fourcc = V4L2_PIX_FMT_YUV420, ... .mmal_fmt = MMAL_ENCODING_I420,"; ".fourcc = V4L2_PIX_FMT_NV12, ... .mmal_fmt = MMAL_ENCODING_NV12,"; ".fourcc = V4L2_PIX_FMT_UYVY, ... .mmal_fmt = MMAL_ENCODING_UYVY,". Lines 3663-3713 (bcm2835_codec_get_supported_fmts): "ret = vchiq_mmal_component_init(dev->instance, components[dev->role], &component);" ... "ret = vchiq_mmal_port_parameter_get(dev->instance, &component->input[0], MMAL_PARAMETER_SUPPORTED_ENCODINGS, &fourccs, &param_size);" ... "for (i = 0, j = 0; i < num_encodings; i++) { const struct bcm2835_codec_fmt *fmt = get_fmt(fourccs[i]); if (fmt) { list[j] = *fmt; j++; } } dev->supported_fmts[0].num_entries = j;".
+- **Original claim (before verification):** bcm2835-codec's static format table includes V4L2_PIX_FMT_YUV420 (I420/'YU12'), V4L2_PIX_FMT_NV12 and V4L2_PIX_FMT_UYVY (mapped to MMAL I420/NV12/UYVY), but the encode node's OUTPUT-queue (raw input) list is built at probe time from the firmware's MMAL_PARAMETER_SUPPORTED_ENCODINGS for ril.video_encode's input port, keeping only fourccs present in that table — so the kernel source alone cannot prove which raw formats the encoder accepts; the firmware decides.
+- **Verifier note:** raspberrypi/linux rpi-6.18.y raw file fetched 2026-10-12 via raw.githubusercontent.com (bcm2835-v4l2-codec.c, 4026 lines). supported_formats[] starts at line 170: V4L2_PIX_FMT_YUV420 -> MMAL_ENCODING_I420 (l.173-177), V4L2_PIX_FMT_NV12 -> MMAL_ENCODING_NV12, V4L2_PIX_FMT_UYVY -> MMAL_ENCODING_UYVY (l.~214-219). bcm2835_codec_get_supported_fmts (l.3654-3760): component_init(components[dev->role]) (l.3663; components[1] = "ril.video_encode"), port_parameter_get(&component->input[0], MMAL_PARAMETER_SUPPORTED_ENCODINGS, ...) (l.3671-3675), loop 'const struct bcm2835_codec_fmt *fmt = get_fmt(fourccs[i]); if (fmt) { list[j] = *fmt; j++; }' (l.3706-3713), 'dev->supported_fmts[0].num_entries = j;' (l.3714). The substance is confirmed. One wording fix: get_fmt() (l.750-760) matches the firmware's MMAL encoding against each entry's mmal_fmt field, not the V4L2 fourcc, and skips Bayer entries when the disable_bayer module parameter is set. supported_fmts[0] is the input port, which is the V4L2 OUTPUT queue.
+
+### L-53
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** Pi 4, bcm2835-codec, pixel-format, v4l2h264enc
+- **Fact:** Community (gist by mark-kendall, Raspberry Pi 4, 2020-10-31, bcm2835-codec driver version 5.4.51): 'v4l2-ctl --list-formats-out-ext' on /dev/video11 listed 12 raw OUTPUT formats including 'YU12' (planar YUV 4:2:0 = I420), 'NV12' and 'UYVY', and the CAPTURE queue listed only 'H264'. This is a 2020 firmware/kernel snapshot; current behaviour is HARDWARE TEST REQUIRED.
+- **Source:** GitHub Gist 'Pi 4 V4L2 /dev/video11 Encoder' (mark-kendall) — <https://gist.github.com/mark-kendall/c82de70fc51b380e9e7a749b25760460>
+- **Evidence:** (via WebFetch) Video Output Multiplanar: "[0]: 'YU12' (Planar YUV 4:2:0)", "[1]: 'YV12' (Planar YVU 4:2:0)", "[2]: 'NV12' (Y/CbCr 4:2:0)", "[3]: 'NV21' (Y/CrCb 4:2:0)", "[4]: 'RGBP' (16-bit RGB 5-6-5)", "[5]: 'RGB3' (24-bit RGB 8-8-8)", "[6]: 'BGR3' (24-bit BGR 8-8-8)", "[7]: 'BGR4' (32-bit BGRA/X 8-8-8-8)", "[8]: 'YUYV' (YUYV 4:2:2)", "[9]: 'YVYU' (YVYU 4:2:2)", "[10]: 'UYVY' (UYVY 4:2:2)", "[11]: 'VYUY' (VYUY 4:2:2)"; Video Capture Multiplanar: "[0]: 'H264' (H.264, compressed)"; prompt shows 'pi@pi4'.
+
+### L-54
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, v4l2h264enc, extra-controls
+- **Fact:** GStreamer's v4l2 plugin turns each kernel control name into an extra-controls field name with gst_v4l2_normalise_control_name() (sys/v4l2/v4l2_calls.c, not gstv4l2object.c): every run of non-alphanumeric characters becomes a single '_' (only between alphanumerics; leading/trailing ones are dropped) and letters are lower-cased; the kernel name is first truncated to 31 characters. The code says it follows v4l2-ctl ('Exposure (absolute)' -> 'exposure_absolute').
+- **Source:** GStreamer gst-plugins-good sys/v4l2/v4l2_calls.c (1.26 branch; identical on main, 2026-10-12) — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/sys/v4l2/v4l2_calls.c>
+- **Evidence:** Lines 99-121: "* The video4linux command line tool v4l2-ctrl * normalises the names of the controls received from * the kernel like: * *     "Exposure (absolute)" -> "exposure_absolute" * * We follow their lead here.  @name is modified * in-place. ... static void gst_v4l2_normalise_control_name (gchar * name) { int i, j; for (i = 0, j = 0; name[j]; ++j) { if (g_ascii_isalnum (name[j])) { if (i > 0 && !g_ascii_isalnum (name[j - 1])) name[i++] = '_'; name[i++] = g_ascii_tolower (name[j]); } } name[i++] = '\0'; }"; lines 340-344 (gst_v4l2_fill_lists): "control.name[31] = '\0'; gst_v4l2_normalise_control_name ((gchar *) control.name); g_datalist_id_set_data (&v4l2object->controls, g_quark_from_string ((const gchar *) control.name), GINT_TO_POINTER (n));". main-branch v4l2_calls.c is byte-identical (diff).
+
+### L-55
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, v4l2h264enc, extra-controls
+- **Fact:** In GStreamer (1.26; identical in 1.28 and main) v4l2 elements, each extra-controls field name is looked up exactly as written against the device's control list, whose keys are the normalised kernel control names (L-54). The field name itself is not normalised before lookup. set_control() normalises a copy only to print a g_warning (deprecation notice) when the given name is not already in normalised form. A field that matches no control is skipped with a GST_WARNING ('Control '%s' does not exist or has an unsupported type.') and set_control returns TRUE, so a misspelt control is not an error. A failed VIDIOC_S_CTRL on a matched control is also only a GST_WARNING. Integer, boolean and string values are supported, and other value types are skipped with a GST_WARNING. The structure is applied in gst_v4l2_open() after gst_v4l2_fill_lists() has built the control list, and again whenever the extra-controls property is set while the device is open.
+- **Source:** GStreamer gst-plugins-good sys/v4l2/v4l2_calls.c and gstv4l2object.c (1.26 branch) — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/sys/v4l2/v4l2_calls.c>
+- **Evidence:** v4l2_calls.c lines 1060-1067: "d = g_datalist_id_get_data (&v4l2object->controls, g_quark_from_string (gst_id_str_as_str (fieldname))); if (!d) { GST_WARNING_OBJECT (v4l2object, "Control '%s' does not exist or has an unsupported type.", gst_id_str_as_str (fieldname)); return TRUE; }"; lines 1068-1077: G_TYPE_INT -> gst_v4l2_set_attribute, G_TYPE_BOOLEAN -> gst_v4l2_set_attribute, G_TYPE_STRING -> gst_v4l2_set_string_attribute; lines 1086-1090: "gst_v4l2_set_controls (GstV4l2Object * v4l2object, GstStructure * controls) { return gst_structure_foreach_id_str (controls, set_control, v4l2object); }"; lines 589-598 (gst_v4l2_open): "if (!gst_v4l2_fill_lists (v4l2object)) goto error; ... if (v4l2object->extra_controls) gst_v4l2_set_controls (v4l2object, v4l2object->extra_controls);". gstv4l2object.c (1.26) lines 802-811: "case PROP_EXTRA_CONTROLS:{ ... v4l2object->extra_controls = s ? gst_structure_copy (s) : NULL; if (GST_V4L2_IS_OPEN (v4l2object)) gst_v4l2_set_controls (v4l2object, v4l2object->extra_controls);". v4l2_calls.c line numbers are from the 1.26 copy (byte-identical to main).
+- **Original claim (before verification):** extra-controls fields are matched by exact (normalised) name against the device's control list; a field that matches no control is skipped with only a GST_WARNING ('does not exist or has an unsupported type') and set_control returns TRUE, so a misspelt control is not an error. Integer, boolean and string values are supported. The structure is applied when the device is opened (after the control list is built) and again whenever the property is set while the device is open.
+- **Verifier note:** 1.26 v4l2_calls.c lines 1037-1083 (set_control at l.1038). It copies the field name into name[32], normalises the copy, and if it differs calls g_warning('In GStreamer 1.4 the way V4L2 control names were normalised changed. Instead of setting "%s" please use "%s"...'). It then looks up 'g_quark_from_string (gst_id_str_as_str (fieldname))', which is the ORIGINAL field name, not the normalised copy. If nothing is found it logs 'GST_WARNING_OBJECT (..., "Control '%s' does not exist or has an unsupported type.")' and returns TRUE. INT and BOOLEAN go to gst_v4l2_set_attribute (VIDIOC_S_CTRL), STRING to gst_v4l2_set_string_attribute, any other type gives GST_WARNING and TRUE. A failed VIDIOC_S_CTRL is only a GST_WARNING_OBJECT ('Failed to set value %d for control %d...', l.968-971) whose FALSE return set_control ignores. gst_v4l2_set_controls = gst_structure_foreach_id_str(controls, set_control, ...) (l.1085-1089). gst_v4l2_open: gst_v4l2_fill_lists() then 'if (v4l2object->extra_controls) gst_v4l2_set_controls (...)' (l.590 and l.597-598). gstv4l2object.c (1.26) l.802-811 PROP_EXTRA_CONTROLS re-applies if GST_V4L2_IS_OPEN. The correction: the field name is not normalised before lookup, and a non-normalised field name also produces a console g_warning, so 'only a GST_WARNING' holds only for names already in normalised form.
+
+### L-56
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** v4l2-ctl, v4l-utils, controls
+- **Fact:** v4l2-ctl: '-l, --list-ctrls' displays all controls and their values (VIDIOC_QUERYCTRL); '-L, --list-ctrls-menus' displays all controls and their menus (VIDIOC_QUERYMENU); '-C, --get-ctrl <ctrl>[,<ctrl>...]' gets control values (VIDIOC_G_EXT_CTRLS); '-c, --set-ctrl <ctrl>=<val>[,<ctrl>=<val>...]' sets them (VIDIOC_S_EXT_CTRLS). v4l2-ctl's control-name derivation (name2var) lower-cases alphanumerics and inserts one '_' for each run of non-alphanumerics between them — the same result as GStreamer's normalisation (L-54).
+- **Source:** v4l2-ctl(1) man page (Debian trixie, v4l-utils 1.30.1) — <https://manpages.debian.org/trixie/v4l-utils/v4l2-ctl.1.en.html>
+- **Evidence:** Man page: "-C, --get-ctrl <ctrl>[,<ctrl>...] Get the value of the controls [VIDIOC_G_EXT_CTRLS]."; "-c, --set-ctrl <ctrl>=<val>[,<ctrl>=<val>...] Set the value of the controls [VIDIOC_S_EXT_CTRLS]."; "-l, --list-ctrls Display all controls and their values [VIDIOC_QUERYCTRL]."; "-L, --list-ctrls-menus Display all controls and their menus [VIDIOC_QUERYMENU].". https://git.linuxtv.org/v4l-utils.git/tree/utils/v4l2-ctl/v4l2-ctl-common.cpp?h=v4l-utils-1.30.1 lines 404-419: "static std::string name2var(const char *name) { std::string s; int add_underscore = 0; while (*name) { if (isalnum(*name)) { if (add_underscore) s += '_'; add_underscore = 0; s += std::string(1, tolower(*name)); } else if (s.length()) add_underscore = 1; name++; } return s; }".
+
+### L-57
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, controls, H.264
+- **Fact:** bcm2835-codec (rpi-6.18.y) encoder controls not already in the register: V4L2_CID_MPEG_VIDEO_H264_I_PERIOD (min 0, max 0x7FFFFFFF, step 1, default 60) — writing it also writes GOP_SIZE, because MMAL only produces IDR I-frames (both end up as MMAL_PARAMETER_INTRAPERIOD; the last write wins); V4L2_CID_MPEG_VIDEO_HEADER_MODE menu (max/default JOINED_WITH_1ST_FRAME); H264_MIN_QP 0..51 default 20; H264_MAX_QP 0..51 default 51; FORCE_KEY_FRAME (button).
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 3440-3443: "v4l2_ctrl_new_std_menu(hdl, &bcm2835_codec_ctrl_ops, V4L2_CID_MPEG_VIDEO_HEADER_MODE, V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME, 0, V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME);"; lines 3448-3451: "v4l2_ctrl_new_std(hdl, &bcm2835_codec_ctrl_ops, V4L2_CID_MPEG_VIDEO_H264_I_PERIOD, 0, 0x7FFFFFFF, 1, 60);"; lines 3480-3487: "V4L2_CID_MPEG_VIDEO_H264_MIN_QP, 0, 51, 1, 20);" "V4L2_CID_MPEG_VIDEO_H264_MAX_QP, 0, 51, 1, 51);"; lines 3488-3490: "V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME, 0, 0, 0, 0);"; lines 2330-2349: "case V4L2_CID_MPEG_VIDEO_H264_I_PERIOD: /* * Incorrect initial implementation meant that H264_I_PERIOD * was implemented to control intra-I period. As the MMAL * encoder never produces I-frames that aren't IDR frames, it * should actually have been GOP_SIZE. * Support both controls, but writing to H264_I_PERIOD will * update GOP_SIZE. */ __v4l2_ctrl_s_ctrl(ctx->gop_size, ctrl->val); fallthrough; case V4L2_CID_MPEG_VIDEO_GOP_SIZE: ... MMAL_PARAMETER_INTRAPERIOD,".
+
+### L-58
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** CM4, bcm2835-codec, controls, H.264, level-limits
+- **Fact:** bcm2835-codec's V4L2_CID_MPEG_VIDEO_H264_LEVEL menu (rpi-6.18.y) allows Levels 1.0 through 5.1, including 4.1 and 4.2 (default 4.0), and maps 4.1/4.2 to MMAL_VIDEO_LEVEL_H264_41/_42; level and profile are written together through MMAL_PARAMETER_PROFILE, and only once a component exists (controls set earlier are applied when the component is created).
+- **Source:** raspberrypi/linux rpi-6.18.y bcm2835-v4l2-codec.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/staging/vc04_services/bcm2835-codec/bcm2835-v4l2-codec.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). Lines 3452-3471: "v4l2_ctrl_new_std_menu(hdl, &bcm2835_codec_ctrl_ops, V4L2_CID_MPEG_VIDEO_H264_LEVEL, V4L2_MPEG_VIDEO_H264_LEVEL_5_1, ~(BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_0) | ... BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_0) | BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_1) | BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_2) | BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_0) | BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1)), V4L2_MPEG_VIDEO_H264_LEVEL_4_0);"; lines 2160-2163: "/* * Level and Profile are set via the same MMAL parameter. * Retrieve the current settings and amend the one that has changed. */"; lines 2237-2241 (4.1 -> MMAL_VIDEO_LEVEL_H264_41, 4.2 -> MMAL_VIDEO_LEVEL_H264_42); lines 2352-2357: "case V4L2_CID_MPEG_VIDEO_H264_PROFILE: case V4L2_CID_MPEG_VIDEO_H264_LEVEL: if (!ctx->component) break; ret = bcm2835_codec_set_level_profile(ctx, ctrl);"; lines 2823-2824 (end of create_component): "/* Now we have a component we can set all the ctrls */ ret = v4l2_ctrl_handler_setup(&ctx->hdl);".
+
+### L-59
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** V4L2, controls, bcm2835-codec
+- **Fact:** Standard V4L2 control names returned by v4l2_ctrl_get_name() in rpi-6.18.y are: BITRATE_MODE 'Video Bitrate Mode', BITRATE 'Video Bitrate', GOP_SIZE 'Video GOP Size', B_FRAMES 'Video B Frames', HEADER_MODE 'Sequence Header Mode', H264_I_PERIOD 'H264 I-Frame Period', H264_LEVEL 'H264 Level', H264_PROFILE 'H264 Profile', H264_MIN_QP 'H264 Minimum QP Value', H264_MAX_QP 'H264 Maximum QP Value', REPEAT_SEQ_HEADER 'Repeat Sequence Header', FORCE_KEY_FRAME 'Force Key Frame'.
+- **Source:** raspberrypi/linux rpi-6.18.y drivers/media/v4l2-core/v4l2-ctrls-defs.c — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/v4l2-core/v4l2-ctrls-defs.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). v4l2_ctrl_get_name() (line 788): line 869 "case V4L2_CID_MPEG_VIDEO_B_FRAMES:	return "Video B Frames";"; 870 "case V4L2_CID_MPEG_VIDEO_GOP_SIZE:	return "Video GOP Size";"; 873 "case V4L2_CID_MPEG_VIDEO_BITRATE_MODE:	return "Video Bitrate Mode";"; 875 "case V4L2_CID_MPEG_VIDEO_BITRATE:	return "Video Bitrate";"; 887 "case V4L2_CID_MPEG_VIDEO_HEADER_MODE:			return "Sequence Header Mode";"; 901 "...H264_MAX_QP: return "H264 Maximum QP Value";"; 902 "...H264_MIN_QP: return "H264 Minimum QP Value";"; 906 "case V4L2_CID_MPEG_VIDEO_H264_I_PERIOD:			return "H264 I-Frame Period";"; 907 "case V4L2_CID_MPEG_VIDEO_H264_LEVEL:			return "H264 Level";"; 911 "case V4L2_CID_MPEG_VIDEO_H264_PROFILE:			return "H264 Profile";"; 968 "case V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER:		return "Repeat Sequence Header";"; 969 "case V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME:		return "Force Key Frame";".
+
+### L-60
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `kernel-source` (Rule 23 priority 4 — Linux kernel source)
+- **Applies to:** V4L2, controls, bcm2835-codec
+- **Fact:** Menu items and values (rpi-6.18.y): Video Bitrate Mode menu 'Variable Bitrate' / 'Constant Bitrate' / 'Constant Quality' with V4L2_MPEG_VIDEO_BITRATE_MODE_VBR = 0 and _CBR = 1; H264 Level menu strings '1','1b','1.1',...,'4','4.1','4.2',... with V4L2_MPEG_VIDEO_H264_LEVEL_4_0 = 11, _4_1 = 12, _4_2 = 13; H264 Profile menu 'Baseline','Constrained Baseline','Main','Extended','High',... with CONSTRAINED_BASELINE = 1, MAIN = 2, HIGH = 4.
+- **Source:** raspberrypi/linux rpi-6.18.y v4l2-ctrls-defs.c and include/uapi/linux/v4l2-controls.h — <https://github.com/raspberrypi/linux/blob/rpi-6.18.y/drivers/media/v4l2-core/v4l2-ctrls-defs.c>
+- **Evidence:** raspberrypi/linux branch rpi-6.18.y, raw files fetched 2026-10-12 (branch head 4103a989a461, 2026-10-08). v4l2-ctrls-defs.c lines 153-158: "static const char * const mpeg_video_bitrate_mode[] = { "Variable Bitrate", "Constant Bitrate", "Constant Quality", NULL };"; lines 278-299: "static const char * const mpeg_h264_level[] = { "1", "1b", "1.1", "1.2", "1.3", "2", "2.1", "2.2", "3", "3.1", "3.2", "4", "4.1", "4.2", "5", ..."; lines 307-312: "static const char * const h264_profile[] = { "Baseline", "Constrained Baseline", "Main", "Extended", "High",". https://github.com/raspberrypi/linux/blob/rpi-6.18.y/include/uapi/linux/v4l2-controls.h lines 416-417: "V4L2_MPEG_VIDEO_BITRATE_MODE_VBR = 0," "V4L2_MPEG_VIDEO_BITRATE_MODE_CBR = 1,"; lines 524-526: "V4L2_MPEG_VIDEO_H264_LEVEL_4_0	= 11," "V4L2_MPEG_VIDEO_H264_LEVEL_4_1	= 12," "V4L2_MPEG_VIDEO_H264_LEVEL_4_2	= 13,"; lines 545-548: "V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE	= 1," "V4L2_MPEG_VIDEO_H264_PROFILE_MAIN			= 2," ... "V4L2_MPEG_VIDEO_H264_PROFILE_HIGH			= 4,".
+
+### L-61
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, v4l2h264enc, caps, H.264
+- **Fact:** GStreamer v4l2h264enc maps src-caps strings to V4L2 menu values in gstv4l2h264codec.c: profile 'baseline', 'constrained-baseline', 'main', 'extended', 'high' (and high-10, high-4:2:2, ... constrained-high) -> V4L2_MPEG_VIDEO_H264_PROFILE_*, and level '1','1b','1.1',...,'3.1','3.2','4','4.1','4.2','5','5.1','5.2','6','6.1','6.2' -> V4L2_MPEG_VIDEO_H264_LEVEL_* (note: Level 4.0 is the string '4', not '4.0'); unknown strings give a warning and -1. The static src template is 'video/x-h264, stream-format=(string) byte-stream, alignment=(string) au'.
+- **Source:** GStreamer gst-plugins-good sys/v4l2/gstv4l2h264codec.c and gstv4l2h264enc.c (1.26 branch; mapping identical on main) — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/sys/v4l2/gstv4l2h264codec.c>
+- **Evidence:** gstv4l2h264codec.c (1.26) lines 33-46: "static gint v4l2_profile_from_string (const gchar * profile) { ... if (g_str_equal (profile, "baseline")) { v4l2_profile = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE; } else if (g_str_equal (profile, "constrained-baseline")) { v4l2_profile = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE; } else if (g_str_equal (profile, "main")) { ... MAIN; } ... else if (g_str_equal (profile, "high")) { v4l2_profile = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH;"; line 74: "GST_WARNING ("Unsupported profile string '%s'", profile);"; lines 155-160: "else if (g_str_equal (level, "4")) v4l2_level = V4L2_MPEG_VIDEO_H264_LEVEL_4_0; else if (g_str_equal (level, "4.1")) v4l2_level = V4L2_MPEG_VIDEO_H264_LEVEL_4_1; else if (g_str_equal (level, "4.2")) v4l2_level = V4L2_MPEG_VIDEO_H264_LEVEL_4_2;"; line 174: "GST_WARNING ("Unsupported level '%s'", level);"; lines 237-240: "c.profile_cid = V4L2_CID_MPEG_VIDEO_H264_PROFILE; ... c.level_cid = V4L2_CID_MPEG_VIDEO_H264_LEVEL;". gstv4l2h264enc.c lines 43-45: "GST_STATIC_CAPS ("video/x-h264, stream-format=(string) byte-stream, " "alignment=(string) au");". diff main vs 1.26: only the added calculate_level function (and its pbutils include) differs; on main the same lines are 33-47, 75, 156-161, 175, 290-293.
+
+### L-62
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** GStreamer, v4l2h264enc, extra-controls, caps, H.264
+- **Fact:** Precedence in GStreamer v4l2h264enc: extra-controls are applied at device open (L-55); later, during caps negotiation, if downstream caps carry profile/level fields the element issues VIDIOC_S_CTRL for H264_PROFILE/H264_LEVEL, overriding values set by extra-controls; if the caps carry no profile/level, 1.26 reads back the driver's current value (VIDIOC_G_CTRL), so an extra-controls value persists. On main (unreleased; absent from the 1.26 and 1.28 branches) a level computed from resolution/framerate by gst_codec_utils_h264_get_level_limits() is set whenever caps do not fix a single level, which would override an extra-controls h264_level.
+- **Source:** GStreamer gst-plugins-good sys/v4l2/gstv4l2videoenc.c (1.26 and main branches, fetched 2026-10-12) — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/sys/v4l2/gstv4l2videoenc.c>
+- **Evidence:** 1.26 gstv4l2videoenc.c: line 426 "if (codec->profile_cid && get_string_list (s, "profile", &profiles)) {" ... line 443 "if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_S_CTRL, &control) < 0) {"; line 469 "if (!failed && codec->level_cid && get_string_list (s, "level", &levels)) {" ... line 485 VIDIOC_S_CTRL; lines 577-597: "if (codec->profile_cid && !ctx.profile) { ... if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_G_CTRL, &control) < 0) goto g_ctrl_failed; ctx.profile = codec->profile_to_string (control.value); } if (codec->level_cid && !ctx.level) { ... VIDIOC_G_CTRL ... ctx.level = codec->level_to_string (control.value); }". main gstv4l2videoenc.c lines 537-543: "if (level_value && (G_VALUE_HOLDS_STRING (level_value) || (GST_VALUE_HOLDS_LIST (level_value) && gst_value_list_get_size (level_value) == 1))) ctx->fixed_level = TRUE; defer_level = !ctx->fixed_level && codec->calculate_level && ctx->self->have_pending_info;"; lines 667-678: "if (!ctx.fixed_level && codec->calculate_level && codec->level_cid && self->have_pending_info) { gint v4l2_level = codec->calculate_level (&self->pending_info, self->v4l2_profile); ... VIDIOC_S_CTRL"; main gstv4l2h264codec.c lines 274-276: "level = gst_codec_utils_h264_get_level_limits (GST_VIDEO_INFO_WIDTH (vinfo), GST_VIDEO_INFO_HEIGHT (vinfo), GST_VIDEO_INFO_FPS_N (vinfo), GST_VIDEO_INFO_FPS_D (vinfo), 0, 1, profile_idc);". 1.28 branch gstv4l2h264codec.c: 0 occurrences of 'calculate_level'. That open() precedes negotiation is inferred from the element lifecycle (NULL->READY opens the device), not quoted.
+
+### L-63
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** GStreamer, v4l2-ctl, extra-controls, bcm2835-codec
+- **Fact:** REASONING: Applying the normalisation (L-54; v4l2-ctl's name2var gives the same result, L-56) to the kernel names (L-59) gives these extra-controls / v4l2-ctl control names: 'Video Bitrate Mode' -> video_bitrate_mode, 'Video Bitrate' -> video_bitrate, 'H264 I-Frame Period' -> h264_i_frame_period, 'H264 Level' -> h264_level, 'H264 Profile' -> h264_profile, 'Video GOP Size' -> video_gop_size, 'Repeat Sequence Header' -> repeat_sequence_header. Menu controls take the integer menu value (L-60): video_bitrate_mode=1 for CBR (0 = VBR); h264_level=11, 12 or 13 for 4.0, 4.1 or 4.2; h264_profile=1, 2 or 4 for Constrained Baseline, Main or High. Example (not tested on hardware): extra-controls="controls,video_bitrate_mode=1,video_bitrate=17000000,h264_i_frame_period=60,h264_level=13". The same names and values work with 'v4l2-ctl -d /dev/video11 -c video_bitrate_mode=1,h264_level=13'. However, bcm2835-codec controls belong to each open file handle (one m2m context per open), so a separate v4l2-ctl run does not configure another process's encoder session, such as a GStreamer pipeline. Use v4l2-ctl -l to confirm the names, or combine -c with --stream-mmap --stream-out-mmap in the same v4l2-ctl invocation. Because caps may override profile and level (L-62), also fixing them in caps, e.g. 'video/x-h264,level=(string)4.2,profile=(string)high', is the more robust choice.
+- **Source:** Derivation from GStreamer v4l2_calls.c normalisation and kernel control names — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/1.26/subprojects/gst-plugins-good/sys/v4l2/v4l2_calls.c>
+- **Evidence:** Inputs: normalisation algorithm (L-54), v4l2-ctl name2var (L-56), kernel names 'Video Bitrate Mode', 'H264 I-Frame Period', 'H264 Level', 'Video Bitrate', 'H264 Profile', 'Video GOP Size', 'Repeat Sequence Header' (L-59), enum values VBR=0, CBR=1, LEVEL_4_0=11, 4_1=12, 4_2=13, CONSTRAINED_BASELINE=1, MAIN=2, HIGH=4 (L-60), caps level strings '4', '4.1', '4.2' (L-61), precedence (L-62). Worked example 'H264 I-Frame Period': H,2,6,4 -> 'h264'; ' ' skipped; 'I' preceded by non-alnum -> '_i'; '-' skipped; 'F' preceded by non-alnum -> '_f', 'rame'; ' ' skipped; 'P' -> '_p', 'eriod' => 'h264_i_frame_period'. GStreamer ignores the structure name (gst_structure_foreach_id_str over fields, L-55). Only the bcm2835 controls registered in L-57/L-58 and register D-11..D-15 exist on the device; HARDWARE TEST REQUIRED ('v4l2-ctl -d /dev/video11 -l' to confirm the names).
+- **Original claim (before verification):** REASONING: Applying the normalisation (L-54, identical in v4l2-ctl per L-56) to the kernel names (L-59) gives the extra-controls / v4l2-ctl field names: 'Video Bitrate Mode' -> video_bitrate_mode, 'H264 I-Frame Period' -> h264_i_frame_period, 'H264 Level' -> h264_level (also 'Video Bitrate' -> video_bitrate, 'H264 Profile' -> h264_profile, 'Video GOP Size' -> video_gop_size, 'Repeat Sequence Header' -> repeat_sequence_header). Menu controls take the integer value (L-60): video_bitrate_mode=1 for CBR (0 = VBR); h264_level=11/12/13 for 4.0/4.1/4.2; h264_profile=1/2/4 for Constrained Baseline/Main/High. Example (unverified on hardware): extra-controls="controls,video_bitrate_mode=1,video_bitrate=17000000,h264_i_frame_period=60,h264_level=13"; equivalently 'v4l2-ctl -d /dev/video11 -c video_bitrate_mode=1,h264_level=13'. Because caps may override profile/level (L-62), also fixing them in caps, e.g. 'video/x-h264,level=(string)4.2,profile=(string)high', is the more robust choice.
+- **Verifier note:** Re-derived: I ran both GStreamer's gst_v4l2_normalise_control_name and v4l2-ctl's name2var in Python on 'Video Bitrate Mode', 'Video Bitrate', 'Video GOP Size', 'H264 I-Frame Period', 'H264 Level', 'H264 Profile', 'Repeat Sequence Header'. Outputs: video_bitrate_mode, video_bitrate, video_gop_size, h264_i_frame_period, h264_level, h264_profile, repeat_sequence_header (identical for both). Menu values VBR=0, CBR=1, LEVEL_4_0/4_1/4_2 = 11/12/13, CONSTRAINED_BASELINE/MAIN/HIGH = 1/2/4 checked against v4l2-controls.h. bcm2835-codec accepts these: BITRATE 25000..25000000 step 25000 (17000000 = 680 steps), BITRATE_MODE menu max CBR, LEVEL menu includes 4.2, PROFILE menu allows CB/Main/High. extra-controls structure name is ignored (gst_structure_foreach_id_str iterates fields only), and MENU-type controls are entered in the control list (v4l2_calls.c l.333-344). Correction: the 'equivalently v4l2-ctl -d /dev/video11 -c ...' clause is misleading. bcm2835_codec_open() creates a per-open context with its own control handler (rpi-6.18.y l.3422-3425 v4l2_fh_init / hdl = &ctx->hdl; l.3502 ctx->fh.ctrl_handler = hdl), so controls set by a separate v4l2-ctl process are lost when that process closes the node. They never reach a GStreamer pipeline's own open instance. Within one v4l2-ctl invocation common_set() (-c) runs before streaming_set() (v4l2-ctl.cpp l.1493, 1541), so -c works when combined with --stream-mmap --stream-out-mmap. Caution, unverified: a 2022 FFmpeg-devel patch by hydra3333 (patchwork comment 70955) reported that on a Pi 4 with bitrate mode CBR 'encoder hangs and appears to lock /dev/video11 until reboot'. That is a community report only; HARDWARE TEST REQUIRED.

@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Document status | DRAFT — derived from source research only |
-| Last updated | 2026-10-09 |
-| Applies to | Capture buffers after the CSI-2 receiver, CMA, DMA-BUF heaps and the hand-off to the encoder (H.264 only, owner 2026-10-08: "H.264 only for now", OQ-103; REQ-ENC-001. H.265 was added on 2026-10-07 and is now deferred as REQ-ENC-002 — not in current scope; its buffer path is kept in §8A and §9.5 as evidence), including, since 2026-10-08, one capture feeding two simultaneous H.264 encodes — recording, and one live encode shared by RTMP and WebRTC (owner: "Separate record + live", OQ-005; CM4 OQ-115, CM5 OQ-059) — on Raspberry Pi 4 Model B, CM4, Pi 5 and CM5; kernel sources as read on `rpi-6.18.y` [D-01], [E-37]. *(Added 2026-10-09.)* Also how capture-buffer queuing adds latency to the live path (§2; < 1 s for WebRTC viewers, owner 2026-10-08, OQ-116 ANSWERED) and how the mirrored recording's two file writers (ADR-009 `ACCEPTED`) relate to buffer back-pressure (§9.6; RISK-028, OQ-117) |
+| Last updated | 2026-10-12 |
+| Applies to | Capture buffers after the CSI-2 receiver, CMA, DMA-BUF heaps and the hand-off to the encoder (H.264 only, owner 2026-10-08: "H.264 only for now", OQ-103; REQ-ENC-001. H.265 was added on 2026-10-07 and is now deferred as REQ-ENC-002 — not in current scope; its buffer path is kept in §8A and §9.5 as evidence), including, since 2026-10-08, one capture feeding two simultaneous H.264 encodes — recording, and one live encode shared by RTMP and WebRTC (owner: "Separate record + live", OQ-005; CM4 OQ-115, CM5 OQ-059) — on Raspberry Pi 4 Model B, CM4, Pi 5 and CM5; kernel sources as read on `rpi-6.18.y` [D-01], [E-37]. *(Added 2026-10-09.)* Also how capture-buffer queuing adds latency to the live path (§2; < 1 s for WebRTC viewers, owner 2026-10-08, OQ-116 ANSWERED) and how the mirrored recording's two file writers (ADR-009 `ACCEPTED`) relate to buffer back-pressure (§9.6; RISK-028, OQ-117) *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Implementation status | NOT STARTED |
 | Verification | Source research of 2026-10-06, plus research topics H (H.265) and I (timestamps) of 2026-10-08, and research topics J (recording storage) and K (live latency) of 2026-10-08 ([REFERENCES.md](REFERENCES.md)). **Nothing in this document has been run or measured on PACSCORDER hardware. No hardware exists as of 2026-10-08 (still none on 2026-10-09).** |
 
@@ -15,7 +15,7 @@ This document covers what happens to a frame after the CSI-2 receiver has writte
 - how CMA and DMA-BUF heaps are configured;
 - what the Pi 4/CM4 hardware encoder requires of an imported buffer;
 - which userspace paths avoid a CPU copy;
-- what "zero-copy" can mean on Pi 5/CM5, where encoding runs in software;
+- what "zero-copy" can mean on Pi 5/CM5, where encoding runs in software; *(Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4); kept as reference, ARCH-001. Note added 2026-10-12.)*
 - *(added 2026-10-08)* how one capture buffer can reach both H.264 encodes, the recording encode and the live encode (owner, OQ-005) — §1, §2, §4.3, §6, §8, §9;
 - *(added 2026-10-08)* what H.265 requires of the frames on every platform, where it is always software-encoded (§8A) — *deferred — REQ-ENC-002; not in current scope (2026-10-08, OQ-103); kept as evidence*.
 
@@ -48,6 +48,8 @@ Conventions follow [README.md](README.md):
 | H.265 encoder accepts TC358743 UYVY? (added 2026-10-08; deferred — REQ-ENC-002) | **No.** Planar only, not UYVY or NV12 [H-10] (CORRECTED), [H-13] | **No**, as Pi 4 / CM4 [H-10], [H-13] |
 | Zero-copy for H.265 (added 2026-10-08; deferred — REQ-ENC-002) | Does not apply. **Reasoning:** x265 runs on the CPU and needs a planar copy of every frame. At 1080p60 the conversion reads ≈ 249 MB/s and writes ≈ 187 MB/s [H-43] (§8A) | as Pi 4 / CM4 (§8A) |
 | Status | NOT STARTED; TEST-DMA-001 BLOCKED — HARDWARE REQUIRED | NOT STARTED; TEST-DMA-001 BLOCKED — HARDWARE REQUIRED |
+
+*(Note added 2026-10-12: the Pi 5 / CM5 column is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 ---
 
@@ -100,6 +102,8 @@ The number of capture buffers is a design parameter of the capture application, 
 
 ### 3.2 Pi 5 / CM5 — RP1 CFE
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 / Pi 5 / BCM2712 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 - The Device Tree gives the RP1 CSI nodes `iommus = <&iommu5>`, with `CONFIG_BCM2712_IOMMU=y` [C-53].
 - The HVS (display) uses `iommu4` [C-53].
 - It is therefore **not established** that CFE capture buffers, or display buffers, count against the 64 MB `vc4-kms-v3d-pi5` CMA default [C-53] (CORRECTED).
@@ -129,6 +133,8 @@ The number of capture buffers is a design parameter of the capture application, 
 | Base Device Tree pool | 64 MB, lower 768 MB | 64 MB, lower 1 GB | [E-47], [C-40] |
 | `vc4-kms-v3d` overlay default | (512 − 4) MB (`vc4-kms-v3d-pi4`) | 64 MB (`vc4-kms-v3d-pi5`) | [C-40] |
 | `cma` overlay default | 256 MB | 256 MB | [C-40] |
+
+*(Note added 2026-10-12: the Pi 5 / CM5 column is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 **Reasoning** (inputs: the table above): the effective CMA size on a PACSCORDER image depends on which of these overlays its `config.txt` loads, and whether the product drives a display at all. The product `config.txt` does not exist yet ([BUILD_SYSTEM.md](BUILD_SYSTEM.md); ADR-003 ACCEPTED). **Effective CMA size: UNKNOWN — VERIFICATION REQUIRED (OWNER DECISION REQUIRED, HARDWARE TEST REQUIRED; OQ-061).**
 
@@ -248,6 +254,8 @@ UNKNOWN — VERIFICATION REQUIRED:
 | **Software encode** (`libx264` via FFmpeg, `x264enc` via GStreamer) | Pi 5/CM5 (on Pi 4/CM4 only a candidate fallback, not researched; OQ-056) | The CPU reads each frame through a mapping, converts UYVY to a planar/semi-planar format, then encodes | **Yes — the CPU reads every frame** (conversion and encode) | [D-43], [D-40], [G-22] | See §8 |
 | **Software H.265 encode** (`libx265` via FFmpeg, `x265enc` via GStreamer) — added 2026-10-08; deferred — REQ-ENC-002; not in current scope | **All four platforms**: no hardware HEVC encoder [D-24], [D-31] | The CPU reads each frame through a mapping, converts UYVY to a **planar** format (I420 or Y42B; NV12 is not accepted), then encodes | **Yes — the CPU reads every frame** and writes a planar copy (reasoning [H-43]) | [H-09], [H-10] (CORRECTED), [H-11], [H-13], [H-43] | See §8A. On Pi 4/CM4 it could run beside the DMABUF hardware H.264 path, from the same capture buffer (candidate; §8A) |
 
+*(Note added 2026-10-12: the Pi 5/CM5 platform entries in this table (software-encode row; "All four platforms" in the deferred H.265 row) are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
 The framework choice is **ADR-007 (OPEN)**, OQ-015. Encoder settings are in [VIDEO_ENCODER.md](VIDEO_ENCODER.md).
 
 *(Added 2026-10-08, two encodes.)* Each path above is described for one encoder. PACSCORDER needs two, the recording encode and the live encode (OQ-005). Reasoning: on a "No copy" path both encoders would take the same capture buffer (§6). On a copying path the copy happens once per encode, so twice per frame. On the software paths the CPU reads each frame for each encode, unless one conversion output is shared (§8). How each framework hands one capture buffer to two encoders is not in the source register: NEEDS VERIFICATION (ADR-007, OQ-015, OQ-058).
@@ -255,6 +263,8 @@ The framework choice is **ADR-007 (OPEN)**, OQ-015. Encoder settings are in [VID
 ---
 
 ## 8. Pi 5 / CM5: software encoding from CPU-mapped buffers
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 / Pi 5 / BCM2712 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 **No hardware encoder.**
 
@@ -344,6 +354,8 @@ REQ-DMA-001 applies "where the platform encoder supports DMABUF import". **Reaso
 | Pi 4 Model B / CM4 | `/dev/video12` ISP M2M converter, DMABUF on both queues [D-25], [D-07] | Whether it converts TC358743 UYVY to I420 at 1080p60 for x265: UNKNOWN — HARDWARE TEST REQUIRED (OQ-057) |
 | Pi 5 / CM5 | PiSP back end [D-51], [G-17] | UNKNOWN — KERNEL SOURCE INSPECTION REQUIRED, HARDWARE TEST REQUIRED (OQ-060) |
 
+*(Note added 2026-10-12: the Pi 5 / CM5 row is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
 **Pi 4 / CM4: two consumers of one capture buffer** (reasoning; candidate, not decided). If H.264 runs on the hardware encoder and H.265 in software, one Unicam capture buffer could be:
 
 1. imported as a DMABUF by `/dev/video11` for H.264 (§6, §9.1); and
@@ -357,7 +369,7 @@ Whether the frameworks under ADR-007 can hand one capture buffer to both consume
 
 ## 9. DMABUF flow per platform
 
-These are **candidate** flows. They depend on ADR-004 (platform, OPEN), ADR-005 (UYVY, PROPOSED) and ADR-007 (framework, OPEN). None is decided and none has been run.
+These are **candidate** flows. They depend on ADR-004 (platform, OPEN), ADR-005 (UYVY, PROPOSED) and ADR-007 (framework, OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* None is decided and none has been run.
 
 ### 9.1 Pi 4 Model B / CM4 — candidate A: UYVY straight into the hardware encoder
 
@@ -415,6 +427,8 @@ This path does not satisfy REQ-DMA-001.
 
 ### 9.4 Pi 5 / CM5
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 / Pi 5 / BCM2712 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 ```text
 TC358743 ──CSI-2──► RP1 CFE "csi2" ──► rp1-cfe-csi2_ch0               [C-32]
                       (D-PHY programmed for 999 Mbps)                    [C-31]
@@ -457,7 +471,7 @@ capture buffer: UYVY 1920x1080 = 4,147,200 B                             [C-53]
                recorder / RTMP (Enhanced RTMP; FFmpeg) / SRT / WebRTC   (VIDEO_ENCODER.md §4A.7)
 ```
 
-On Pi 4/CM4 this flow can run in parallel with §9.1 or §9.2 for H.264 (candidate; §8A). On Pi 5/CM5 it can share one I420 conversion with §9.4 (candidate; §8, OQ-060). *(2026-10-08, later: this flow is kept as evidence for REQ-ENC-002 and applies only if it is re-activated; the current-scope flows are §9.1 to §9.4, H.264 only.)* *(2026-10-08, two encodes: in the current scope §9.1, §9.2 and §9.4 each carry two H.264 encodes, recording and live — OQ-005.)*
+On Pi 4/CM4 this flow can run in parallel with §9.1 or §9.2 for H.264 (candidate; §8A). On Pi 5/CM5 it can share one I420 conversion with §9.4 (candidate; §8, OQ-060). *(2026-10-08, later: this flow is kept as evidence for REQ-ENC-002 and applies only if it is re-activated; the current-scope flows are §9.1 to §9.4, H.264 only.)* *(2026-10-08, two encodes: in the current scope §9.1, §9.2 and §9.4 each carry two H.264 encodes, recording and live — OQ-005.)* *(Superseded in part — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. §9.4 (Pi 5 / CM5) is no longer a current-scope flow. Note added 2026-10-12.)*
 
 ### 9.6 Mirrored recording: two file writers after the recording encode (added 2026-10-09; ADR-009; reasoning only)
 
@@ -473,7 +487,7 @@ capture buffer (shared by both encodes, §6, §9.1, §9.4)
 1. **No new raw-frame consumer.** The two file writers take the recording encode's encoded output, not capture buffers. Reasoning: the mirror adds no third DMABUF import of a capture buffer, and copying encoded data does not touch REQ-DMA-001, which concerns raw frames between capture and encoder.
 2. **Back-pressure chain** (reasoning; RISK-028). If the HDD writer blocks and its branch can neither absorb nor drop, the recording branch stops taking encoded output. On CM4 the recording session's encoded (CAPTURE) buffers [D-23] are then not returned, so that session stops consuming input. It stops releasing the shared capture buffers (§6, candidate item 2), capture runs out of queued buffers and, on CM4, drops frames [K-34] (on CM5 the register gives only CFE's `min_queued_buffers=1` [K-35]; what CFE does with no queued buffer is NEEDS VERIFICATION, KERNEL SOURCE INSPECTION REQUIRED), and frames that do wait add one frame period each (reasoning sentence of [K-36]). The live encode, fed from the same capture buffers, sees the gaps or the delay. The only HDD figure in the register is for one Seagate BarraCuda 2.5-inch family, which takes 2.5 s typical and 3.0 s maximum from standby to ready (CORRECTED) [J-30]; it is an example, not a general HDD figure. Reasoning: 3.0 s is 90 frames at 30 fps.
 3. **Where the HDD-branch buffer can hold the data (CM4).** Reasoning (inputs: 768 KiB default encoded buffer above 720p [D-23]; a 3.0 s stall, taken from the 3.0 s maximum standby-to-ready time of the one Seagate 2.5-inch family in [J-30]; 64 MiB base CMA pool [E-47]): holding the encoder's own CAPTURE buffers through a 3.0 s stall at 30 fps would need about 90 of them, 90 × 786,432 = 70,778,880 bytes, more than the whole 67,108,864-byte base pool, and twice that at 60 fps. That the encoder's MMAP buffers come from CMA is itself NEEDS VERIFICATION (§4.3). A buffer that holds *copies* of the encoded data in ordinary memory needs only about 9.5 MB for a 3.0 s stall at 25 Mbit/s plus AAC (reasoning from [J-30] and [J-36], as recorded in OQ-117). *(2026-10-09: 25 Mbit/s is now the owner's recording bitrate, VBR (OQ-005), so this is the figure at the decided video rate; the AAC rate is still the research's assumption.)* Whether the chosen framework copies encoded data out of the encoder's buffers before queuing it: NEEDS VERIFICATION (ADR-007, OQ-117).
-4. **CM5.** The encodes are software [G-22], so their output is produced by the CPU. Reasoning: the same chain applies through the shared capture buffers and the conversion (§9.4), but the encoded output does not come from fixed-size encoder buffers.
+4. **CM5.** The encodes are software [G-22], so their output is produced by the CPU. Reasoning: the same chain applies through the shared capture buffers and the conversion (§9.4), but the encoded output does not come from fixed-size encoder buffers. *(Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4); kept as reference, ARCH-001. Note added 2026-10-12.)*
 5. **The NVMe writer.** The same reasoning applies to a slow NVMe SSD; the register's only stall-related figure is the standby-to-ready time of one HDD family [J-30], and SSD write behaviour is UNKNOWN (OQ-121).
 
 UNKNOWN — VERIFICATION REQUIRED: the HDD-branch buffer size and overflow policy (OQ-117); how each framework fans one encoded stream out to two writers and decouples one of them (ADR-007, OQ-015); the effect of an injected HDD stall on capture buffers in flight, dropped frames and live latency. BUILD TEST REQUIRED; HARDWARE TEST REQUIRED (TEST-REC-001, TEST-PERF-001, TEST-STR-002; OQ-117, OQ-126).
@@ -496,7 +510,7 @@ None of these models is decided. The model is to be chosen together with ADR-007
 
 The full procedures belong in [TESTING.md](TESTING.md). Both tests are **BLOCKED — HARDWARE REQUIRED**.
 
-**TEST-DMA-001** (REQ-DMA-001, REQ-ARCH-001) must show, per candidate platform:
+**TEST-DMA-001** (REQ-DMA-001, REQ-ARCH-001) must show, per candidate platform: *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 
 - capture buffers imported into the encoder with no `contiguous chunk is too small` error [D-20];
 - capture and encoder strides that agree (§6);
@@ -504,9 +518,9 @@ The full procedures belong in [TESTING.md](TESTING.md). Both tests are **BLOCKED
 - that the chosen userspace path does not copy raw frames on Pi 4/CM4;
 - *(added 2026-10-08, two encodes)* on Pi 4/CM4, that one capture buffer reaches both H.264 encode sessions, recording and live, without a copy, and how many capture buffers are then in flight (§2, §6; OQ-058, OQ-061, OQ-115). If the encoder cannot run both sessions (OQ-115), record which split was used.
 
-**TEST-PERF-001** must record `CmaFree` from `/proc/meminfo` during sustained capture and encode [C-53] (RISK-020, OQ-061). On Pi 5/CM5 it must also record CPU load of conversion and encode (OQ-059). *(Added 2026-10-08.)* With H.265 required, the CPU load of the UYVY → planar conversion and of x265 must be recorded on CM4 as well as CM5, the owner's bring-up pair (ADR-004; OQ-104). On CM4, also record the effect on capture buffers in flight when one buffer feeds both the hardware H.264 path and the H.265 conversion (§8A; OQ-058, OQ-061). *(Superseded 2026-10-08, later: H.265 is deferred — REQ-ENC-002; these H.265 measurements are deferred, not run in current scope. `CmaFree` on every platform under evaluation, and the conversion and encode CPU load on Pi 5/CM5 (OQ-059), are still recorded as above.)* *(Added 2026-10-08, two encodes.)* TEST-PERF-001 records `CmaFree` with both H.264 encodes, recording and live, running (OQ-005, OQ-061). On CM5 it records the CPU load of the conversion (shared or one per encode, OQ-060) and of both software encodes together (OQ-059, RISK-003). On CM4 it records the capture buffers in flight while both encode sessions use them (OQ-115, RISK-002).
+**TEST-PERF-001** must record `CmaFree` from `/proc/meminfo` during sustained capture and encode [C-53] (RISK-020, OQ-061). On Pi 5/CM5 it must also record CPU load of conversion and encode (OQ-059). *(Added 2026-10-08.)* With H.265 required, the CPU load of the UYVY → planar conversion and of x265 must be recorded on CM4 as well as CM5, the owner's bring-up pair (ADR-004; OQ-104). On CM4, also record the effect on capture buffers in flight when one buffer feeds both the hardware H.264 path and the H.265 conversion (§8A; OQ-058, OQ-061). *(Superseded 2026-10-08, later: H.265 is deferred — REQ-ENC-002; these H.265 measurements are deferred, not run in current scope. `CmaFree` on every platform under evaluation, and the conversion and encode CPU load on Pi 5/CM5 (OQ-059), are still recorded as above.)* *(Added 2026-10-08, two encodes.)* TEST-PERF-001 records `CmaFree` with both H.264 encodes, recording and live, running (OQ-005, OQ-061). On CM5 it records the CPU load of the conversion (shared or one per encode, OQ-060) and of both software encodes together (OQ-059, RISK-003). On CM4 it records the capture buffers in flight while both encode sessions use them (OQ-115, RISK-002). *(Superseded in part — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. The Pi 5 / CM5 measurements in this paragraph and the "bring-up pair" are not in current scope. Note added 2026-10-12.)*
 
-*(Added 2026-10-09; ADR-009 and the < 1 s WebRTC target; reasoning, not accepted criteria.)* With the recording mirrored to both drives, TEST-PERF-001 and TEST-REC-001 also record, on CM4 and CM5, the capture buffers in flight and the dropped capture frames during an injected HDD stall, and TEST-STR-002 checks that the live latency does not change (§2, §9.6; OQ-117, OQ-126; RISK-028). The procedures belong in [TESTING.md](TESTING.md).
+*(Added 2026-10-09; ADR-009 and the < 1 s WebRTC target; reasoning, not accepted criteria.)* With the recording mirrored to both drives, TEST-PERF-001 and TEST-REC-001 also record, on CM4 and CM5, the capture buffers in flight and the dropped capture frames during an injected HDD stall, and TEST-STR-002 checks that the live latency does not change (§2, §9.6; OQ-117, OQ-126; RISK-028). *(Superseded in part — ADR-004 ACCEPTED 2026-10-09 (CM4); the CM5 measurement is not in current scope; note 2026-10-12.)* The procedures belong in [TESTING.md](TESTING.md).
 
 > **NOT YET RUN ON PACSCORDER HARDWARE.** No command in this document has been run on PACSCORDER hardware. Exact command lines will be added to [TESTING.md](TESTING.md) only where a cited source attests them.
 
@@ -516,17 +530,17 @@ The full procedures belong in [TESTING.md](TESTING.md). Both tests are **BLOCKED
 
 | ID | Relation to this document | Status |
 |---|---|---|
-| REQ-DMA-001 (DRAFT) | Whole document; Pi 5/CM5 reading in §8 needs owner confirmation (OQ-017) | NOT STARTED; TEST-DMA-001 BLOCKED — HARDWARE REQUIRED |
+| REQ-DMA-001 (DRAFT) | Whole document; Pi 5/CM5 reading in §8 needs owner confirmation (OQ-017) *(Pi 5/CM5 not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* | NOT STARTED; TEST-DMA-001 BLOCKED — HARDWARE REQUIRED |
 | REQ-ARCH-001 (DRAFT) | §9: the DMABUF stage of the mandated path | NOT STARTED |
 | REQ-ENC-001 (DRAFT) | §6, §8: encoder input constraints; *(added 2026-10-08)* §8A: H.265 planar input on every platform. *(2026-10-08, later: REQ-ENC-001 is H.264 only; §8A now traces to REQ-ENC-002)* *(2026-10-08, two encodes: REQ-ENC-001 requires two simultaneous H.264 encodes, recording and live (OQ-005); one capture buffer for both — §2, §4.3, §6, §7, §8, §9)* | NOT STARTED |
 | REQ-ENC-002 (DEFERRED; added to this table 2026-10-08) | §8A, §9.5: H.265 buffer path — evidence only, not in current scope | NOT STARTED; no tests planned (deferred) |
 | REQ-PERF-001 (PROPOSED) | §4.4, §8: CMA and CPU measurements | NOT STARTED; TEST-PERF-001 BLOCKED — HARDWARE REQUIRED |
 | ADR-003 (ACCEPTED) | §5: kernel series and toolchain differ between Raspberry Pi OS and Buildroot | — |
-| ADR-004 (OPEN) | §1, §9: flows differ per platform. *(2026-10-08: bring-up evaluates CM4 and CM5 side by side, owner 2026-10-07; still OPEN)* | — |
+| ADR-004 (OPEN) *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* | §1, §9: flows differ per platform. *(2026-10-08: bring-up evaluates CM4 and CM5 side by side, owner 2026-10-07; still OPEN)* | — |
 | ADR-005 (PROPOSED) | §6, §8: UYVY at the encoder input; *(added 2026-10-08)* §8A: UYVY is never accepted by x265 (H.265 deferred — REQ-ENC-002) | — |
 | ADR-007 (OPEN) | §7, §10: framework and buffer-ownership model; *(added 2026-10-08)* §8, §8A: one planar conversion for both codecs, and one capture buffer for two consumers on CM4 (both H.265 cases deferred — REQ-ENC-002; not in current scope) | — |
 | RISK-002 | §6: Pi 4/CM4 encoder at 1080p60 (see [VIDEO_ENCODER.md](VIDEO_ENCODER.md)). *(2026-10-08: also two concurrent encode sessions from one capture buffer, §6, §9.1; OQ-115)* | OPEN |
-| RISK-003 | §8. *(2026-10-08: two software encodes on the CPU, §8, §9.4; OQ-059)* | OPEN |
+| RISK-003 | §8. *(2026-10-08: two software encodes on the CPU, §8, §9.4; OQ-059)* *(Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4); RISK-003 kept as reference, ARCH-001. Note added 2026-10-12.)* | OPEN |
 | RISK-020 | §2, §4 | OPEN |
 | RISK-022 (added 2026-10-08) | §8A: H.265 is software-only; the conversion cost comes before x265 [H-43]. *(2026-10-08, later: not in current scope — H.265 deferred, REQ-ENC-002)* | OPEN |
 | RISK-024 (added 2026-10-08) | §6: capture timestamps are `CLOCK_MONOTONIC` [I-33] (A/V alignment) | OPEN |
@@ -587,3 +601,4 @@ Every hardware-dependent item is **BLOCKED — HARDWARE REQUIRED**.
 | 2026-10-08 | Two H.264 encodes (owner: "Separate record + live", OQ-005): verifier pass — §6 "both use the one encoder node" → "would use" (concurrency is OQ-115); §6 candidate item 3: timestamps are copied to the encoded buffers of both sessions [D-19] (was "into both bitstreams", which [D-19] does not state). No status changed; no ID added. | Claude (session 2026-10-08) |
 | 2026-10-09 | Storage + latency (ADR-009 ACCEPTED, OQ-116 ANSWERED, research topics J and K): header ("Last updated", "Applies to" §2 queuing latency and §9.6, Verification J and K); §2 new "Buffer queuing and latency" note — Unicam and CFE complete buffers at frame end and drop frames when no buffer is queued [K-34], [K-35], V4L2 FIFO queues with the [K-36] reasoning sentence (one frame period per waiting buffer), `v4l2src` pool latency [K-37], and the queuing-latency versus dropped-frames reasoning (OQ-061, OQ-126, RISK-032); new §9.6 mirrored recording, reasoning only — the two file writers take encoded output, not capture buffers; the HDD back-pressure chain into the shared capture buffers and the live encode [D-23], [K-34] to [K-36], [J-30] (RISK-028, OQ-117); on CM4 holding the encoder's own buffers through a 3.0 s stall would exceed the 64 MiB base CMA pool [D-23], [E-47], while copies need about 9.5 MB [J-36]; CM5 and NVMe notes (OQ-121); §11 HDD-stall measurements for TEST-PERF-001, TEST-REC-001, TEST-STR-002; §12 rows ADR-009, REQ-STR-002, RISK-028, RISK-032 and OQ list (OQ-005 latency part marked superseded in part; OQ-116, OQ-117, OQ-121, OQ-126 added); Verification fact and reasoning lists, re-check note. New citations in this document: J-30, J-36, K-34, K-35, K-36, K-37. No requirement, ADR, risk, OQ or test status changed; nothing run or measured. Verifier pass (same date): §9.6 items 2, 3 and 5 — [J-30] is one Seagate BarraCuda 2.5-inch family's standby-to-ready time (2.5 s typical, 3.0 s maximum), an example and not a general HDD stall figure; wording changed from "the example 2.5-inch HDD" / "3.0 s stall [J-30]" / "stall evidence is for the HDD" accordingly. Note on this row: "drop frames when no buffer is queued [K-34], [K-35]" holds for Unicam (CM4) only; [K-35] does not state CFE's behaviour, which §2 and §9.6 record as NEEDS VERIFICATION. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09, later (live CBR 17 Mbit/s and recording 25 Mbit/s VBR — OQ-005; continue on the remaining drive if one fails — OQ-129): "Open questions referenced" — "OQ-005 stays OPEN for bitrate and rate control" marked superseded in part (bitrates set; OQ-005 open only for a capture-to-file latency target); §6 encoded-output-buffer row — "the chosen bitrate" annotated (now chosen; sufficiency of the default still unmeasured, OQ-056); §9.6 item 3 — the 9.5 MB copy-buffer figure noted as at the decided 25 Mbit/s (AAC rate still the research's assumption). The drive-failure policy (OQ-129) changes no buffer statement here. No fact ID added; no requirement, ADR, risk, OQ or test status changed. Main session, same date: OQ-005 remainder wording aligned with the register — it also keeps the recording encode's profile, level and B-frames open. | Claude (session 2026-10-09) |
+| 2026-10-12 | ADR-004 scope sweep: "Last updated"; header "Applies to" (four platforms) superseded; 9 stale statements superseded or scoped (scope bullet on Pi 5/CM5 zero-copy, §9 lead-in ADR-004 (platform, OPEN), §9.5 "current-scope flows §9.1 to §9.4", §9.6 item 4 (CM5), §11 "per candidate platform", §11 TEST-PERF-001 "bring-up pair" and CM5 measurements, §11 "on CM4 and CM5", §12 REQ-DMA-001 and ADR-004 (OPEN) rows) plus the §12 RISK-003 row noted as not in current scope; §3.2, §8 and §9.4 (Pi 5 / CM5) marked not in current scope; Pi 5 / CM5 columns or rows noted after the tables in §1, §4.2, §7 and §8A. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |

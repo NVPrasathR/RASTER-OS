@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-09 |
+| Last updated | 2026-10-12 |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 4 |
 
 Every meaningful change is recorded here. Versioning is semantic-style (`Unreleased`, `v0.1.0`, `v0.2.0`, `v1.0.0`; see [RELEASE.md](RELEASE.md)). History is never rewritten: a correction is a new entry.
@@ -35,8 +35,18 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 **Technical documents**
 - Written from the source register; none describes implemented or tested functionality: `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `HARDWARE.md`, `DEVICE_TREE.md`, `TC358743_DRIVER.md`, `V4L2.md`, `CSI_PIPELINE.md`, `DMA.md`, `VIDEO_ENCODER.md`, `PERFORMANCE.md`, `RECORDING.md`, `STREAMING.md`, `ATEM.md`, `BUILD_SYSTEM.md`, `RELEASE.md`, `TESTING.md`, `TROUBLESHOOTING.md`.
 
+**2026-10-12 — tools, research topic L, encoder test stage**
+- `tools/doccheck.py`: the documentation consistency check, rebuilt from the check list in DEVELOPMENT_LOG.md (2026-10-06) and now version-controlled. The original lived only in a session scratchpad and was lost. Adds three checks: register header counts, uncited facts, and possibly stale ADR/OQ statuses. README convention 10 makes it part of committing documentation.
+- `tools/encoder_capacity_test.sh`: TEST-ENC-001 Stage 0, an encoder-only capacity run on a CM4 with a synthetic source (no TC358743). **NOT YET RUN ON PACSCORDER HARDWARE**; dry-run only, with stand-in commands on a development computer.
+- `docs/REFERENCES.md` topic L: 63 facts (56 CONFIRMED, 7 CORRECTED) on H.264 level bit-rate ceilings (ITU-T H.264 V16), CM4 and CM4 IO Board Ethernet, `bcm2835-codec` concurrency, and encoder-test commands. Register total 620 facts. Raw data: `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
+- `docs/TESTING.md` TEST-ENC-001: Stage 0 procedure (run matrix R1–R7, up to two 1080p60 encodes).
+
 ### Changed
 
+- 2026-10-12: **ADR-004 scope sweep.** CM5 / Pi 5 / BCM2712 / Pi 4 Model B material in 22 documents is marked "not in current scope" and kept as reference (Rule 14). Every statement that still showed ADR-004 (or ADR-003, ADR-009, or an answered OQ) as open got a dated superseding note. Insertions only; the only removed text is "Last updated" dates and the DECISIONS.md header counts.
+- 2026-10-12: **OQ-129 drive-return decision propagated** into the design and test content (RECORDING, ARCHITECTURE, SOFTWARE_ARCHITECTURE, STREAMING, PERFORMANCE, TESTING TEST-REC-001). The 2026-10-09 answer had reached the registers but not the design text or the tests.
+- 2026-10-12: **Research topic L propagated.** OQ-073: the bit-rate part is resolved from ITU-T H.264 — 25 Mbit/s High Level 4.2 is 40 % of the ceiling; 17 Mbit/s CBR fits every level used. OQ-098: CM4 Ethernet is an on-board Gigabit PHY, so 102 Mbit/s of egress is 10.2 % of the link. OQ-115: kernel-source part done — one firmware component per session, no driver limit, scheduling in firmware. VIDEO_ENCODER §6: Level 4.1 does not cover 1080p50; Level 4.2 is needed. RISK-002 evidence extended. All three OQs stay OPEN for their hardware parts.
+- 2026-10-12: OQ-011 / ADR-004 correction on which items are CM5-specific (RISK-014's CM4 path in scope; OQ-100 not CM5-specific). ADR-006 and ADR-008 get rationale-review notes, because their CM5-based reasons no longer apply. No decision changed.
 - 2026-10-09: **Product platform decided — CM4 (ADR-004 ACCEPTED); CM5 dropped.**
   - Owner: "stick to CM4". The product platform is the **Compute Module 4 (CM4, BCM2711)**; OQ-011 ANSWERED. **CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards** and kept only as reference (Rule 14); CM5 is archived as **ARCH-001** in [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md).
   - CM4 carries the TC358743 on CAM1 (4-lane, 1080p60) and CAM0 (2-lane), with the hardware H.264 encoder; both lane configurations (REQ-CAP-007) are served by CM4.
@@ -131,7 +141,10 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Fixed
 
-- Nothing (first entry).
+- Nothing (first entry). *(Superseded 2026-10-12 — see below.)*
+- 2026-10-12: DECISIONS.md header said "3 ACCEPTED, 4 PROPOSED, 2 OPEN" after ADR-004 was accepted; corrected to 4 / 4 / 1 (found by the rebuilt documentation check).
+- 2026-10-12: **Missing change-history rows** for the 2026-10-09 edits committed by hand (`98779a4`, `9670f71`, `2d76092` "update by ai"; `049d1ee` "up date by ai"; `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12)) added as dated catch-up rows in 11 documents. Where `3c823b6` (now `27c44d9`) rewrote text in place, the rows record it — the TESTING.md Platform row and the REQUIREMENTS.md REQ-PLT-001 Notes text verbatim; the "Applies to" headers and the TRACEABILITY `ADR-004 (O)` → `(A)` cells by reference to git (Rule 21).
+- 2026-10-12: Stale statements of answered OQs (OQ-005, OQ-008) in REQUIREMENTS.md, and the [C-27] citation for a CM4 hazard (it is a CM5 fact), annotated.
 
 ### Known Issues
 
@@ -143,11 +156,13 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
 - The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125). It is judged at the 95th percentile over a 30-minute run at 1 sample/second (~1800 samples), with the recording running (owner, 2026-10-09; OQ-008 ANSWERED).
 - The recording capture-to-file < 1 s glass-to-disk target (owner, 2026-10-09) is judged against the primary recording target — the NVMe SSD — at the 95th percentile; the HDD is a lagging mirror not bound by the target (OQ-130 ANSWERED). The HDD cannot meet < 1 s during a standby-to-ready stall of up to about 3.0 s [J-30] (RISK-028), so its branch must be decoupled or buffered (OQ-117).
-- Network egress with 5 WebRTC viewers and one RTMP destination is about 102 Mbit/s of video (reasoning); the boards' Ethernet link speed has not been researched (OQ-098).
+- Network egress with 5 WebRTC viewers and one RTMP destination is about 102 Mbit/s of video (reasoning); the boards' Ethernet link speed has not been researched (OQ-098). *(Superseded 2026-10-12: the CM4 has an on-board Gigabit PHY [L-15]; 102 Mbit/s of payload is 10.2 % of the link, overhead not included [L-22]. Measured throughput is HARDWARE TEST REQUIRED.)*
 - Recording storage (ADR-009): on CM4 the NVMe SSD takes the only PCIe lane and the HDD shares USB 2.0 (RISK-026); UAS bridge faults (RISK-027); HDD stalls could back-pressure the shared encoder and live path (RISK-028); fragmented MP4 compatibility (RISK-029); residual loss on a power cut (RISK-030).
 - The GStreamer WebRTC publishing elements are not packaged for Raspberry Pi OS trixie, and WHEP is still a draft (RISK-034).
 - Commit `54269bf` has a non-Rule-15 message ("update 9oct"); it is on the shared remote and was not rewritten.
-- HDMI audio on CM5 is unconfirmed (RISK-014). Audio sample-rate changes are not tracked by the kernel (RISK-023).
+- Commits `fe26dd2` ("correcting by ai"), `98779a4`, `9670f71`, `2d76092` ("update by ai") and `049d1ee` ("up date by ai") — on the shared remote — have non-Rule-15 messages. The hand commit `3c823b6` ("mmit") was reworded to a Rule 15 message before push on 2026-10-12 (owner's choice) and is on `origin` as `27c44d9`. They were not rewritten; their content is recorded by the 2026-10-09 log entries and the 2026-10-12 catch-up rows.
+- The two-encode design rests on the CM4 hardware encoder, whose only official capacity is 1080p30 [L-29]; a Raspberry Pi engineer's opinion is that two 1080p30 streams are probably too many [L-30] (community). TEST-ENC-001 Stage 0 measures it on a CM4 alone (OQ-115, RISK-002).
+- HDMI audio on CM5 is unconfirmed (RISK-014). *(2026-10-12: the CM5 part is not in current scope — ADR-004 ACCEPTED, CM4.)* Audio sample-rate changes are not tracked by the kernel (RISK-023).
 - 1080p60 capture is not possible on a 2-lane link (RISK-001). Since 2026-10-07, 1080p60 is required on 4-lane configurations only, and Pi 4 Model B remains a 2-lane candidate (REQ-CAP-007). 1080p60 encode is unproven on every candidate platform (RISK-002, RISK-003).
 
 ## Change history
@@ -168,3 +183,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-09 | Owner decisions on the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples) recorded; OQ-005 and OQ-008 ANSWERED; new OQ-130 added; Known Issues updated. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | OQ-130 ANSWERED: recording capture-to-file < 1 s judged against the primary recording target (NVMe SSD) at the 95th percentile, the HDD a lagging mirror; ADR-009 mirror refined. Counts 130 OQs (118 OPEN, 12 ANSWERED). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | Product platform decided: CM4 (ADR-004 ACCEPTED); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001); OQ-011 ANSWERED. Counts: 4 ACCEPTED ADRs; 130 OQs (117 OPEN, 13 ANSWERED). Authoritative and reader-facing docs updated; deep inline CM5 content kept as reference. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-12 | Added: `tools/doccheck.py`, `tools/encoder_capacity_test.sh`, research topic L, TEST-ENC-001 Stage 0. Changed: ADR-004 scope sweep, OQ-129 propagation, topic L propagation, OQ-011 correction, ADR-006/ADR-008 review notes. Fixed: DECISIONS header counts, catch-up change-history rows for the hand commits, stale OQ statements. Known Issues: network egress, hand-commit messages, CM4 two-encode capacity, CM5 audio scope. | Claude (session 2026-10-12) |

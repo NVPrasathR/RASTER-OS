@@ -1463,7 +1463,7 @@ perl -0pi -e 's/ADR-004 \(O\)/ADR-004 (A)/g' docs/TRACEABILITY.md
 
 ### Next Step
 
-1. Commit the uncommitted 2026-10-09 documentation once the owner approves. Proposed commit (Rule 15):
+1. Commit the uncommitted 2026-10-09 documentation once the owner approves. Proposed commit (Rule 15): *(2026-10-12: committed by the owner by hand as `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12) rather than with this message; not pushed as of 2026-10-12.)* *(Later on 2026-10-12: reworded to this message as `27c44d9` before push, at the owner's choice; content unchanged.)*
 
 ```text
 Commit title: docs: decide product platform CM4, drop CM5 (ADR-004 ACCEPTED)
@@ -1481,8 +1481,127 @@ Reason: Rules 1, 11, 13, 14, 16, 21 - major decision, archived not deleted
 Tests: documentation consistency check NOT RUN - doccheck.py unavailable
 ```
 
-2. Proposed (Claude): sweep the remaining inline CM5 references in the deep technical documents under the ADR-004 scope rule.
+2. Proposed (Claude): sweep the remaining inline CM5 references in the deep technical documents under the ADR-004 scope rule. *(2026-10-12: done — see the 2026-10-12 entry.)*
 3. The owner obtains the **CM4** bring-up hardware, including recording storage, and records it in HARDWARE.md as HW REV A.
+
+## 2026-10-12 — Documentation check rebuilt, ADR-004 scope sweep, hand-commit catch-up, research topic L, TEST-ENC-001 Stage 0
+
+### Objective
+
+The owner asked "what next" and then "start" on the desk work proposed at session start: (1) rebuild the documentation check and keep it in the repository; (2) fix stale status and finish the ADR-004 (CM4-only) sweep; (3) resolve from sources what can be resolved without hardware — the bit-rate part of OQ-073, the CM4 Ethernet part of OQ-098 and the kernel-source part of OQ-115; (4) prepare the first hardware test so it runs the day a CM4 exists.
+
+### Starting State
+
+- `main` at `3c823b6` (later reworded to `27c44d9` before push — see Next Step) ("mmit", hand-committed 2026-10-12 10:19, not pushed; `origin/main` at `049d1ee`). Working tree clean.
+- Since `b142871` six commits had non-Rule-15 messages: `fe26dd2` "correcting by ai", `98779a4` / `9670f71` / `2d76092` "update by ai", `049d1ee` "up date by ai", `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12). Their content matched the 2026-10-09 fourth to seventh log entries, so nothing was undocumented in the log, but PROJECT_STATUS still called those decisions "uncommitted".
+- The seventh 2026-10-09 entry (CM4 decision) was PARTIAL: deep inline CM5 content not swept.
+- `doccheck.py` was gone: it had never been committed, and every scratchpad copy had been wiped. Its last run was in the fourth 2026-10-09 entry.
+- No hardware, no code, nothing tested.
+
+### Changes
+
+1. **`tools/doccheck.py`** (new, version-controlled). Rebuilt from the check list in the 2026-10-06 entry. Problems: undefined fact citations; undefined REQ/ADR/RISK/OQ/TEST/ARCH IDs; broken relative `.md` links; TESTING.md test IDs differing from the README canonical list; missing Verification or Change-history sections; missing Rule 2 files; **new:** register header counts that disagree with the register body. Warnings: success words (Rule 10; REFERENCES.md is skipped because its success words are source quotes); **new:** register facts that nothing cites; **new:** lines where an ACCEPTED ADR or ANSWERED OQ may be shown as OPEN/PROPOSED. It is a re-implementation, so its warning counts are not comparable with runs logged before 2026-10-12.
+2. **Baseline run** of the rebuilt check on `3c823b6` (same tree as `27c44d9`): 2 PROBLEMS (DECISIONS.md header "3 ACCEPTED, 2 OPEN" — the index had 4 and 1 since ADR-004 was accepted) and 91 stale-status warnings (mostly `ADR-004 (OPEN)`, also ADR-003, ADR-009 and answered OQs).
+3. **ADR-004 scope sweep** (8 parallel agents, one shared specification, disjoint file sets; 22 documents). Append-only notes: "*(Superseded — ADR-004 ACCEPTED 2026-10-09 …)*" on stale statements; "not in current scope" markers on CM5/Pi 5/BCM2712-only sections and tables; header "Applies to" notes; one change-history row per file. DECISIONS.md header counter corrected to 4 ACCEPTED, 4 PROPOSED, 1 OPEN. OQ-049, OQ-055 and OQ-060 got scope notes as CM5-only; OQ-100 was left in scope (it asks whether a `[pi4]` section matches a CM4).
+4. **OQ-129 propagation** (1 agent): the drive-return answer of 2026-10-09 had reached the registers but not the design text or the tests. Added to RECORDING, ARCHITECTURE, SOFTWARE_ARCHITECTURE, STREAMING, PERFORMANCE and TESTING TEST-REC-001 (new steps 9 e–g and Expected Result bullets; alert method and thresholds UNDEFINED, OQ-091, OQ-017).
+5. **Corrections found by the sweep** (main session): OQ-011 answer and ADR-004 Consequences listed RISK-014 and OQ-100 as CM5-specific and omitted OQ-049/055/060 — dated correction notes. ADR-006 and ADR-008 — "Review note (2026-10-12)" subsections, because their CM5-based reasons no longer apply (decisions and status unchanged, owner decisions OQ-014 and OQ-099). REQUIREMENTS.md stale OQ-005/OQ-008 statements superseded. HARDWARE.md hazard 10 cited [C-27], a CM5 fact, for the CM4 — annotated DATASHEET REQUIRED (OQ-026). RECORDING.md Level 4.2 got the [D-12] caveat. "Uniform on CM4 and CM5" in the recorded OQ-005 answer annotated (CM5 dropped later that day). VIDEO_ENCODER.md §9 got an OQ-130 row.
+6. **Catch-up change-history rows** (Rules 1, 21) in 11 documents for the 2026-10-09 edits that the hand commits carried without a row, computed from `git show` per commit and file. Where `3c823b6` (now `27c44d9`) rewrote text in place — the TESTING.md common-setup Platform row, the REQ-PLT-001 Notes line, five "Applies to" headers, and the TRACEABILITY `ADR-004 (O)` → `(A)` cells (`perl -0pi`) — the rows say so. The two procedural texts are quoted verbatim; the others reference `git show 27c44d9^`.
+7. **Research topic L** (1 research agent, 2 independent adversarial verifiers): 63 facts, 56 CONFIRMED, 7 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED. Appended to REFERENCES.md by a generator script (scratchpad), existing entries untouched; raw data `docs/research/2026-10-12-bitrate-network-encoder-research.json`. Register: 620 facts.
+8. **Topic L propagation:** OQ-073 (bit-rate part resolved from ITU-T H.264 V16: 25 Mbit/s High L4.2 = 40 % of the VCL ceiling; 17 Mbit/s CBR fits CB/Main/High at L4.0–4.2, tightest 85 %), OQ-098 (CM4 on-board BCM54210PE Gigabit PHY, MAC on the SoC; 102 Mbit/s egress = 10.2 % of the link), OQ-115 (one firmware `ril.video_encode` per session, no driver limit, scheduling in firmware), OQ-056, OQ-057, OQ-101; RISK-002; VIDEO_ENCODER §3.5–3.7, §5, §6 (the 1080p50 NEEDS VERIFICATION answered: Level 4.1 does not suffice); HARDWARE §4.12; STREAMING; PERFORMANCE; ARCHITECTURE; TRACEABILITY state note; README fact range.
+9. **TEST-ENC-001 Stage 0** (TESTING.md) and **`tools/encoder_capacity_test.sh`**: an encoder-only capacity run on a CM4 with a synthetic `videotestsrc` source — no TC358743, no storage. Pre-flight checks the encoder control names (a misspelt `extra-controls` field is silently skipped [L-55]) and input formats; generator control; run matrix R1–R7 (1.0× to 4.0× the 1080p30 specification); throughput and real-time modes; SoC clock, temperature and throttling at 1 Hz; per-session timeout (an unverified 2022 community report of a CBR hang is in the [L-63] verifier note). It prints measurements, not PASS/FAIL.
+10. **README.md:** convention 5 superseded (CM4 product platform), `ARCH-NNN` in the ID table, fact range `A-NN` … `L-NN`, new convention 10 (run the check before committing documentation).
+
+### Files Modified
+
+- New: `tools/doccheck.py`, `tools/encoder_capacity_test.sh`, `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
+- `docs/`: `ARCHITECTURE.md`, `ATEM.md`, `BUILD_SYSTEM.md`, `CHANGELOG.md`, `CSI_PIPELINE.md`, `DECISIONS.md`, `DEVELOPMENT_LOG.md`, `DEVICE_TREE.md`, `DMA.md`, `HARDWARE.md`, `OPEN_QUESTIONS.md`, `PERFORMANCE.md`, `PROJECT_STATUS.md`, `README.md`, `RECORDING.md`, `REFERENCES.md`, `RELEASE.md`, `REQUIREMENTS.md`, `RISKS.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `TC358743_DRIVER.md`, `TESTING.md`, `TRACEABILITY.md`, `TROUBLESHOOTING.md`, `V4L2.md`, `VIDEO_ENCODER.md`.
+- Not modified: `ENGINEERING_RULES.md`, `ARCHIVED_APPROACHES.md`, `CLAUDE.md`.
+
+### Hardware Changes
+
+None. No hardware exists.
+
+### Software Changes
+
+No product software. Two repository tools (documentation check; encoder test script for future hardware).
+
+### Commands Used
+
+```bash
+python3 tools/doccheck.py docs                      # baseline, after each step, final
+git show --stat <commit> -- docs                    # hand-commit audit (fe26dd2 … 3c823b6)
+git show <commit> --word-diff=plain -- docs/<file>  # in-place rewrites in 3c823b6
+git diff --word-diff=porcelain -- docs              # Rule 21 audit: every removed word
+bash -n tools/encoder_capacity_test.sh              # syntax
+# dry run of the test script with stand-in gst-launch-1.0 / v4l2-ctl / vcgencmd / timeout on macOS
+# research: Claude Code Agent tool — 1 researcher, 2 verifiers (L-01..L-31, L-32..L-63)
+# sweep: 8 agents + 1 OQ-129 agent, shared written specification, disjoint files
+```
+
+### Test Results
+
+- **Documentation consistency check — TESTED — PASS** (documentation only, not a product function). Final run, exit code 0:
+
+```text
+defined: facts=620 topics=ABCDEFGHIJKL REQ=21 ADR=9 RISK=34 OQ=130 TEST=17 ARCH=1 TEST(canon)=17
+files=29 distinct facts cited=620/620
+PROBLEMS (0):
+WARNINGS (0):
+```
+
+- **Rule 21 audit** (`git diff --word-diff=porcelain` against `3c823b6`, same tree as `27c44d9`): the only removed tokens are the "Last updated" dates, the DECISIONS.md header counts ("3", "2"), and the REFERENCES.md header/total cells ("K)", "557", "512", "45") that the topic L append updated. Table column counts were compared before and after for every edited file: no table was broken.
+- **`tools/encoder_capacity_test.sh`:** `bash -n` passes. A dry run on macOS with stand-in commands exercised the pre-flight checks (including stopping on a missing control name), both modes, result parsing and CSV output. **This tests the script's logic only. The script is NOT YET RUN ON PACSCORDER HARDWARE, and no encoder behaviour has been measured.**
+- No hardware or product software test was possible.
+
+### Problems Found
+
+1. Hand-committed sessions had left 2026-10-09 edits without change-history rows, and `3c823b6` (now `27c44d9`) rewrote some text in place instead of appending (Rule 21). Recorded, not reverted.
+2. The ADR-004 decision had not reached the status table of VIDEO_ENCODER.md or about 90 other statements; the DECISIONS.md header counts were stale.
+3. The OQ-129 drive-return answer had not reached any design text or test.
+4. The OQ-011 answer misclassified RISK-014 and OQ-100 as CM5-specific.
+5. ADR-006 and ADR-008 (PROPOSED) rest partly on CM5 reasons that no longer apply.
+6. One sweep note and one catch-up row I wrote first stated that two files lacked the OQ-130 answer; `git log -S` showed they had it. Corrected before commit.
+7. **Register rule conflict (owner decision needed):** OPEN_QUESTIONS.md "How to use this register" says a question made irrelevant by a dropped platform is marked ANSWERED; the 2026-10-09 seventh entry instead kept the CM5-only OQs OPEN, not in current scope. Left as is.
+8. Technical (from topic L): the only official CM4 encode capacity is 1080p30 [L-29], and a Raspberry Pi engineer's opinion is that two 1080p30 streams are probably too many [L-30] (community). FFmpeg's `h264_v4l2m2m` sets neither the bitrate mode nor the level [L-43].
+
+### Root Cause
+
+1–3: sessions stopped mid-work and were committed by hand with the "update by ai" automation; the earlier sweep was deliberately partial. 4: written quickly in the seventh entry. 6: my own unchecked assumption.
+
+### Solution
+
+See Changes. The check is now in the repository, so the stale-status and count problems are caught mechanically.
+
+### Current Status
+
+- PASS (documentation consistency). PARTIAL overall: the owner decisions listed in PROJECT_STATUS remain, and the commit is pending owner approval.
+- Product work: BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Owner: approve the commit below, or ask for changes. Decide whether to push `3c823b6` and this commit. *(Committed 2026-10-12 on the owner's instruction ("procced"), with the proposed message; not pushed.)* *(Then, at the owner's choice: `3c823b6` "mmit" reworded to its Rule 15 message as `27c44d9`, this commit replayed on top of it, its references to `3c823b6` updated to `27c44d9`, and both pushed to `origin` on 2026-10-12.)*
+2. Owner: obtain a CM4 (with the IO Board and 12 V supply) and run `tools/encoder_capacity_test.sh` (TEST-ENC-001 Stage 0). This is the cheapest measurement that settles whether the two-encode design is feasible (OQ-115, RISK-002).
+3. Owner decisions surfaced today: the live encode's resolution and frame rate (it sets whether Stage 0 needs R3, R4 or R5 to pass; OQ-115); the dropped-platform OQ rule (Problems Found 7); ADR-006 and ADR-008 review.
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: rebuild doc check, finish CM4 scope sweep, add topic L and encoder test stage
+Commit description: Add tools/doccheck.py (rebuilt documentation consistency check, now
+  version-controlled) and tools/encoder_capacity_test.sh (TEST-ENC-001 Stage 0, encoder-only
+  CM4 capacity run; not yet run on hardware). Finish the ADR-004 (CM4) scope sweep across 22
+  documents with append-only notes; propagate the OQ-129 drive-return answer into design and
+  tests; add catch-up change-history rows for the hand-committed 2026-10-09 edits. Add research
+  topic L (63 verified facts: ITU-T H.264 bit-rate ceilings, CM4 Ethernet, bcm2835-codec
+  concurrency, encoder-test commands) and propagate it to OQ-073, OQ-098, OQ-115, RISK-002
+  and the technical documents. No hardware or product code exists; nothing is tested on hardware.
+Files changed: tools/doccheck.py, tools/encoder_capacity_test.sh, docs/** (27 Markdown files),
+  docs/research/2026-10-12-bitrate-network-encoder-research.json
+Reason: Rules 1, 3, 10, 14, 16, 17, 21, 22, 23, 24
+Tests: python3 tools/doccheck.py docs → PROBLEMS 0, WARNINGS 0; Rule 21 word-diff audit;
+  table-integrity check; bash -n and a stand-in dry run of the test script
+```
+
+---
 
 ## Change history
 
@@ -1500,3 +1619,4 @@ Tests: documentation consistency check NOT RUN - doccheck.py unavailable
 | 2026-10-09 | Fifth 2026-10-09 entry added: owner decisions on the recording encode (High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples); OQ-005 and OQ-008 ANSWERED; OQ-130 opened. Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | Sixth 2026-10-09 entry added: OQ-130 ANSWERED (recording capture-to-file < 1 s judged against the primary drive, the NVMe SSD, at the 95th percentile; the HDD a lagging mirror; ADR-009 mirror refined). Documentation consistency check NOT RUN (doccheck.py unavailable). Noted the external "update by ai" commits that committed the working tree mid-session. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | Seventh 2026-10-09 entry added: product platform decided — CM4 (ADR-004 ACCEPTED); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001); OQ-011 ANSWERED. Authoritative and reader-facing docs updated; scope rule set for deep inline CM5 content (follow-up sweep recommended). Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-12 | 2026-10-12 entry added (doc check rebuilt, ADR-004 scope sweep, OQ-129 propagation, hand-commit catch-up, research topic L, TEST-ENC-001 Stage 0). Seventh 2026-10-09 entry's Next Step items 1 and 2 annotated (committed by hand as `3c823b6` "mmit", reworded before push to `27c44d9`; sweep done). | Claude (session 2026-10-12) |

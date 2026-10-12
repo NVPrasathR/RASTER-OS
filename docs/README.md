@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-09 |
+| Last updated | 2026-10-12 |
 | Project phase | PHASE 1 — Decisions and hardware, in progress; PHASE 0 documentation baseline complete (see [PROJECT_STATUS.md](PROJECT_STATUS.md)) |
 
 PACSCORDER is an embedded Linux product that captures HDMI video through a Toshiba **TC358743** HDMI-to-MIPI-CSI-2 bridge into a **Raspberry Pi**. It then encodes the video for recording, **RTMP** streaming and **WebRTC** streaming, and integrates with **Blackmagic ATEM** switchers. The mandated video path is:
@@ -12,7 +12,7 @@ PACSCORDER is an embedded Linux product that captures HDMI video through a Toshi
 HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Controller → V4L2 → DMABUF → Encoder → Recorder / RTMP / WebRTC
 ```
 
-> **Current state (2026-10-06):**
+> **Current state (2026-10-06):** *(Still true on 2026-10-12: no hardware, no code, nothing tested.)*
 > - No hardware exists.
 > - No code exists.
 > - Nothing has been tested.
@@ -126,7 +126,7 @@ Commands shown in procedures are taken from cited sources. Until a command has b
 
 ### 5. Platforms
 
-Where behaviour differs, every technical document covers all four platforms: Pi 4 Model B, CM4, Pi 5, CM5.
+Where behaviour differs, every technical document covers all four platforms: Pi 4 Model B, CM4, Pi 5, CM5. *(Superseded — ADR-004 ACCEPTED 2026-10-09: the product platform is the **CM4**. Technical documents describe the CM4; Pi 4 Model B, Pi 5 and CM5 (BCM2712) material is kept as reference and marked "not in current scope" (ARCH-001), never deleted (Rule 14). Facts that a source states for the Pi 4 but that concern the BCM2711 SoC still apply to the CM4. Note added 2026-10-12.)*
 
 ### 6. Verification section
 
@@ -145,7 +145,8 @@ Every document ends with a change-history table. Changes are added, never rewrit
 | `RISK-NNN` | Risk | [RISKS.md](RISKS.md) |
 | `OQ-NNN` | Open question / owner decision | [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) |
 | `TEST-<AREA>-NNN` | Test procedure | [TESTING.md](TESTING.md) |
-| `A-NN` … `K-NN` | Source fact (topics A–G of 2026-10-06; topics H, I, J and K added 2026-10-08) | [REFERENCES.md](REFERENCES.md) |
+| `ARCH-NNN` | Archived approach *(row added 2026-10-12; ARCH-001 has existed since 2026-10-09)* | [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md) |
+| `A-NN` … `K-NN` | Source fact (topics A–G of 2026-10-06; topics H, I, J and K added 2026-10-08) *(2026-10-12: now `A-NN` … `L-NN` — topic L, H.264 bit-rate ceilings, CM4 Ethernet, encoder concurrency and encoder-test commands, L-01 to L-63)* | [REFERENCES.md](REFERENCES.md) |
 
 ### 9. Canonical test IDs
 
@@ -171,6 +172,16 @@ Other documents must use exactly these IDs:
 | TEST-BLD-001 | Image build from clean checkout | REQ-BLD-001, REQ-BLD-002 |
 | TEST-PERF-001 | Soak: thermal, CPU, CMA, frame drops | REQ-PERF-001 |
 
+### 10. Documentation check *(added 2026-10-12)*
+
+Before documentation is committed, run from the repository root:
+
+```bash
+python3 tools/doccheck.py docs
+```
+
+It must report `PROBLEMS (0)`. It checks that every cited fact and every REQ / ADR / RISK / OQ / TEST / ARCH ID is defined, that relative links resolve, that [TESTING.md](TESTING.md) defines exactly the canonical test IDs below, that the required sections and Rule 2 files exist, and that the register header counts match the registers. Its warnings flag possible success claims (Rule 10), register facts that nothing cites, and lines that may show an ACCEPTED ADR or ANSWERED OQ as still open. The script header in [`tools/doccheck.py`](../tools/doccheck.py) lists every check. It is a rebuild (2026-10-12) of a script that was never committed and was lost.
+
 ## Change history
 
 | Date | Change | By |
@@ -184,3 +195,4 @@ Other documents must use exactly these IDs:
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 / H.265 encode" (owner chose H.264 + H.265 on 2026-10-07); ID unchanged. | Claude (session 2026-10-08) |
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 encode (H.265 deferred)" after the owner deferred H.265 (OQ-103); ID unchanged. | Claude (session 2026-10-08) |
 | 2026-10-09 | ID schemes (convention 8): source-fact range extended from `A-NN` … `I-NN` to `A-NN` … `K-NN`, because REFERENCES.md gained topics J (recording storage and power loss, J-01 to J-45) and K (live latency, K-01 to K-45) on 2026-10-08. Header "Project phase" brought in line with PROJECT_STATUS.md (PHASE 1 in progress since 2026-10-07; the header still said PHASE 0). Start-here row "How is recording performed?" now also points to ADR-009 and HARDWARE.md storage. No convention, test ID or title changed. | Claude (session 2026-10-09) |
+| 2026-10-12 | Header Last updated; current-state note (still no hardware, code or tests); convention 5 superseded by ADR-004 ACCEPTED (CM4 is the product platform, other boards are reference); ID-scheme table: `ARCH-NNN` row added and fact range extended to `L-NN` (topic L, 2026-10-12); new convention 10: run `python3 tools/doccheck.py docs` before committing documentation. No test ID or title changed. | Claude (session 2026-10-12) |

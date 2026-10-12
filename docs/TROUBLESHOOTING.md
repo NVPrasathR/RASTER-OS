@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Document status | Active — 29 failure signatures collected from sources; **none observed on PACSCORDER**. *(2026-10-08: 37 signatures — eight added from research topics H and I, entries 6.7 to 6.9 and 8.1 to 8.5. Later on 2026-10-08: the H.265 entries 6.7 and 6.9 are deferred — REQ-ENC-002; not in current scope, and kept as reference.)* *(2026-10-09: 49 signatures — twelve added from research topics J and K, entries 9.1 to 9.7 (recording storage and power loss) and 10.1 to 10.5 (live latency); none observed on PACSCORDER.)* *(Later on 2026-10-09: entry 10.4, internet viewers, is not in current scope — the owner chose LAN-only WebRTC viewers (OQ-008); it is kept as reference. Count unchanged.)* |
-| Last updated | 2026-10-09 |
-| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport *(later on 2026-10-08: deferred — REQ-ENC-002; not in current scope, because the owner chose "H.264 only for now" (OQ-103 ANSWERED); entries 6.7 and 6.9 are kept as reference)*; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). *(Added 2026-10-09; ADR-009 / OQ-116 / research topics J and K.)* Recording storage as decided in ADR-009 (ACCEPTED, owner 2026-10-08): fragmented MP4 mirrored to a PCIe NVMe SSD (CM4 IO Board PCIe slot; CM5 IO Board M.2 slot) and a USB-to-SATA HDD in a self-powered enclosure; and the WebRTC live path against the owner's < 1 s camera-to-viewer target for WebRTC viewers (OQ-116 ANSWERED; RTMP best-effort). *(Later on 2026-10-09, owner decisions of 2026-10-09: the target is judged at the 95th percentile of camera-to-viewer samples, over a sustained run with the recording running, and WebRTC viewers are on the LAN only (OQ-008); internet viewers — entry 10.4 — are not in current scope (OQ-128, RISK-033). Recordings have no fixed duration limit, until stopped or the disk is full (OQ-006 ANSWERED); the one-drive-full or drive-failure policy is OQ-129.)* *(Superseded in part later again on 2026-10-09, owner decisions of 2026-10-09, later: the policy is decided in part — if one mirrored drive fills, is absent or fails during a recording, recording continues on the drive that still works and the operator is alerted (OQ-129, still OPEN for file splitting, the alert method — OQ-091 — and whether a drive that comes back is used again); entries 9.3, 9.4, 9.5 and 9.7 note it. The live encode is CBR 17 Mbit/s and the recording encode 25 Mbit/s VBR (OQ-005). Count unchanged at 49.)* *(Superseded in part 2026-10-09, owner decisions of 2026-10-09 on OQ-129, second set: a recording started with one drive missing runs on the available drive with an operator alert, and recordings are split into a new file every 30 minutes (OQ-129, now OPEN only for drive return; alert method OQ-091); the section 9 introduction and entries 9.4, 9.6 and 9.7 note it. Count unchanged at 49.)* |
+| Last updated | 2026-10-12 |
+| Applies to | TC358743 bridge and its board; the in-tree `tc358743` driver; Unicam (Pi 4 Model B, CM4); RP1 CFE (Pi 5, CM5); the Pi 4/CM4 `bcm2835-codec` encoder; GStreamer/FFmpeg integration; hardware handling. *(Added 2026-10-08.)* Software H.265 encoding (x265) and HEVC transport *(later on 2026-10-08: deferred — REQ-ENC-002; not in current scope, because the owner chose "H.264 only for now" (OQ-103 ANSWERED); entries 6.7 and 6.9 are kept as reference)*; the `tc358743-audio` I2S path (CM4 `bcm2835-i2s`, CM5 RP1 I2S1) and audio encoders. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* *(Added 2026-10-09; ADR-009 / OQ-116 / research topics J and K.)* Recording storage as decided in ADR-009 (ACCEPTED, owner 2026-10-08): fragmented MP4 mirrored to a PCIe NVMe SSD (CM4 IO Board PCIe slot; CM5 IO Board M.2 slot) and a USB-to-SATA HDD in a self-powered enclosure; and the WebRTC live path against the owner's < 1 s camera-to-viewer target for WebRTC viewers (OQ-116 ANSWERED; RTMP best-effort). *(Later on 2026-10-09, owner decisions of 2026-10-09: the target is judged at the 95th percentile of camera-to-viewer samples, over a sustained run with the recording running, and WebRTC viewers are on the LAN only (OQ-008); internet viewers — entry 10.4 — are not in current scope (OQ-128, RISK-033). Recordings have no fixed duration limit, until stopped or the disk is full (OQ-006 ANSWERED); the one-drive-full or drive-failure policy is OQ-129.)* *(Superseded in part later again on 2026-10-09, owner decisions of 2026-10-09, later: the policy is decided in part — if one mirrored drive fills, is absent or fails during a recording, recording continues on the drive that still works and the operator is alerted (OQ-129, still OPEN for file splitting, the alert method — OQ-091 — and whether a drive that comes back is used again); entries 9.3, 9.4, 9.5 and 9.7 note it. The live encode is CBR 17 Mbit/s and the recording encode 25 Mbit/s VBR (OQ-005). Count unchanged at 49.)* *(Superseded in part 2026-10-09, owner decisions of 2026-10-09 on OQ-129, second set: a recording started with one drive missing runs on the available drive with an operator alert, and recordings are split into a new file every 30 minutes (OQ-129, now OPEN only for drive return; alert method OQ-091); *(Superseded — OQ-129 ANSWERED 2026-10-09: a drive that returns is used again from the next file. Note added 2026-10-12.)* the section 9 introduction and entries 9.4, 9.6 and 9.7 note it. Count unchanged at 49.)* |
 | Verification | Every signature comes from the source research of 2026-10-06 ([REFERENCES.md](REFERENCES.md)), and, for the entries added on 2026-10-08, from the source research of topics H and I, and, for the entries added on 2026-10-09, from the source research of 2026-10-08 on topics J (recording storage and power loss) and K (live latency). No signature has been observed on PACSCORDER hardware, because none exists as of 2026-10-06. Diagnosis steps and remedies are source-derived and **NOT YET RUN ON PACSCORDER HARDWARE**. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 10 (status words), Rule 21 (record failures honestly), Rule 22 (unknowns), Rule 23 (source priority) |
 
@@ -95,6 +95,8 @@ For each failure it gives the exact log text where a source attests it, the like
 | 10.3 | New WebRTC viewer waits up to about 2 s for the first picture *(added 2026-10-09)* | live encode / keyframes | CM4, CM5 |
 | 10.4 | Internet viewers cannot connect, or their latency grows over time *(added 2026-10-09; not in current scope since 2026-10-09 — LAN-only WebRTC viewers, OQ-008; kept as reference)* | WebRTC network / ICE | all |
 | 10.5 | MediaMTX logs `reader is too slow` and drops packets to a viewer *(added 2026-10-09)* | WebRTC server | all |
+
+*(Note added 2026-10-12: the Pi 5 / CM5-only rows (1.6, 3.3, 3.4, 4.2, 5.1, 6.3, 8.2 except its causes shared with CM4, 9.2, 10.2) and the Pi 4 (Model B), Pi 5 and CM5 entries in the Platforms column of the other rows are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 ---
 
@@ -218,6 +220,8 @@ For each failure it gives the exact log text where a source attests it, the like
 **Related.** RISK-021 · OQ-052 · TEST-HW-001
 
 ### 1.6 Bridge not on the expected Pi 5 / CM5 I2C bus number
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 **Symptom.** The bridge is not where an instruction expects it:
 - an older instruction or forum post names `i2c-4` / `i2c-6`, or an entity `tc358743 4-000f`, but the bridge appears as `tc358743 11-000f` or `tc358743 10-000f`;
@@ -406,6 +410,8 @@ Research also found that on a read-only sub-device node `S_DV_TIMINGS` returns `
 
 ### 3.3 `Unable to determine sensor link rate, using 999 Mbps`
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 (RP1 CFE) material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 **Symptom.** On Pi 5/CM5, the RP1 CFE logs this message when it configures its D-PHY.
 
 **Likely cause.**
@@ -426,6 +432,8 @@ Research also found that on a read-only sub-device node `S_DV_TIMINGS` returns `
 **Related.** RISK-011 · OQ-050, OQ-099 · TEST-CAP-002, TEST-CAP-004
 
 ### 3.4 STREAMON fails with `-EPIPE` (-32) when `field:none` is omitted
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 (RP1 CFE) material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 **Symptom.** On Pi 5/CM5, `VIDIOC_STREAMON` on the CFE video node returns `-EPIPE` (-32).
 
@@ -506,6 +514,8 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 
 ### 4.2 `Incorrect pixel format` warning from the CFE
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 (RP1 CFE) material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 **Symptom.** On Pi 5/CM5, a one-time kernel warning that begins `Incorrect pixel format` and asks to fix the application.
 
 **Source status.** This signature comes from a research gap (topic C), **not a register fact**: NEEDS VERIFICATION (KERNEL SOURCE INSPECTION REQUIRED). The research found that the CFE accepts the legacy `RGB3` + `RGB888_1X24` pairing with only this one-time warning, and that the memory order is B,G,R either way.
@@ -542,6 +552,8 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 ## 5. Source-change events
 
 ### 5.1 No `V4L2_EVENT_SOURCE_CHANGE` on `/dev/video0`
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 (RP1 CFE) material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 **Symptom.** On Pi 5/CM5, an application that subscribes to source-change events on the CFE video node never receives them.
 
@@ -629,6 +641,8 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 **Related.** RISK-003 · OQ-015, OQ-065, OQ-066 · TEST-ENC-001, TEST-BLD-001
 
 ### 6.3 No `/dev/video11`
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This Pi 5 / CM5 / BCM2712 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 **Symptom.** On Pi 5/CM5, there is no `/dev/video11` (`bcm2835-codec-encode`), even though the `bcm2835-codec` module is built for the Pi 5 kernel [G-18].
 
@@ -856,6 +870,8 @@ Reasoning: the warning was given for Pi 5 [C-04], but the CM4 IO Board [C-03] an
 
 ### 8.2 No `tc358743` ALSA card, or the card cannot be opened, on CM5
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 material is kept as reference (Rule 14, ARCH-001). The causes shared with CM4 (symptom index: "CM4 for the shared causes"), such as the missing companion overlay and the pin conflict (8.3), still apply to CM4. Note added 2026-10-12.*
+
 **Symptom.** On CM5, after adding `dtoverlay=tc358743-audio`, either:
 - no ALSA card with id `tc358743` appears; or
 - the card appears, but opening or starting the capture fails; or
@@ -885,7 +901,7 @@ The exact log text is not attested by any source: UNKNOWN.
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - Load both overlays: official documentation says audio needs `tc358743-audio` in addition to `tc358743` [C-37], and a Raspberry Pi engineer reported the same requirement (community source) [I-16].
 - Open the device by card id, `hw:CARD=tc358743,DEV=0`, never by PCM name or card index [I-15]; on CM5 the PCM name is expected to differ (reasoning from source) [I-17].
-- If `dwc-i2s` rejects the format or `hw_params`, no source-derived fix exists. Record the result in TEST-AUD-001. The resolution is KERNEL SOURCE INSPECTION REQUIRED and HARDWARE TEST REQUIRED (OQ-054). Reasoning from ADR-004's analysis: while audio is required, this result gates CM5 as the product platform.
+- If `dwc-i2s` rejects the format or `hw_params`, no source-derived fix exists. Record the result in TEST-AUD-001. The resolution is KERNEL SOURCE INSPECTION REQUIRED and HARDWARE TEST REQUIRED (OQ-054). Reasoning from ADR-004's analysis: while audio is required, this result gates CM5 as the product platform. *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 
 **Related.** RISK-014 · OQ-052, OQ-054, OQ-101, OQ-114 · TEST-AUD-001, TEST-BLD-001
 
@@ -963,7 +979,7 @@ The exact log text is not attested by any source: UNKNOWN.
 
 *Section added 2026-10-09 (research topic J; ADR-009).* ADR-009 (ACCEPTED, owner decisions of 2026-10-08) writes every recording as fragmented MP4 to a PCIe NVMe SSD and to a USB-to-SATA HDD in a self-powered enclosure; ext4 on the recording volumes is Claude's proposal inside ADR-009, not an owner decision (OQ-120). No SSD, adaptor, HDD, enclosure or bridge has been chosen (OQ-121, OQ-122). **None of these signatures has been observed on PACSCORDER hardware**, and none has attested log text. Test procedure: TEST-REC-001.
 
-*(Added later on 2026-10-09; owner decisions of 2026-10-09, later.)* **Decided behaviour when one drive drops out (OQ-129).** If one mirrored drive — the NVMe SSD or the HDD — fills, is absent or fails during a recording, recording should continue on the drive that still works and the operator should be alerted. This is the owner's decided behaviour, not observed behaviour: no recorder exists and nothing has been run. Not decided (OQ-129): whether long recordings are split into files, how the operator is alerted (OQ-091, operator interface), and whether a drive that comes back during a recording is used again. TEST-REC-001 step 9 checks the policy. The recording encode is 25 Mbit/s, VBR (OQ-005). Entries 9.3, 9.4, 9.5 and 9.7 apply it. *(Superseded in part 2026-10-09, owner decisions of 2026-10-09 on OQ-129, second set: a recording started with one drive missing runs on the available drive with an operator alert (TEST-REC-001 step 8), and recordings are split into a new file every 30 minutes (TEST-REC-001 step 9 c). Both are decided behaviour, not observed behaviour. Not decided (OQ-129): only whether a drive that comes back during a recording is used again; how the operator is alerted is OQ-091. The split mechanism is not decided (ADR-007 OPEN; OQ-118).)*
+*(Added later on 2026-10-09; owner decisions of 2026-10-09, later.)* **Decided behaviour when one drive drops out (OQ-129).** If one mirrored drive — the NVMe SSD or the HDD — fills, is absent or fails during a recording, recording should continue on the drive that still works and the operator should be alerted. This is the owner's decided behaviour, not observed behaviour: no recorder exists and nothing has been run. Not decided (OQ-129): whether long recordings are split into files, how the operator is alerted (OQ-091, operator interface), and whether a drive that comes back during a recording is used again. TEST-REC-001 step 9 checks the policy. The recording encode is 25 Mbit/s, VBR (OQ-005). Entries 9.3, 9.4, 9.5 and 9.7 apply it. *(Superseded in part 2026-10-09, owner decisions of 2026-10-09 on OQ-129, second set: a recording started with one drive missing runs on the available drive with an operator alert (TEST-REC-001 step 8), and recordings are split into a new file every 30 minutes (TEST-REC-001 step 9 c). Both are decided behaviour, not observed behaviour. Not decided (OQ-129): only whether a drive that comes back during a recording is used again; how the operator is alerted is OQ-091. *(Superseded — OQ-129 ANSWERED 2026-10-09: a drive that returns is used again from the next file. Note added 2026-10-12.)* The split mechanism is not decided (ADR-007 OPEN; OQ-118).)*
 
 ### 9.1 No NVMe SSD in the CM4 IO Board's PCIe slot
 
@@ -989,6 +1005,8 @@ The exact log text is not attested by any source: UNKNOWN.
 **Related.** RISK-026 · OQ-023, OQ-121, OQ-123 · TEST-REC-001
 
 ### 9.2 No NVMe SSD in the CM5 IO Board's M.2 slot
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 / BCM2712 material is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
 
 **Symptom** (reasoning from the disabled link [J-17] and the unsupported Gen 3 [J-12], [J-13]; no source describes how a failure appears). On CM5 with the CM5 IO Board, an NVMe SSD in the M.2 M-key slot does not appear, or the link is unstable. The exact log text is not attested by any source: UNKNOWN.
 
@@ -1027,8 +1045,8 @@ The exact log text is not attested by any source: UNKNOWN.
 
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
 - Make the bridge run under `usb-storage` (Bulk-Only) instead of `uas`: add `usb-storage.quirks=VID:PID:u` to `cmdline.txt` (`/boot/firmware/cmdline.txt` on the current OS), with 4-digit hex IDs; several devices are comma-separated [J-26], [J-27] ([J-27] is a community source, CORRECTED). Flag `u` is IGNORE_UAS [J-26].
-- Qualify the chosen bridge on each board separately (OQ-122). The throughput and CPU cost of `usb-storage` against `uas` on CM4's shared USB 2.0 are unmeasured (research open question, topic J; OQ-122).
-- *(Added later on 2026-10-09; owner decisions of 2026-10-09, later; OQ-129.)* **Decided behaviour during a recording.** If the bridge stops responding or the HDD drops off during a recording, recording should continue on the NVMe SSD and the operator should be alerted (OQ-129). This is the decided behaviour, not observed behaviour. How the alert appears is UNDEFINED (OQ-091), and whether the HDD is used again if it comes back is UNDEFINED (OQ-129). Check both copies of the affected recording as in TEST-REC-001 step 9.
+- Qualify the chosen bridge on each board separately (OQ-122). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* The throughput and CPU cost of `usb-storage` against `uas` on CM4's shared USB 2.0 are unmeasured (research open question, topic J; OQ-122).
+- *(Added later on 2026-10-09; owner decisions of 2026-10-09, later; OQ-129.)* **Decided behaviour during a recording.** If the bridge stops responding or the HDD drops off during a recording, recording should continue on the NVMe SSD and the operator should be alerted (OQ-129). This is the decided behaviour, not observed behaviour. How the alert appears is UNDEFINED (OQ-091), and whether the HDD is used again if it comes back is UNDEFINED (OQ-129). *(Superseded — OQ-129 ANSWERED 2026-10-09: a drive that returns is used again from the next file. Note added 2026-10-12.)* Check both copies of the affected recording as in TEST-REC-001 step 9.
 
 **Related.** RISK-027, RISK-028 · OQ-117, OQ-122 · TEST-REC-001, TEST-PERF-001 · *(added later on 2026-10-09)* OQ-129, OQ-091
 
@@ -1054,7 +1072,7 @@ The exact log text is not attested by any source: UNKNOWN.
 - Power the HDD from a self-powered enclosure or a powered hub, never from the board's VBUS (ADR-009; [J-28], [J-31]); a 3.5-inch HDD always needs an external 12 V supply [J-32].
 - CM4 IO Board: do not plug in the micro-USB cable while the hub is in use [J-06].
 - CM5 IO Board: use the 5 V/5 A supply [J-20].
-- *(Added later on 2026-10-09; owner decisions of 2026-10-09, later; OQ-129.)* **Decided behaviour during a recording.** If the HDD is not detected or drops off while a recording runs, recording should continue on the NVMe SSD and the operator should be alerted (OQ-129). This is the decided behaviour, not observed behaviour. How the alert appears is UNDEFINED (OQ-091); whether the HDD is used again when it comes back, for example after an intermittent drop-out, is UNDEFINED (OQ-129). Whether the decision covers an HDD that is already missing when a recording starts is not stated explicitly (see 9.7). *(Superseded 2026-10-09: owner decision — a recording started with one drive missing runs on the available drive with an operator alert (OQ-129).)*
+- *(Added later on 2026-10-09; owner decisions of 2026-10-09, later; OQ-129.)* **Decided behaviour during a recording.** If the HDD is not detected or drops off while a recording runs, recording should continue on the NVMe SSD and the operator should be alerted (OQ-129). This is the decided behaviour, not observed behaviour. How the alert appears is UNDEFINED (OQ-091); whether the HDD is used again when it comes back, for example after an intermittent drop-out, is UNDEFINED (OQ-129). *(Superseded — OQ-129 ANSWERED 2026-10-09: a drive that returns is used again from the next file. Note added 2026-10-12.)* Whether the decision covers an HDD that is already missing when a recording starts is not stated explicitly (see 9.7). *(Superseded 2026-10-09: owner decision — a recording started with one drive missing runs on the available drive with an operator alert (OQ-129).)*
 
 **Related.** RISK-026, RISK-027 · OQ-023, OQ-117, OQ-122 · TEST-REC-001 · *(added later on 2026-10-09)* OQ-129, OQ-091
 
@@ -1074,7 +1092,7 @@ The exact log text is not attested by any source: UNKNOWN.
 - Decouple the HDD branch, as ADR-009's consequences require; the buffering and overflow policy are open (OQ-117). Research suggests a large or leaky queue in front of the HDD branch and disabling or extending spin-down where the bridge allows (research design risks, topic J — not register facts). Whether `hdparm` standby settings work through the bridge is unknown (research open question, topic J; OQ-117).
 - Reasoning from [J-30] and [J-36] (as in OQ-117; not a design figure): riding out a 3.0 s stall (that one Seagate family's standby-to-ready maximum [J-30]) at about 3.15 MB/s per destination needs about 3.0 × 3.15 ≈ 9.5 MB of HDD-branch buffering, before any margin.
 - Keep the live branch from building a backlog (OQ-126, RISK-032).
-- *(Added 2026-10-09; owner decisions of 2026-10-09.)* What the recorder must do when the HDD is unplugged or fails and does not come back — stop both copies, continue on the NVMe SSD, or something else — is UNDEFINED — OWNER DECISION REQUIRED (OQ-129); TEST-REC-001 step 9 records it. Recordings have no fixed duration limit (OQ-006 ANSWERED). *(Superseded in part later on 2026-10-09: owner decisions of 2026-10-09, later — when the HDD is unplugged or fails during a recording, recording should continue on the NVMe SSD and the operator should be alerted (OQ-129). This is the decided behaviour, not observed behaviour. How the alert appears is UNDEFINED (OQ-091); whether the HDD is used again when it comes back is UNDEFINED (OQ-129; TEST-REC-001 step 9 d). The decision does not remove the stall risk above: an HDD that is slow rather than failed can still back-pressure the recording and live path (RISK-028, OQ-117).)*
+- *(Added 2026-10-09; owner decisions of 2026-10-09.)* What the recorder must do when the HDD is unplugged or fails and does not come back — stop both copies, continue on the NVMe SSD, or something else — is UNDEFINED — OWNER DECISION REQUIRED (OQ-129); TEST-REC-001 step 9 records it. Recordings have no fixed duration limit (OQ-006 ANSWERED). *(Superseded in part later on 2026-10-09: owner decisions of 2026-10-09, later — when the HDD is unplugged or fails during a recording, recording should continue on the NVMe SSD and the operator should be alerted (OQ-129). This is the decided behaviour, not observed behaviour. How the alert appears is UNDEFINED (OQ-091); whether the HDD is used again when it comes back is UNDEFINED (OQ-129; TEST-REC-001 step 9 d). *(Superseded — OQ-129 ANSWERED 2026-10-09: a drive that returns is used again from the next file. Note added 2026-10-12.)* The decision does not remove the stall risk above: an HDD that is slow rather than failed can still back-pressure the recording and live path (RISK-028, OQ-117).)*
 - *(Added later on 2026-10-09; OQ-005.)* The recording encode is now 25 Mbit/s, VBR (OQ-005), so the 3.15 MB/s in the buffering reasoning above is the decided rate's figure from [J-36] (with its assumed 192 kbit/s AAC). Reasoning: with VBR the written rate varies with the content, so size and check the HDD-branch buffer against the measured peak rate, not only the average (OQ-117).
 
 **Related.** RISK-028, RISK-027, RISK-032 · OQ-115, OQ-117, OQ-126 · TEST-REC-001, TEST-STR-002, TEST-PERF-001 · *(added 2026-10-09)* OQ-129 · *(added later on 2026-10-09)* OQ-091, OQ-005
@@ -1124,7 +1142,7 @@ The exact log text is not attested by any source: UNKNOWN.
 
 ## 10. Live latency (WebRTC)
 
-*Section added 2026-10-09 (research topic K; OQ-116).* The owner's target is under 1 s camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (OQ-116 ANSWERED; REQ-STR-002, REQ-STR-001). The live H.264 encode is shared by RTMP and WebRTC (OQ-005). **None of these signatures has been observed on PACSCORDER hardware.** Test procedures: TEST-STR-002 and TEST-ENC-001. *(Added later on 2026-10-09; owner decisions of 2026-10-09.)* The target is judged at the 95th percentile: 95 % of camera-to-viewer samples under 1 s, over a sustained run with the recording running; the number of samples and the run length are still open (OQ-008). WebRTC viewers are on the LAN only, so entry 10.4 (internet viewers) is not in current scope and is kept as reference (OQ-128, RISK-033). *(Added later again on 2026-10-09; owner decisions of 2026-10-09, later.)* The shared live encode is CBR at 17 Mbit/s (OQ-005); whether that fits the profile and level it signals is NEEDS VERIFICATION (OQ-073).
+*Section added 2026-10-09 (research topic K; OQ-116).* The owner's target is under 1 s camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (OQ-116 ANSWERED; REQ-STR-002, REQ-STR-001). The live H.264 encode is shared by RTMP and WebRTC (OQ-005). **None of these signatures has been observed on PACSCORDER hardware.** Test procedures: TEST-STR-002 and TEST-ENC-001. *(Added later on 2026-10-09; owner decisions of 2026-10-09.)* The target is judged at the 95th percentile: 95 % of camera-to-viewer samples under 1 s, over a sustained run with the recording running; the number of samples and the run length are still open (OQ-008). *(Superseded — OQ-008 ANSWERED 2026-10-09: a 30-minute run at 1 sample per second, about 1800 samples. Note added 2026-10-12.)* WebRTC viewers are on the LAN only, so entry 10.4 (internet viewers) is not in current scope and is kept as reference (OQ-128, RISK-033). *(Added later again on 2026-10-09; owner decisions of 2026-10-09, later.)* The shared live encode is CBR at 17 Mbit/s (OQ-005); whether that fits the profile and level it signals is NEEDS VERIFICATION (OQ-073).
 
 ### 10.1 WebRTC camera-to-viewer latency far above 1 s
 
@@ -1156,6 +1174,8 @@ The exact log text is not attested by any source: UNKNOWN.
 **Related.** RISK-031, RISK-032 · OQ-059, OQ-125, OQ-126 · TEST-STR-002, TEST-ENC-001
 
 ### 10.2 Browser does not show the WebRTC video: B-frames in the live encode
+
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 material is kept as reference (Rule 14, ARCH-001); the entry itself states that CM4 is not affected. Note added 2026-10-12.*
 
 **Symptom** (reasoning; the sources say only that browsers do not support H.264 B-frames over WebRTC [K-04], not how the failure appears). A browser viewer connects but the video does not decode or plays incorrectly, while RTMP from the same live encode plays. The exact browser error is not attested by any source: UNKNOWN.
 
@@ -1270,3 +1290,4 @@ Nothing (no hardware exists as of 2026-10-06). No signature in this document has
 | 2026-10-09 | Owner decisions of 2026-10-09 (latency judged at the 95th percentile; LAN-only WebRTC viewers; recording until stopped or disk full — OQ-006 ANSWERED, OQ-008, OQ-128/RISK-033 not in current scope, new OQ-129): header — status (10.4 not in current scope, kept as reference; count unchanged at 49) and "Applies to" (95th-percentile criterion, LAN only, no duration limit, OQ-129); symptom index — 10.4 row scope note; 9.5 Remedy — bullet on the policy when the HDD is unplugged or fails and does not return (OQ-129, TEST-REC-001 step 9), OQ-129 added to Related; 9.7 Remedy — OQ-129 cross-reference, added to Related; section 10 intro — 95th-percentile criterion and LAN-only note; 10.1 Symptom — criterion note; 10.4 — scope note (not in current scope since 2026-10-09, kept as reference), Remedy and Related annotated; 10.5 Related — RISK-033 and OQ-128 marked not in current scope. No entry rewritten or deleted; no signature observed on PACSCORDER. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09, later (live CBR 17 Mbit/s and recording 25 Mbit/s VBR — OQ-005; continue on the remaining drive if one fails — OQ-129): header "Applies to" — dated note (policy decided in part; OQ-129 still OPEN for file splitting, alert method OQ-091 and drive return; bitrates; count unchanged at 49); section 9 intro — dated note stating the decided behaviour when one drive drops out (decided, not observed); 9.3 Remedy — decided behaviour during a recording (continue on the NVMe SSD, alert the operator; alert method OQ-091 and drive return UNDEFINED), OQ-129 and OQ-091 added to Related; 9.4 Remedy — the same for an HDD that is not detected or drops off during a recording, with the start-of-recording case referred to 9.7, OQ-129 and OQ-091 added to Related; 9.5 Remedy — the OQ-129 "UNDEFINED" bullet superseded in part (decided behaviour; slow-HDD stall risk unchanged, RISK-028, OQ-117) and a bullet on the 25 Mbit/s VBR recording rate in the buffering reasoning ([J-36]; size against the measured peak), OQ-091 and OQ-005 added to Related; 9.7 Remedy — superseded in part (recording on the NVMe SSD alone with an alert; whether the decision covers a drive already absent when a recording starts is not stated explicitly), OQ-091 added to Related; section 10 intro — live encode CBR 17 Mbit/s (OQ-005), level fit NEEDS VERIFICATION (OQ-073); 10.5 Diagnosis and Remedy — notes on the decided live bitrate (lowering it is an owner decision). No entry rewritten or deleted; no signature added (49); none observed on PACSCORDER; no fact ID added. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions of 2026-10-09 on OQ-129 (start on the available drive when one is missing; split recordings every 30 minutes): header "Applies to" — dated note (OQ-129 OPEN only for drive return; alert method OQ-091; count unchanged at 49); section 9 introduction — dated note (both decisions; TEST-REC-001 steps 8 and 9 c; split mechanism not decided, ADR-007 OPEN, OQ-118); 9.4 — "not stated explicitly" sentence marked superseded (owner decision: a recording started with one drive missing runs on the available drive with an operator alert); 9.6 — diagnosis step 4 added (a power-cut recording is a set of 30-minute files: record which file was open, check every file on both drives) and OQ-129 added to "Related"; 9.7 — "not stated explicitly" sentence marked superseded, with the decided behaviour (start on the NVMe SSD alone with an operator alert; TEST-REC-001 step 8). No text deleted; no signature added or removed; none observed on PACSCORDER. | Claude (session 2026-10-09) |
+| 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only); entries 1.6, 3.3, 3.4, 4.2, 5.1, 6.3, 8.2 (causes shared with CM4 still apply), 9.2 and 10.2 marked not in current scope; symptom-index Pi 5 / CM5-only rows and Pi 4 / Pi 5 / CM5 platform entries noted; 2 stale ADR-004 statements superseded (8.2 "gates CM5 as the product platform", 9.3 "qualify … on each board separately"). Also stale OQ statuses superseded: OQ-129 (ANSWERED 2026-10-09; drive return) in the header, the section 9 introduction, 9.3, 9.4 and 9.5; OQ-008 (ANSWERED 2026-10-09; sample count and run length) in the section 10 introduction. No text deleted; signature count unchanged (49); CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |

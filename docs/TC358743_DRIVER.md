@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Document status | Active — source research only. Describes the in-tree driver that ADR-002 (PROPOSED) would use unmodified. PACSCORDER integration: NOT STARTED |
-| Last updated | 2026-10-09 |
-| Applies to | `drivers/media/i2c/tc358743.c`, `drivers/media/i2c/tc358743_regs.h` and `include/media/i2c/tc358743.h` in raspberrypi/linux `rpi-6.18.y` and torvalds/linux `master`, as read on 2026-10-06; the audio setup, audio controls and audio events in `rpi-6.18.y` as read for research topic I on 2026-10-08 (sections 11.7 and 22.1); the `FIFOCTL` setting as re-read in `rpi-6.18.y` for research topic K (live latency) on 2026-10-08 (section 11.1, added 2026-10-09); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). |
+| Last updated | 2026-10-12 |
+| Applies to | `drivers/media/i2c/tc358743.c`, `drivers/media/i2c/tc358743_regs.h` and `include/media/i2c/tc358743.h` in raspberrypi/linux `rpi-6.18.y` and torvalds/linux `master`, as read on 2026-10-06; the audio setup, audio controls and audio events in `rpi-6.18.y` as read for research topic I on 2026-10-08 (sections 11.7 and 22.1); the `FIFOCTL` setting as re-read in `rpi-6.18.y` for research topic K (live latency) on 2026-10-08 (section 11.1, added 2026-10-09); all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5). Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07; ADR-004 OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source inspection only (research of 2026-10-06, plus research topic I of 2026-10-08 and research topic K (live latency) of 2026-10-08, [REFERENCES.md](REFERENCES.md)). Nothing has been built, loaded or tested. No PACSCORDER hardware or code exists as of 2026-10-08 (still none on 2026-10-09). |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 7 (driver documentation), Rules 8, 10, 22, 23 |
 
@@ -275,6 +275,8 @@ CHIPID read     (probe step 5)
 | Background traffic without IRQ | Interrupt status read over I2C every 1000 ms (every 10 ms with CEC) | [B-19], [A-30] |
 | Debug register access | `g_register` / `s_register` only with `CONFIG_VIDEO_ADV_DEBUG`; HDCP registers are write-protected | [B-38] |
 
+*(Note added 2026-10-12: the "Bus speed (Pi 5 camera bus)" row is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
 Camera I2C bus per platform (details in [DEVICE_TREE.md](DEVICE_TREE.md)):
 
 | Platform / connector | Bus | Facts |
@@ -284,6 +286,8 @@ Camera I2C bus per platform (details in [DEVICE_TREE.md](DEVICE_TREE.md)):
 | Pi 5 CAM/DISP0 | `i2c-10` (RP1 i2c6, GPIO 38/39) | [C-26] |
 | Pi 5 CAM/DISP1 | `i2c-11` (RP1 i2c4, GPIO 40/41) | [C-26] |
 | CM5 | Depends on the IO board DT | [C-27], [B-44]; OQ-052 |
+
+*(Note added 2026-10-12: the Pi 5 and CM5 rows are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 The register entries above describe the Raspberry Pi side only. The address the chip actually answers at on the PACSCORDER board, and which other devices share that bus: UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED, OQ-026; resolved by TEST-HW-001).
 
@@ -303,9 +307,9 @@ A Raspberry Pi engineer (6by9) reported that Toshiba's FIFO formula is in an NDA
 
 **Latency of the bridge's buffering** *(added 2026-10-09; research topic K / OQ-116)*:
 
-- The driver sets the `FIFOCTL` trigger level to 374, states no latency figure for the bridge, and no public source checked documents the TC358743's internal buffering latency [K-38]. The value is hard-coded when the driver is configured from the Device Tree [B-12]. Reasoning: all four candidate platforms configure it that way, so the value is the same on CM4 (Unicam) and CM5 (RP1 CFE), and on Pi 4 Model B and Pi 5.
+- The driver sets the `FIFOCTL` trigger level to 374, states no latency figure for the bridge, and no public source checked documents the TC358743's internal buffering latency [K-38]. The value is hard-coded when the driver is configured from the Device Tree [B-12]. Reasoning: all four candidate platforms configure it that way, so the value is the same on CM4 (Unicam) and CM5 (RP1 CFE), and on Pi 4 Model B and Pi 5. *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Only the CM4 case is in current scope. Note added 2026-10-12.)*
 - Why it matters: the owner's target, set on 2026-10-08, is under 1 second camera-to-viewer for WebRTC viewers only; RTMP outputs are best-effort (REQ-STR-002; OQ-116 ANSWERED). The bridge's delay is one of the undocumented terms of that budget (RISK-031). The full budget is in [PERFORMANCE.md](PERFORMANCE.md) (latency budget section).
-- **UNKNOWN — VERIFICATION REQUIRED:** DATASHEET REQUIRED (the Toshiba documents, OQ-027); HARDWARE TEST REQUIRED (end-to-end measurement on CM4 and CM5, OQ-125, TEST-STR-002).
+- **UNKNOWN — VERIFICATION REQUIRED:** DATASHEET REQUIRED (the Toshiba documents, OQ-027); HARDWARE TEST REQUIRED (end-to-end measurement on CM4 and CM5, OQ-125, TEST-STR-002). *(Superseded in part — ADR-004 ACCEPTED 2026-10-09 (CM4); the CM5 measurement is not in current scope; note 2026-10-12.)*
 - Reasoning: the receivers timestamp each buffer at their own frame start [K-34], [K-35], after the frame has passed through the bridge, so V4L2 timestamps cannot show this delay ([CSI_PIPELINE.md](CSI_PIPELINE.md) §7.4).
 
 ### 11.2 PLL from the reference clock
@@ -505,6 +509,8 @@ The DT `clock-noncontinuous` flag only sets `TXOPTIONCNTRL` in `tc358743_set_csi
 
 ### 14.5 Effect on the Pi 5 / CM5 receiver
 
+> *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 / Pi 5 / BCM2712 material (RP1 CFE receiver) is kept as reference (Rule 14, ARCH-001). Note added 2026-10-12.*
+
 The bridge exposes no `V4L2_CID_LINK_FREQ` or `V4L2_CID_PIXEL_RATE` control [B-16] and is not a `MEDIA_ENT_F_CAM_SENSOR` entity [B-18]. The RP1 CFE driver therefore cannot read a link rate from it. It logs "Unable to determine sensor link rate, using 999 Mbps" and programs its D-PHY for 999 Mbps [B-49] (reasoning), [C-31]. That matches the default 972 Mbps link but not 594 Mbps (reasoning) [C-52]. RISK-011, OQ-050.
 
 ## 15. V4L2 sub-device
@@ -542,6 +548,8 @@ Downstream link per platform:
 |---|---|---|
 | Pi 4 / CM4, Unicam in Media Controller mode | `IMMUTABLE \| ENABLED` link straight to the video node "unicam-image"; no CSI-2 receiver sub-device in between. "unicam-embedded" is not registered for this single-pad source. | [C-36] |
 | Pi 5 / CM5, RP1 CFE | `IMMUTABLE \| ENABLED` link to the "csi2" sub-device (sink pads 0–3). The "csi2" source pads link to "rp1-cfe-…" video nodes and "pisp-fe" with flags 0 (disabled). | [C-32] |
+
+*(Note added 2026-10-12: the Pi 5 / CM5 row is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 PACSCORDER's actual entity names, media device and node numbers: UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED, OQ-043; TEST-PLT-001). Link and pad-format setup is in [V4L2.md](V4L2.md).
 
@@ -635,6 +643,8 @@ Capability (`tc358743_timings_cap`) [A-08], [B-26], [C-18]:
 | Receiver STREAMON | `-EINVAL` | bridge requests more lanes than DT `data-lanes` | [B-32], [C-16] |
 | Receiver STREAMON (Pi 5) | `-EPIPE` (−32) | reported when `field:none` is left out of the csi2 pad formats | [C-33] (community) |
 
+*(Note added 2026-10-12: the "Receiver STREAMON (Pi 5)" row is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
 ### 20.2 What the driver does not check
 
 - `S_DV_TIMINGS` does not compare the lane count it needs with DT `data-lanes` [B-30]; the error appears only at the receiver's STREAMON [B-32].
@@ -727,6 +737,8 @@ The control handler holds exactly 3 controls [B-16]:
 | Pi 4 Model B (legacy mode) / Pi 5 | Reasoning: the same overlay and receiver drivers bind as on CM4 / CM5 ([DEVICE_TREE.md](DEVICE_TREE.md) §6.5), so the same split is expected; not stated in [I-23] | [I-23], [B-43], [C-11] |
 | CM4 in Media Controller mode (ADR-006, PROPOSED) | Reasoning from [I-23]: with `mc_api` true Unicam does not copy the controls, so they are only on the sub-device node | [I-23] |
 
+*(Note added 2026-10-12: the CM5 row and the "Pi 4 Model B (legacy mode) / Pi 5" row are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
 [V4L2.md](V4L2.md) §11 gives the userspace view (ADR-006 PROPOSED would use the sub-device node everywhere).
 
 **What the kernel does not do (reasoning)** [I-18]: the ALSA side has no path from these controls. The `linux,spdif-dir` stub codec has no controls and no `hw_params` and accepts 8–768 kHz; the Pi I2S runs as clock consumer and ignores the requested rate; nothing outside `tc358743.c` uses `TC358743_CID_AUDIO_SAMPLING_RATE`. If the application opens the card at 48000 Hz while the source sends 44100 Hz, the frames arrive at 44.1 kHz but are labelled 48 kHz; played at 48 kHz they run 48000/44100 = 1.0884 times fast (+8.84 %, about +1.47 semitones), and the audio timeline is 44100/48000 = 0.919 of real time, so A/V drift accumulates [I-18]. RISK-023, OQ-111.
@@ -792,6 +804,8 @@ From source inspection only; none reproduced on hardware.
 | D19 (added 2026-10-08) | Audio configured once at probe, hard-coded to 2-channel I2S; TDM, CSI and 4/6/8-channel settings never selected | Stereo only; compressed or multichannel HDMI audio behaviour undocumented (research gap, topic I) | [I-24], [I-25] | RISK-014, OQ-110 |
 | D20 (added 2026-10-08) | No kernel path carries the HDMI sample rate into ALSA; only the driver's read-only control has it (reasoning) | A rate mismatch makes audio run fast or slow with no ALSA error, and A/V drift accumulates (reasoning) | [I-18], [I-11], [I-20] | RISK-023, OQ-111 |
 | D21 (added 2026-10-08) | Audio-rate control updated from the 1000 ms poll with the stock overlay | A source rate change can take up to about 1 s, plus I2C time, to reach userspace | [I-22], [I-21] | RISK-023, OQ-111, OQ-020 |
+
+*(Note added 2026-10-12: the RP1 CFE effect in D6 and the D6 mitigation below concern Pi 5 / CM5 and are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
 Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CFE's graph walk accepts an entity that exposes `V4L2_CID_LINK_FREQ` [C-31], so a driver patch adding that control could give CFE the real rate. Under ADR-002 (PROPOSED) such a patch is written only after the defect is shown on hardware.
 
@@ -880,6 +894,8 @@ Possible mitigation for D6 (reasoning only; not evaluated, not proposed): the CF
 | OQ-116 | Does the < 1 s latency target apply to RTMP outputs? (added 2026-10-09) | OWNER DECISION REQUIRED — ANSWERED 2026-10-08: WebRTC viewers only; RTMP best-effort |
 | OQ-125 | Measured camera-to-viewer latency of the WebRTC path and its undocumented terms, including the TC358743's buffering (added 2026-10-09) | HARDWARE TEST REQUIRED; DATASHEET REQUIRED; VENDOR CONFIRMATION REQUIRED |
 
+*(Note added 2026-10-12: the Pi 5 / CM5 rows OQ-050 to OQ-054 are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
+
 ## Verification status
 
 ### Verified from sources (fact IDs)
@@ -904,7 +920,7 @@ This document cites the following register entries, all with verdict `CONFIRMED`
 
 ### Verified on PACSCORDER hardware
 
-Nothing (no hardware exists as of 2026-10-08; still none on 2026-10-09). The owner decisions of 2026-10-07 (audio required; CM4 and CM5 side by side) and of 2026-10-08 (< 1 s camera-to-viewer for WebRTC viewers only, OQ-116) are requirements and plans, not hardware evidence. No latency has been measured (OQ-125).
+Nothing (no hardware exists as of 2026-10-08; still none on 2026-10-09). The owner decisions of 2026-10-07 (audio required; CM4 and CM5 side by side) and of 2026-10-08 (< 1 s camera-to-viewer for WebRTC viewers only, OQ-116) are requirements and plans, not hardware evidence. *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001; a decision, not hardware evidence. Note added 2026-10-12.)* No latency has been measured (OQ-125).
 
 ## Change history
 
@@ -917,3 +933,4 @@ Nothing (no hardware exists as of 2026-10-08; still none on 2026-10-09). The own
 | 2026-10-08 | Owner decisions of 2026-10-07 (second set: audio required, CM4 and CM5 side by side) and research topic I propagated. Header, conventions (2026-10-08 research JSON; [I-24] line number from the branch head, OQ-097) and §1 (TEST-AUD-001 row; REQ-CAP-006 served). §2: pointers to the new sections. §4: CEC not set in packaged kernels [I-22]; no audio Kconfig in the driver [I-02], [I-12]. §11.4 step 9 points to the new §11.7; §11.6 adds the audio registers [I-19], [I-24]. New §11.7 `tc358743_set_hdmi_audio()`: called once at probe, registers written [I-24], datasheet I2S/TDM limits [I-25], audio PLL [I-26] (OQ-112, RISK-024), stereo-only consequence (reasoning; research design risk), and unknowns (bit length, NLPCM and auto-mute meaning, compressed/multichannel, rate-change behaviour: research gaps; OQ-110, OQ-111, OQ-027, OQ-033). §12: audio row (CBIT interrupts) [I-21]. §15: `V4L2_EVENT_CTRL` for audio-rate changes [I-21]. §19: audio interrupt sources [I-21] and audio-rate polling latency [I-22]. §21: PROPOSED recovery rows for audio rate change and audio lock [I-18], [I-19], [I-21], [I-22]; the +5V-loss `V4L2_EVENT_CTRL` NEEDS VERIFICATION note marked partly addressed by [I-21]. §22: OQ-004 noted as ANSWERED; new §22.1 with control IDs [I-20], the `code_to_rate[]` decode and no-signal rule [I-19], updates and events [I-21], [I-22], the per-platform node that carries the controls [I-23] (Pi 4 Model B / Pi 5 and CM4 Media Controller rows labelled reasoning), the missing ALSA rate path (reasoning [I-18]; RISK-023, OQ-111), a community report [I-16] and a PROPOSED userspace use. §25: defects D19–D21. §26: topic I source-inspection scope and counts; test-map row. §27: OQ-004 marked ANSWERED; OQ-054, OQ-110, OQ-111, OQ-112 added. Verification status: topic I IDs, community I-16, reasoning I-18. No REQ or ADR status changed; driver strategy ADR-002 still PROPOSED; nothing tested. | Claude (session 2026-10-08) |
 | 2026-10-08 | Citation verification of the topic I additions: §4 audio-Kconfig bullet split into the sourced fact ([I-02]: no ASoC codec driver of its own; generic stub codec) and a labelled inference ("Reasoning from [I-02]: no extra Kconfig symbol for audio"). All other [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |
 | 2026-10-09 | Live latency (OQ-116 ANSWERED, research topic K): header (Last updated; Applies to adds the `FIFOCTL` setting as re-read for topic K; Verification adds research topic K of 2026-10-08); §11.1 new "Latency of the bridge's buffering" note: the driver sets `FIFOCTL` to 374 and states no latency figure, and no public source documents the bridge's internal buffering latency [K-38]; same value on all four platforms (reasoning from [B-12]); one of the undocumented terms of the owner's < 1 s WebRTC-only target (REQ-STR-002, RISK-031); UNKNOWN — VERIFICATION REQUIRED (DATASHEET REQUIRED, OQ-027; HARDWARE TEST REQUIRED, OQ-125, TEST-STR-002); reasoning that V4L2 timestamps cannot show it [K-34], [K-35]; §26 topic K source-inspection scope and counts; §27 adds OQ-116 and OQ-125; Verification status adds K-34, K-35, K-38. No requirement, ADR, risk or OQ status changed; driver strategy ADR-002 still PROPOSED; nothing measured. Main session, same date: "no hardware exists as of" dates restored to their original values with "still none on 2026-10-09" appended (Rule 21). | Claude (session 2026-10-09) |
+| 2026-10-12 | ADR-004 scope sweep: "Last updated"; header "Applies to" (four candidate platforms; CM4 and CM5 side by side; ADR-004 OPEN) superseded; 3 stale statements superseded (§11.1 "all four candidate platforms", §11.1 measurement "on CM4 and CM5", Verified-on-hardware "CM4 and CM5 side by side"); §14.5 (Pi 5 / CM5 receiver) marked not in current scope; Pi 5 / CM5 rows noted after the tables in §10 (2), §16, §20.1, §22.1, §25 (D6) and §27 (OQ-050 to OQ-054). No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
