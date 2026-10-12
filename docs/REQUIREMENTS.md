@@ -78,12 +78,13 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 
 ## REQ-PLT-001 — Raspberry Pi platform coverage
 
-**Requirement.** The project shall document and support configuration for Raspberry Pi 4 Model B, Compute Module 4, Raspberry Pi 5 and Compute Module 5.
+**Requirement.** The project shall document and support configuration for Raspberry Pi 4 Model B, Compute Module 4, Raspberry Pi 5 and Compute Module 5. *(Superseded 2026-10-09 — see the owner decision below. The product platform is the CM4; the other three boards are kept as reference, not in current scope.)*
 
 - **Source:** ENGINEERING_RULES.md Rule 6 (Pi 4 / CM4 / Pi 5 / CM5 configurations). Owner, 2026-10-06: the product target platform is **undecided — keep all four** (OQ-011).
-- **Acceptance:** DRAFT.
+- **Owner decision (2026-10-09; ADR-004 ACCEPTED):** the **product platform is the Compute Module 4 (CM4, BCM2711)** ("stick to CM4"). **CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards** (OQ-011 ANSWERED). Their configuration material stays documented as reference and is **not in current scope**, and CM5 is archived in [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md) (Rule 14). Pi 4 Model B shares the BCM2711 SoC with CM4, so its SoC-level facts still inform the product through CM4. The acceptance below stays DRAFT, now scoped to CM4.
+- **Acceptance:** DRAFT (scoped to CM4 since 2026-10-09).
 - **Implementation:** NOT STARTED.
-- **Notes:** The platforms are not equivalent. Pi 4 Model B has a 2-lane camera connector [C-01], which cannot carry 1080p60 from the TC358743 (official documentation [C-37]; reasoning-tier lane calculation [C-48]). It therefore cannot serve the 4-lane configuration that 1080p60 (REQ-CAP-001) needs; under the owner decision of 2026-10-07 it remains a candidate for the 2-lane configuration (REQ-CAP-007). The product platform choice is an open decision, made per lane configuration: ADR-004.
+- **Notes:** The platforms are not equivalent. Pi 4 Model B has a 2-lane camera connector [C-01], which cannot carry 1080p60 from the TC358743 (official documentation [C-37]; reasoning-tier lane calculation [C-48]). CM4 serves both lane configurations of REQ-CAP-007 through CAM1 (4-lane, 1080p60) and CAM0 (2-lane), or a 2-lane bridge board on CAM1. *(2026-10-09: the per-lane-configuration platform choice is now resolved — the platform is the CM4 for both configurations; ADR-004 ACCEPTED.)*
 
 ## REQ-DRV-001 — TC358743 controlled by a Linux kernel driver
 

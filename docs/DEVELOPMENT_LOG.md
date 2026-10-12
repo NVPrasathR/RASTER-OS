@@ -1398,6 +1398,92 @@ Tests: documentation consistency check NOT RUN - doccheck.py unavailable
 3. Proposed (Claude): commit `doccheck.py` (or its specification); research the Ethernet facts (OQ-098); reconcile the split commit/working-tree state created by the external committer.
 4. The owner obtains the CM4 + CM5 bring-up hardware, including recording storage.
 
+## 2026-10-09 (seventh entry) — Product platform decided: CM4; CM5, BCM2712, Pi 5 and Pi 4 Model B dropped (ADR-004 ACCEPTED)
+
+### Objective
+
+Record and propagate the owner's platform decision: "stick to CM4". Resolve ADR-004 to CM4, answer OQ-011, and archive CM5 (Rule 14).
+
+### Starting State
+
+ADR-004 was OPEN ("evaluate CM4 and CM5 side by side", owner 2026-10-07); OQ-011 OPEN. The CM5 footprint across the documentation is large (about 2,173 literal "CM5" mentions, plus Pi 5 / BCM2712 / x264 / x265).
+
+### Changes
+
+- Owner decision (2026-10-09), after I surfaced that CM4's hardware 1080p60 encode (RISK-002) and two-session behaviour (OQ-115) are unproven and single-platform-critical: **the product platform is the CM4 (BCM2711)**; CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards.
+- **ADR-004 ACCEPTED (CM4)**: Status, Decision and Consequences written; summary-table row O → A; ADR-004 change-history row.
+- **OQ-011 ANSWERED**: owner-input, Answer/Evidence fields, summary row; header counts 130 (117 OPEN, 13 ANSWERED).
+- **ARCH-001** added to [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md): CM5 recorded as a considered/planned platform dropped before any hardware attempt (the file's intro was extended to cover this at the owner's direction; the per-ADR analysis stays in ADR-004 Alternatives).
+- **REQ-PLT-001** scoped to CM4 (acceptance stays DRAFT, OQ-017).
+- **RISK-003** (CM5 no hardware encoder) marked not in current scope (kept OPEN as reference); **RISK-014** scoped so its CM4 audio path stays in scope and only its CM5 parts are out of scope.
+- **Scope rule** (mirrors the H.265 / REQ-ENC-002 precedent): CM5/BCM2712/Pi 5 material in the other documents is kept as reference and marked "not in current scope"; it is not deleted (Rule 14). The CM5-only OQs (OQ-050 to OQ-054, OQ-059, OQ-100, OQ-108, OQ-124) stay OPEN but out of scope.
+- Reader-facing docs updated: PROJECT_STATUS (phase plan, Current Phase, Current Objective, Completed, Known Problems, Hardware, Next Step), HARDWARE (platform header), TESTING (platform row — run on CM4), TRACEABILITY (ADR-004 O → A, REQ-PLT-001 row, top note), and the VIDEO_ENCODER / ARCHITECTURE / SOFTWARE_ARCHITECTURE / PERFORMANCE "Applies to" headers. CHANGELOG entry and known-issue ADR line updated.
+
+### Files Modified
+
+All in `docs/`: `DECISIONS.md`, `OPEN_QUESTIONS.md`, `ARCHIVED_APPROACHES.md`, `REQUIREMENTS.md`, `RISKS.md`, `HARDWARE.md`, `TESTING.md`, `PROJECT_STATUS.md`, `TRACEABILITY.md`, `VIDEO_ENCODER.md`, `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `PERFORMANCE.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+None. Documentation only.
+
+### Commands Used
+
+```bash
+grep / view / edit via the assistant's tools
+perl -0pi -e 's/ADR-004 \(O\)/ADR-004 (A)/g' docs/TRACEABILITY.md
+```
+
+### Test Results
+
+**Documentation consistency check: NOT RUN** — `doccheck.py` is not in the repository or session workspace (see earlier entries). Kept consistent by hand. Status of that check: UNKNOWN — VERIFICATION REQUIRED.
+
+### Problems Found
+
+- **Scale and residual CM5 references.** CM5 is referenced ~2,173 times. This entry updated the authoritative and reader-facing documents and set the scope rule, but did **not** rewrite every inline "CM4 and CM5" mention in the deep technical documents (DEVICE_TREE, DMA, CSI_PIPELINE, V4L2, TC358743_DRIVER, BUILD_SYSTEM, RELEASE, TROUBLESHOOTING, STREAMING, RECORDING, ATEM, and the deeper sections of VIDEO_ENCODER/ARCHITECTURE/SOFTWARE_ARCHITECTURE/PERFORMANCE). Those remain correct as *reference* material under the ADR-004 scope rule but still read as if CM5 were in scope in places. A follow-up sweep is recommended; it is tracked here rather than done in one pass to avoid mass inconsistency.
+- `doccheck.py` is still not version-controlled.
+- The external "update by ai" automation continued to commit the working tree mid-session.
+
+### Root Cause
+
+—
+
+### Solution
+
+—
+
+### Current Status
+
+- PARTIAL. The platform decision is made, archived and propagated to the authoritative and reader-facing documents; deep inline CM5 references remain as reference under the scope rule (follow-up sweep recommended).
+- Product work is BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Commit the uncommitted 2026-10-09 documentation once the owner approves. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: decide product platform CM4, drop CM5 (ADR-004 ACCEPTED)
+Commit description: Record the owner decision of 2026-10-09 ("stick to CM4"):
+  the product platform is the Compute Module 4 (BCM2711); ADR-004 ACCEPTED;
+  OQ-011 ANSWERED. Drop CM5, BCM2712, Pi 5 and Pi 4 Model B as product boards,
+  keeping them as reference (Rule 14); archive CM5 as ARCH-001. Mark CM5-only
+  risks (RISK-003, CM5 parts of RISK-014) and questions not in current scope,
+  as the deferred H.265 material is. Update the authoritative and reader-facing
+  documents and set the scope rule for the deep inline CM5 content.
+  No hardware or code exists; the documentation consistency check could not be
+  run (doccheck.py not in the repository).
+Files changed: docs/** (15 Markdown files)
+Reason: Rules 1, 11, 13, 14, 16, 21 - major decision, archived not deleted
+Tests: documentation consistency check NOT RUN - doccheck.py unavailable
+```
+
+2. Proposed (Claude): sweep the remaining inline CM5 references in the deep technical documents under the ADR-004 scope rule.
+3. The owner obtains the **CM4** bring-up hardware, including recording storage, and records it in HARDWARE.md as HW REV A.
+
 ## Change history
 
 | Date | Change | By |
@@ -1413,3 +1499,4 @@ Tests: documentation consistency check NOT RUN - doccheck.py unavailable
 | 2026-10-09 | Fourth 2026-10-09 entry added: commit and push of `b142871`; owner decisions on a drive missing at start and 30-minute file splitting (OQ-129). Third entry's Next Step items annotated. Extended the same day (uncommitted, owner "Not yet") with the drive-return, viewer and browser decisions. | Claude (session 2026-10-09) |
 | 2026-10-09 | Fifth 2026-10-09 entry added: owner decisions on the recording encode (High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples); OQ-005 and OQ-008 ANSWERED; OQ-130 opened. Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | Sixth 2026-10-09 entry added: OQ-130 ANSWERED (recording capture-to-file < 1 s judged against the primary drive, the NVMe SSD, at the 95th percentile; the HDD a lagging mirror; ADR-009 mirror refined). Documentation consistency check NOT RUN (doccheck.py unavailable). Noted the external "update by ai" commits that committed the working tree mid-session. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-09 | Seventh 2026-10-09 entry added: product platform decided — CM4 (ADR-004 ACCEPTED); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001); OQ-011 ANSWERED. Authoritative and reader-facing docs updated; scope rule set for deep inline CM5 content (follow-up sweep recommended). Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |

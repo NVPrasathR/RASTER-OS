@@ -37,6 +37,12 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-09: **Product platform decided — CM4 (ADR-004 ACCEPTED); CM5 dropped.**
+  - Owner: "stick to CM4". The product platform is the **Compute Module 4 (CM4, BCM2711)**; OQ-011 ANSWERED. **CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards** and kept only as reference (Rule 14); CM5 is archived as **ARCH-001** in [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md).
+  - CM4 carries the TC358743 on CAM1 (4-lane, 1080p60) and CAM0 (2-lane), with the hardware H.264 encoder; both lane configurations (REQ-CAP-007) are served by CM4.
+  - Consequence: the product rides entirely on the CM4 hardware encoder, so 1080p60 hardware encode (RISK-002) and two concurrent encodes on it (OQ-115) are now single-platform-critical with no fallback.
+  - CM5-only risks (RISK-003; the CM5 parts of RISK-014) and questions (OQ-050 to OQ-054, OQ-059, OQ-100, OQ-108, OQ-124) are kept OPEN but **not in current scope**, as the deferred H.265 material is. Registers: ADRs now 4 ACCEPTED (ADR-001, ADR-003, ADR-004, ADR-009); OQs 130 (117 OPEN, 13 ANSWERED).
+  - Authoritative + reader-facing docs updated (DECISIONS ADR-004, OPEN_QUESTIONS OQ-011, REQUIREMENTS REQ-PLT-001, RISKS, ARCHIVED_APPROACHES, HARDWARE, TESTING, PROJECT_STATUS, TRACEABILITY, and the VIDEO_ENCODER/ARCHITECTURE/SOFTWARE_ARCHITECTURE/PERFORMANCE headers). Deep inline CM5 content in the other documents is kept as reference under the ADR-004 scope rule (not deleted, Rule 14) and can be swept later. Uncommitted, pending owner approval.
 - 2026-10-09: **Owner decision: which drive and statistic the recording < 1 s target is judged against (OQ-130 ANSWERED).**
   - The recording capture-to-file **< 1 s glass-to-disk** target is judged against the **primary recording target — the NVMe SSD — at the 95th percentile** (consistent with the WebRTC criterion, OQ-008); the HDD is a **lagging mirror** not bound by the target.
   - This refines ADR-009's mirror into a latency-bound primary plus a lagging mirror (both drives still receive the full recording); the lagging mirror is the decoupled HDD branch (OQ-117). The HDD cannot meet < 1 s during a standby-to-ready stall of up to about 3.0 s [J-30] (RISK-028).
@@ -133,7 +139,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 - No hardware exists. Every hardware test is BLOCKED — HARDWARE REQUIRED.
 - No code exists. Every requirement is NOT STARTED.
-- No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and two OPEN ADRs (ADR-004, -007) await owner decision; ADR-001, ADR-003 and ADR-009 are ACCEPTED.
+- No requirement is ACCEPTED (21 requirements: 16 DRAFT, 4 PROPOSED, 1 DEFERRED). Four PROPOSED ADRs (ADR-002, -005, -006, -008) and one OPEN ADR (ADR-007) await owner decision; ADR-001, ADR-003, ADR-004 (CM4) and ADR-009 are ACCEPTED.
 - H.265 is deferred (REQ-ENC-002). If re-activated, it is software-only on every candidate, and real-time 1080p H.265 is doubtful (RISK-022, OQ-104).
 - The < 1 s WebRTC latency target is unproven on both modules; most of the latency budget is undocumented (RISK-031, OQ-125). It is judged at the 95th percentile over a 30-minute run at 1 sample/second (~1800 samples), with the recording running (owner, 2026-10-09; OQ-008 ANSWERED).
 - The recording capture-to-file < 1 s glass-to-disk target (owner, 2026-10-09) is judged against the primary recording target — the NVMe SSD — at the 95th percentile; the HDD is a lagging mirror not bound by the target (OQ-130 ANSWERED). The HDD cannot meet < 1 s during a standby-to-ready stall of up to about 3.0 s [J-30] (RISK-028), so its branch must be decoupled or buffered (OQ-117).
@@ -161,3 +167,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-09 | OQ-129 decisions (drive missing at start; 30-minute file splitting) and the push of `b142871` recorded. Drive-return, viewer and browser decisions added; Known Issues: mirror item replaced by the network-egress item. | Claude (session 2026-10-09) |
 | 2026-10-09 | Owner decisions on the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (< 1 s glass-to-disk) and the WebRTC measurement run (30-minute, ~1800 samples) recorded; OQ-005 and OQ-008 ANSWERED; new OQ-130 added; Known Issues updated. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | OQ-130 ANSWERED: recording capture-to-file < 1 s judged against the primary recording target (NVMe SSD) at the 95th percentile, the HDD a lagging mirror; ADR-009 mirror refined. Counts 130 OQs (118 OPEN, 12 ANSWERED). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-09 | Product platform decided: CM4 (ADR-004 ACCEPTED); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001); OQ-011 ANSWERED. Counts: 4 ACCEPTED ADRs; 130 OQs (117 OPEN, 13 ANSWERED). Authoritative and reader-facing docs updated; deep inline CM5 content kept as reference. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |

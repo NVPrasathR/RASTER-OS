@@ -22,7 +22,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 |---|---|---|---|---|
 | RISK-001 | 1080p60 needs a 4-lane CSI-2 link; 2-lane configurations (Pi 4 Model B, CM4 CAM0, 2-lane boards) cannot carry it | REQ-CAP-001, REQ-CAP-007, ADR-004 | High | OPEN |
 | RISK-002 | 1080p60 hardware H.264 encode on Pi 4/CM4 is unproven | REQ-ENC-001, ADR-004 | High | OPEN |
-| RISK-003 | Pi 5/CM5 have no hardware video encoder | REQ-ENC-001, REQ-STR-001/002 | High | OPEN |
+| RISK-003 | Pi 5/CM5 have no hardware video encoder | REQ-ENC-001, REQ-STR-001/002 | High | OPEN *(not in current scope since 2026-10-09 — CM5/Pi 5 dropped, ADR-004 ACCEPTED (CM4))* |
 | RISK-004 | TC358743 supply / lifecycle uncertain | Product | High | OPEN |
 | RISK-005 | No public TC358743 register documentation | REQ-DRV-001 | Medium | OPEN |
 | RISK-006 | FIFO-level image corruption near lane-count limits | REQ-CAP-001, REQ-CAP-005, REQ-CAP-007 | Medium | OPEN |
@@ -81,14 +81,16 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 
 ## RISK-003 — No hardware video encoder on Pi 5/CM5
 
+*(Not in current scope since 2026-10-09: CM5, BCM2712 and Pi 5 are dropped from the product — ADR-004 ACCEPTED, the platform is the CM4 (BCM2711); OQ-011 ANSWERED. CM4 has a hardware H.264 encoder, so this risk no longer applies to the product. It is kept OPEN as reference, and would re-apply if CM5 or Pi 5 were ever reconsidered. The CM4 encoder's own open risks are RISK-002 (1080p60) and OQ-115 (two concurrent sessions).)*
+
 - **Evidence:**
   - Official: "Raspberry Pi 5 uses software video encoders" [G-22].
   - BCM2712: "H264 1080p30 encode (from ISP) ~30–40% CPU" [G-22].
   - The product briefs list no encoder [D-31].
-- **Impact:** CPU and thermal load at 1080p60, especially with recording, RTMP and WebRTC running at the same time. UYVY must also be converted to a planar format per frame [D-43]. Pi 5 and CM5 are 4-lane candidates (ADR-004, OPEN), where 1080p60 capture is required (REQ-CAP-007, owner 2026-10-07).
+- **Impact:** CPU and thermal load at 1080p60, especially with recording, RTMP and WebRTC running at the same time. UYVY must also be converted to a planar format per frame [D-43]. Pi 5 and CM5 are 4-lane candidates (ADR-004, OPEN), where 1080p60 capture is required (REQ-CAP-007, owner 2026-10-07). *(2026-10-09: moot in current scope — CM5/Pi 5 dropped, ADR-004 ACCEPTED (CM4).)*
 - **Open questions:** OQ-059, OQ-060.
-- **Owner decision (2026-10-08):** two simultaneous software encodes (recording + live) are required on CM5 (REQ-ENC-001), roughly doubling the encode CPU load (reasoning from [G-22]). Open question: OQ-059.
-- **Retire by:** TEST-ENC-001 and TEST-PERF-001 on Pi 5/CM5.
+- **Owner decision (2026-10-08):** two simultaneous software encodes (recording + live) are required on CM5 (REQ-ENC-001), roughly doubling the encode CPU load (reasoning from [G-22]). Open question: OQ-059. *(2026-10-09: not in current scope — the two encodes run on CM4's hardware encoder, OQ-115.)*
+- **Retire by:** TEST-ENC-001 and TEST-PERF-001 on Pi 5/CM5. *(2026-10-09: not run in current scope — CM5/Pi 5 dropped.)*
 
 ## RISK-004 — TC358743 supply / lifecycle uncertain
 
@@ -181,6 +183,8 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Retire by:** A hardware design that wires INT to a GPIO, plus an overlay `interrupts` property, or acceptance of the latency in REQ-CAP-004.
 
 ## RISK-014 — HDMI audio needs a separate I2S path with the stock driver
+
+*(Scope note, 2026-10-09: the product platform is the CM4 (ADR-004 ACCEPTED; OQ-011). This risk **stays in scope for CM4** — the product's HDMI audio still needs the I2S wiring and the stock driver's 2-channel path. The **CM5-specific parts below** (RP1 I2S1 resolution, the CM5 bring-up gate, OQ-054) are **not in current scope** and are kept as reference.)*
 
 - **Evidence:**
   - The silicon can send audio over CSI-2 [A-05] or on I2S/TDM output pins [A-11].

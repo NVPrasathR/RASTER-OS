@@ -4,7 +4,7 @@
 |---|---|
 | Document status | DRAFT. Lists responsibilities only. **Nothing is implemented.** The userspace media framework is OPEN (ADR-007). |
 | Last updated | 2026-10-09 |
-| Applies to | All PACSCORDER userspace software (everything above the kernel drivers) on the four candidate platforms: Raspberry Pi 4 Model B, CM4, Raspberry Pi 5, CM5. Bring-up evaluates CM4 and CM5 side by side (owner, 2026-10-07, second answer; ADR-004 still OPEN). |
+| Applies to | All PACSCORDER userspace software (everything above the kernel drivers) on the **product platform: the CM4 (BCM2711)** — ADR-004 ACCEPTED 2026-10-09 ("stick to CM4"), OQ-011 ANSWERED. CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards and kept as reference only (ARCH-001); the CM5 software-encoder material below is not in current scope. *(Before 2026-10-09: "the four candidate platforms … bring-up evaluates CM4 and CM5 side by side; ADR-004 OPEN." Superseded by the CM4 decision.)* |
 | Verification | Verified from sources only: the source research of 2026-10-06 and of 2026-10-08 (topic H, H.265/HEVC; topic I, HDMI audio; topic J, recording storage and power loss; topic K, live latency) in [REFERENCES.md](REFERENCES.md). Nothing has been verified on PACSCORDER hardware; no hardware and no code exist as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 5, Rule 10, Rule 12, Rule 13, Rule 22, Rule 24, Rule 25 |
 

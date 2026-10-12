@@ -7,7 +7,7 @@
 
 ## Current Phase
 
-PHASE 1 — Decisions and hardware (IN PROGRESS). PHASE 0, the documentation baseline, is complete. Owner decisions so far: 5 open questions answered and ADR-003 accepted on 2026-10-07; on 2026-10-08, OQ-103 (H.264 only for now), the number of encodes (OQ-005), the live-latency target (OQ-116) and the recording design (ADR-009) were decided; on 2026-10-09, how the latency target is judged and the viewer reach (OQ-008) and the recording duration (OQ-006) were decided; later on 2026-10-09 the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (under 1 s glass-to-disk) and the WebRTC measurement run (a 30-minute run at 1 sample/second, about 1800 samples) were decided, which fully answered OQ-005 and OQ-008 and raised OQ-130 (against which drive and statistic the recording capture-to-file < 1 s target is judged), which the owner then answered the same day: the primary recording target (the NVMe SSD) at the 95th percentile, with the HDD a lagging mirror.
+PHASE 1 — Decisions and hardware (IN PROGRESS). PHASE 0, the documentation baseline, is complete. Owner decisions so far: 5 open questions answered and ADR-003 accepted on 2026-10-07; on 2026-10-08, OQ-103 (H.264 only for now), the number of encodes (OQ-005), the live-latency target (OQ-116) and the recording design (ADR-009) were decided; on 2026-10-09, how the latency target is judged and the viewer reach (OQ-008) and the recording duration (OQ-006) were decided; later on 2026-10-09 the recording encode (H.264 High profile, Level 4.2, no B-frames), the recording capture-to-file latency (under 1 s glass-to-disk) and the WebRTC measurement run (a 30-minute run at 1 sample/second, about 1800 samples) were decided, which fully answered OQ-005 and OQ-008 and raised OQ-130 (against which drive and statistic the recording capture-to-file < 1 s target is judged), which the owner then answered the same day: the primary recording target (the NVMe SSD) at the 95th percentile, with the HDD a lagging mirror. Also on 2026-10-09 the owner chose the **product platform: the CM4** ("stick to CM4"), dropping CM5, BCM2712, Pi 5 and Pi 4 Model B as product boards (ADR-004 ACCEPTED; OQ-011 ANSWERED; CM5 archived).
 
 Product work cannot start until the hardware and remaining decisions listed under **Blocked** exist.
 
@@ -16,10 +16,10 @@ Product work cannot start until the hardware and remaining decisions listed unde
 | Phase | Content | Exit evidence | Status |
 |---|---|---|---|
 | PHASE 0 — Bootstrap | Git repository, rules, documentation set, source research | Documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)) | Documentation baseline complete; owner review of DRAFT/PROPOSED items continues |
-| PHASE 1 — Decisions and hardware | Owner answers the owner-decision OQs; ADR-004 decided from bring-up measurements; bring-up hardware obtained and recorded in [HARDWARE.md](HARDWARE.md) | Accepted requirements; HW REV recorded | IN PROGRESS — ADR-003 and ADR-009 ACCEPTED; OQ-001, OQ-004, OQ-005, OQ-006, OQ-008, OQ-009, OQ-012, OQ-102, OQ-103, OQ-116, OQ-129 answered; no hardware yet |
+| PHASE 1 — Decisions and hardware | Owner answers the owner-decision OQs; ADR-004 decided; bring-up hardware obtained and recorded in [HARDWARE.md](HARDWARE.md) | Accepted requirements; HW REV recorded | IN PROGRESS — ADR-003, ADR-004 (CM4) and ADR-009 ACCEPTED; OQ-001, OQ-004, OQ-005, OQ-006, OQ-008, OQ-009, OQ-011, OQ-012, OQ-102, OQ-103, OQ-116, OQ-129, OQ-130 answered; no hardware yet |
 | PHASE 2 — Bring-up | Stock Raspberry Pi OS on CM4 and CM5: I2C detection, driver probe, EDID / hot-plug, overlay and media graph, audio card | TEST-HW-001, TEST-DRV-001, TEST-DRV-002, TEST-PLT-001, TEST-CAP-001, TEST-AUD-001 | NOT STARTED |
 | PHASE 3 — Capture pipeline | 2-lane and 4-lane configurations, source changes, unsupported modes, DMABUF | TEST-CAP-002, TEST-CAP-003, TEST-CAP-004, TEST-DMA-001 | NOT STARTED |
-| PHASE 4 — Encode | Two real-time H.264 encodes on CM4 and CM5 (H.265 deferred); performance budget; ADR-004 decision | TEST-ENC-001, TEST-PERF-001 | NOT STARTED |
+| PHASE 4 — Encode | Two real-time H.264 encodes on CM4 (H.265 deferred); performance budget | TEST-ENC-001, TEST-PERF-001 | NOT STARTED |
 | PHASE 5 — Record and stream | Fragmented-MP4 recording mirrored to NVMe SSD and HDD (ADR-009); RTMP (best-effort latency); WebRTC under 1 s camera-to-viewer; with audio | TEST-REC-001, TEST-STR-001, TEST-STR-002 | NOT STARTED |
 | PHASE 6 — ATEM | HDMI capture of ATEM output (OQ-009 scope) | TEST-ATEM-001 | NOT STARTED |
 | PHASE 7 — Product image and release | Own OS image built with `rpi-image-gen`, update mechanism, release v0.1.0 | TEST-BLD-001, [RELEASE.md](RELEASE.md) checklist | NOT STARTED |
@@ -45,11 +45,12 @@ Product work cannot start until the hardware and remaining decisions listed unde
    - OQ-118 to OQ-121 (in part): fragment duration and the acceptable loss on a power cut, recording filesystem, NVMe SSD and adapter choice.
    - OQ-007 (RTMP destinations), OQ-010 (sustained-operation envelope), OQ-113 (AAC licensing).
    - OQ-018 to OQ-021: bridge board(s), wiring of INT/RESET and audio I2S.
-3. **Obtain bring-up hardware** (owner decision: evaluate **CM4 and CM5 side by side**):
-   - CM4 and CM5 with their IO boards. The CM4 IO Board's PCIe slot is powered only from its 12 V barrel input [J-05] (RISK-026).
-   - TC358743 bridge board(s) for both lane configurations, with a 27 MHz reference clock [A-45], [B-10] and the I2S audio pins wired to GPIO 18–20 [I-04].
+3. **Obtain bring-up hardware** (owner decision of 2026-10-09: the product platform is the **CM4**; ADR-004 ACCEPTED):
+   - CM4 with its IO Board. The CM4 IO Board's PCIe slot is powered only from its 12 V barrel input [J-05] (RISK-026).
+   - TC358743 bridge board for both lane configurations on CM4 (CAM1 4-lane, CAM0 or a 2-lane bridge board 2-lane), with a 27 MHz reference clock [A-45], [B-10] and the I2S audio pins wired to GPIO 18–20 [I-04].
    - TC358743 I/O voltage matched to the IO board's selected GPIO voltage (1.8 V or 3.3 V) [I-27], [I-29].
-   - Recording storage per ADR-009: an NVMe SSD for each board (with a PCIe adaptor for the CM4 IO Board socket [J-03], [J-11]; M.2 on the CM5 IO Board [J-13], [J-14]) and a USB-to-SATA HDD in a self-powered enclosure. No part is chosen; the bridge chipset has to be qualified (OQ-121, OQ-122, RISK-027).
+   - Recording storage per ADR-009: an NVMe SSD (with a PCIe adaptor for the CM4 IO Board socket [J-03], [J-11]) and a USB-to-SATA HDD in a self-powered enclosure. No part is chosen; the bridge chipset has to be qualified (OQ-121, OQ-122, RISK-027).
+   - *(CM5 is no longer obtained — dropped 2026-10-09, ADR-004; archived in [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md).)*
 
 ## Completed
 
@@ -66,9 +67,9 @@ Product work cannot start until the hardware and remaining decisions listed unde
 - [x] Owner's engineering rules stored verbatim in [ENGINEERING_RULES.md](ENGINEERING_RULES.md), loaded every session through `CLAUDE.md`.
 - [x] Source research: **557 facts in 11 topics (A–K)**, each independently fact-checked: 512 CONFIRMED, 45 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED ([REFERENCES.md](REFERENCES.md)). Topics J (recording storage and power loss) and K (live latency) were added on 2026-10-08.
 - [x] Requirements: 21 (16 DRAFT, 4 PROPOSED, 1 DEFERRED — REQ-ENC-002 H.265) — [REQUIREMENTS.md](REQUIREMENTS.md).
-- [x] Decisions: 9 ADRs (ACCEPTED: ADR-001, ADR-003, ADR-009; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-004, ADR-007) — [DECISIONS.md](DECISIONS.md).
+- [x] Decisions: 9 ADRs (ACCEPTED: ADR-001, ADR-003, ADR-004 (CM4), ADR-009; PROPOSED: ADR-002, ADR-005, ADR-006, ADR-008; OPEN: ADR-007) — [DECISIONS.md](DECISIONS.md).
 - [x] Risks: 34, all OPEN — [RISKS.md](RISKS.md).
-- [x] Open questions: 130 (118 OPEN; 12 ANSWERED by owner statements; OQ-129 added and answered 2026-10-09; OQ-130 added and answered 2026-10-09) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+- [x] Open questions: 130 (117 OPEN; 13 ANSWERED by owner statements; OQ-011 answered 2026-10-09; OQ-129 added and answered 2026-10-09; OQ-130 added and answered 2026-10-09) — [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 - [x] Full Rule 2 documentation set, written from the source register and kept consistent with every owner decision up to 2026-10-08 (catch-up of 2026-10-09); the documentation check passes ([DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)).
 
 None of the above is product functionality. **Nothing in the product works yet, because nothing has been built or tested.**
@@ -90,7 +91,7 @@ These are known from sources; none has been observed on PACSCORDER hardware. See
 
 - **RISK-001:** 1080p60 needs a 4-lane CSI-2 link. The 2-lane configuration (REQ-CAP-007) is physically limited to 1080p50 UYVY / 1080p30 RGB888 for 1920x1080 [C-37], [C-48].
 - **RISK-002:** 1080p60 hardware H.264 encode on CM4 is unproven; the official specification is 1080p30 [D-10]. Two concurrent encodes on it are unknown (OQ-115).
-- **RISK-003:** CM5 has no hardware video encoder; all encoding is in software [G-22].
+- **RISK-003:** CM5 has no hardware video encoder; all encoding is in software [G-22]. *(Not in current scope since 2026-10-09 — CM5 dropped, ADR-004 ACCEPTED (CM4). The CM4 hardware encoder's own risks are RISK-002 (1080p60) and OQ-115 (two sessions).)*
 - **RISK-031:** the < 1 s WebRTC target is unproven. A labelled budget (reasoning, not a measurement) accounts for about 56–75 ms of documented terms on CM4; the rest of the path is undocumented [K-45] (OQ-125).
 - **RISK-026:** on CM4 the NVMe SSD takes the only PCIe lane, the HDD shares the IO Board's USB 2.0 hub, and the PCIe slot needs the 12 V input [J-01], [J-05], [J-06].
 - **RISK-028:** an HDD stall (one example drive needs up to 3.0 s from standby to ready [J-30]) could back-pressure the mirrored recording into the shared encoder and the live path unless the HDD writer is decoupled (OQ-117).
@@ -107,7 +108,7 @@ These are known from sources; none has been observed on PACSCORDER hardware. See
 
 ## Hardware
 
-None. Bring-up will evaluate CM4 and CM5 side by side (owner, 2026-10-07); the product platform stays OPEN (ADR-004). The bridge board is not selected (OQ-018). Recording storage is decided by type (NVMe SSD and USB-to-SATA HDD, ADR-009) but no part is chosen (OQ-121, OQ-122). See [HARDWARE.md](HARDWARE.md).
+None. Bring-up uses the **CM4** (owner decision 2026-10-09; ADR-004 ACCEPTED — CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards, CM5 archived). The bridge board is not selected (OQ-018). Recording storage is decided by type (NVMe SSD and USB-to-SATA HDD, ADR-009) but no part is chosen (OQ-121, OQ-122). See [HARDWARE.md](HARDWARE.md).
 
 ## Kernel
 
@@ -127,7 +128,7 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 3. Commit the uncommitted 2026-10-09 decisions once the owner approves. This now includes the fourth-entry decisions (OQ-129; viewers and browsers) and the fifth-entry decisions (OQ-005 recording encode and capture-to-file latency; OQ-008 measurement run; new OQ-130); the proposed commits are in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) (2026-10-09, fourth and fifth entries).
 4. The owner decides the remaining recording-design items (OQ-118 to OQ-121) and the operator interface (OQ-091).
 5. Proposed (Claude): research the Ethernet facts of CM4, CM5 and their IO Boards (OQ-098), because the decided viewer count and bitrate put video egress near 100 Mbit/s.
-6. The owner obtains the CM4 + CM5 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
+6. The owner obtains the CM4 bring-up hardware, including the recording storage, and records it in [HARDWARE.md](HARDWARE.md) as HW REV A.
 
 ## Change history
 
@@ -147,3 +148,4 @@ Not used. ADR-003 (ACCEPTED 2026-10-07) chooses Raspberry Pi OS with `rpi-image-
 | 2026-10-09 | Third set of 2026-10-09 decisions recorded (OQ-129 ANSWERED: drive return; OQ-008: up to 5 viewers, Chrome, Safari, Firefox); network-egress known problem (reasoning, OQ-098); counts 120 OPEN / 9 ANSWERED; owner's "Not yet" on the commit; Next Step renumbered with the proposed Ethernet research. | Claude (session 2026-10-09) |
 | 2026-10-09 | Fifth set of 2026-10-09 decisions recorded (OQ-005 ANSWERED: recording encode H.264 High profile, Level 4.2, no B-frames, and a capture-to-file latency target under 1 s glass-to-disk; OQ-008 ANSWERED: 95th-percentile measured over a 30-minute run at 1 sample/second, ~1800 samples); new OQ-130 (which drive and statistic the recording latency is judged against); counts 130 OQs (119 OPEN / 11 ANSWERED); Current Phase, phase plan, Current Objective and Next Step updated. Changes uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | OQ-130 ANSWERED: the recording capture-to-file < 1 s target is judged against the primary recording target (the NVMe SSD) at the 95th percentile, the HDD a lagging mirror (refines ADR-009's mirror). Counts 130 OQs (118 OPEN / 12 ANSWERED); Current Objective, counts and Next Step updated; ADR-009 Consequences refined. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
+| 2026-10-09 | **ADR-004 ACCEPTED: product platform = CM4; CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001).** Owner: "stick to CM4". OQ-011 ANSWERED. Phase plan, Current Phase, Current Objective (bring-up = CM4), Completed (4 ACCEPTED ADRs; 117 OPEN / 13 ANSWERED OQs), Known Problems (RISK-003 out of scope), Hardware and Next Step updated. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
