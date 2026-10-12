@@ -9,7 +9,11 @@
 #include <errno.h>
 #include <glib/gstdio.h>
 
+#include <gst/app/gstappsink.h>
+#include <gst/video/video.h>
+
 #include "h264_level.h"
+#include "publisher.h"
 
 #define STOP_TIMEOUT_SECONDS 15   /* give up waiting for end of stream */
 
@@ -23,6 +27,9 @@ struct _PacsPipeline {
   gint n_capture;   /* buffers counted in streaming threads: g_atomic_int_* */
   gint n_rec;
   gint n_live;
+  GPtrArray *publishers;      /* PacsPublisher *, slice C2 */
+  GstElement *live_out;       /* appsink feeding the publishers */
+  gboolean publishers_started;
 };
 
 /* Create an element and add it to the bin, which then owns it. */
@@ -262,14 +269,111 @@ add_counter (GstElement *e, const gchar *pad_name, gint *counter)
   gst_object_unref (pad);
 }
 
+/* Express a buffer's timestamps as running time in the main pipeline.
+ * Encoders may shift their output timestamps (by 1000 hours with the encoder
+ * used on the development machine, observed 2026-10-12) and describe the shift
+ * in the segment; a publisher's appsrc starts its own segment at 0, so it must
+ * receive running time or its sink waits for the shifted time. The publishers
+ * share the main pipeline's clock and base time (publisher.c). */
+static GstSample *
+to_running_time (GstSample *sample)
+{
+  GstBuffer *in = gst_sample_get_buffer (sample);
+  const GstSegment *seg = gst_sample_get_segment (sample);
+  GstBuffer *out;
+  GstSample *res;
+
+  if (in == NULL || seg == NULL || seg->format != GST_FORMAT_TIME)
+    return gst_sample_ref (sample);
+  out = gst_buffer_copy (in);          /* shares the memory; new metadata */
+  if (GST_BUFFER_PTS_IS_VALID (in))
+    GST_BUFFER_PTS (out) = gst_segment_to_running_time (seg, GST_FORMAT_TIME,
+                                                        GST_BUFFER_PTS (in));
+  if (GST_BUFFER_DTS_IS_VALID (in))
+    GST_BUFFER_DTS (out) = gst_segment_to_running_time (seg, GST_FORMAT_TIME,
+                                                        GST_BUFFER_DTS (in));
+  res = gst_sample_new (out, gst_sample_get_caps (sample), NULL, NULL);
+  gst_buffer_unref (out);
+  return res;
+}
+
+/* appsink → every publisher (runs in the live branch's streaming thread). */
+static GstFlowReturn
+on_live_sample (GstAppSink *sink, gpointer data)
+{
+  PacsPipeline *p = data;
+  GstSample *sample = gst_app_sink_pull_sample (sink);
+  GstSample *rt;
+
+  if (sample == NULL)
+    return GST_FLOW_EOS;
+  rt = to_running_time (sample);
+  for (guint i = 0; i < p->publishers->len; i++)
+    pacs_publisher_push (g_ptr_array_index (p->publishers, i), rt);
+  gst_sample_unref (rt);
+  gst_sample_unref (sample);
+  return GST_FLOW_OK;
+}
+
+static GstAppSinkCallbacks live_callbacks = { .new_sample = on_live_sample };
+
+/* Ask the live encoder for a keyframe, e.g. when a publisher (re)starts:
+ * an upstream force-key-unit event from the appsink [K-31]. */
+static void
+request_live_keyframe (gpointer data)
+{
+  PacsPipeline *p = data;
+
+  if (p->live_out != NULL)
+    gst_element_send_event (p->live_out,
+        gst_video_event_new_upstream_force_key_unit (GST_CLOCK_TIME_NONE, TRUE, 0));
+}
+
+static gboolean
+create_publishers (PacsPipeline *p, GError **error)
+{
+  const PacsConfig *cfg = p->cfg;
+  PacsPublisher *pub;
+
+  if (cfg->rtsp_url != NULL) {
+    pub = pacs_publisher_new (PACS_PUBLISH_RTSP, cfg->rtsp_url,
+                              request_live_keyframe, p, error);
+    if (pub == NULL)
+      return FALSE;
+    g_ptr_array_add (p->publishers, pub);
+  }
+  for (gint i = 0; i < cfg->n_rtmp; i++) {
+    pub = pacs_publisher_new (PACS_PUBLISH_RTMP, cfg->rtmp_urls[i],
+                              request_live_keyframe, p, error);
+    if (pub == NULL)
+      return FALSE;
+    g_ptr_array_add (p->publishers, pub);
+  }
+  return TRUE;
+}
+
+static void
+start_publishers (PacsPipeline *p)
+{
+  GstClock *clock;
+
+  if (p->publishers_started || p->publishers->len == 0)
+    return;
+  p->publishers_started = TRUE;
+  clock = gst_pipeline_get_clock (GST_PIPELINE (p->pipeline));
+  for (guint i = 0; i < p->publishers->len; i++)
+    pacs_publisher_start (g_ptr_array_index (p->publishers, i), clock,
+                          gst_element_get_base_time (p->pipeline));
+  gst_clear_object (&clock);
+}
+
 static gboolean
 build (PacsPipeline *p, GError **error)
 {
   const PacsConfig *cfg = p->cfg;
   GstBin *bin = GST_BIN (p->pipeline);
   GstElement *src_out, *cap_tee, *rec_q, *rec_enc, *rec_caps, *rec_parse,
-      *rec_tee, *live_q, *rate, *rate_caps, *live_enc, *live_caps, *live_parse,
-      *live_sink;
+      *rec_tee, *live_q, *rate, *rate_caps, *live_enc, *live_caps, *live_sink;
   gint live_n, live_d;
   gchar *rate_str;
 
@@ -315,14 +419,26 @@ build (PacsPipeline *p, GError **error)
   if ((live_caps = add_encoder (bin, cfg, FALSE, live_n, live_d, &live_enc,
                                 error)) == NULL)
     return FALSE;
-  if ((live_parse = add (bin, "h264parse", "live_parse", error)) == NULL ||
-      (live_sink = add (bin, "fakesink", "live_sink", error)) == NULL)
-    return FALSE;
-  g_object_set (live_sink, "sync", FALSE, NULL);   /* slice C1: no publisher yet */
-  add_counter (live_parse, "sink", &p->n_live);
+  /* Live output: with publishers, an appsink hands each encoded frame to them
+   * (each runs in its own pipeline, ADR-015); without, a fakesink. Neither may
+   * block the encoder: the appsink drops old frames if it ever falls behind. */
+  if (p->publishers->len > 0) {
+    live_sink = add (bin, "appsink", "live_out", error);
+    if (live_sink == NULL)
+      return FALSE;
+    g_object_set (live_sink, "sync", FALSE, "max-buffers", 8, "drop", TRUE, NULL);
+    gst_app_sink_set_callbacks (GST_APP_SINK (live_sink), &live_callbacks, p, NULL);
+    p->live_out = live_sink;
+  } else {
+    live_sink = add (bin, "fakesink", "live_sink", error);
+    if (live_sink == NULL)
+      return FALSE;
+    g_object_set (live_sink, "sync", FALSE, NULL);
+  }
+  add_counter (live_sink, "sink", &p->n_live);
   return link (cap_tee, live_q, error) && link (live_q, rate, error) &&
       link (rate, rate_caps, error) && link (rate_caps, live_enc, error) &&
-      link (live_caps, live_parse, error) && link (live_parse, live_sink, error);
+      link (live_caps, live_sink, error);
 }
 
 static gboolean
@@ -365,6 +481,15 @@ on_bus (GstBus *bus, GstMessage *msg, gpointer data)
       g_printerr ("pacscorder: warning from %s: %s\n",
                   GST_OBJECT_NAME (GST_MESSAGE_SRC (msg)), err->message);
       break;
+    case GST_MESSAGE_STATE_CHANGED:
+      if (GST_MESSAGE_SRC (msg) == GST_OBJECT (p->pipeline)) {
+        GstState new_state;
+
+        gst_message_parse_state_changed (msg, NULL, &new_state, NULL);
+        if (new_state == GST_STATE_PLAYING)
+          start_publishers (p);
+      }
+      break;
     case GST_MESSAGE_ELEMENT:
       s = gst_message_get_structure (msg);
       if (s != NULL && (gst_structure_has_name (s, "splitmuxsink-fragment-opened") ||
@@ -399,7 +524,8 @@ pacs_pipeline_new (const PacsConfig *cfg, GError **error)
   p->cfg = cfg;
   p->pipeline = gst_pipeline_new ("pacscorder");
   p->loop = g_main_loop_new (NULL, FALSE);
-  if (!build (p, error)) {
+  p->publishers = g_ptr_array_new_with_free_func ((GDestroyNotify) pacs_publisher_free);
+  if (!create_publishers (p, error) || !build (p, error)) {
     pacs_pipeline_free (p);
     return NULL;
   }
@@ -421,6 +547,13 @@ pacs_pipeline_run (PacsPipeline *p)
   if (p->cfg->duration_seconds > 0)
     g_timeout_add_seconds (p->cfg->duration_seconds, on_duration, p);
   g_main_loop_run (p->loop);
+  for (guint i = 0; i < p->publishers->len; i++) {
+    PacsPublisher *pub = g_ptr_array_index (p->publishers, i);
+
+    pacs_publisher_stop (pub);
+    g_print ("pacscorder: publisher %s: %u restart(s)\n", pacs_publisher_url (pub),
+             pacs_publisher_restarts (pub));
+  }
   gst_element_set_state (p->pipeline, GST_STATE_NULL);
   g_print ("pacscorder: frames captured %d, recording encode %d, live encode %d\n",
            g_atomic_int_get (&p->n_capture), g_atomic_int_get (&p->n_rec),
@@ -452,5 +585,7 @@ pacs_pipeline_free (PacsPipeline *p)
   }
   if (p->loop)
     g_main_loop_unref (p->loop);
+  if (p->publishers)
+    g_ptr_array_unref (p->publishers);
   g_free (p);
 }

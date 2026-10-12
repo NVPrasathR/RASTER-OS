@@ -41,6 +41,11 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - `docs/REFERENCES.md` topic L: 63 facts (56 CONFIRMED, 7 CORRECTED) on H.264 level bit-rate ceilings (ITU-T H.264 V16), CM4 and CM4 IO Board Ethernet, `bcm2835-codec` concurrency, and encoder-test commands. Register total 620 facts. Raw data: `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
 - `docs/TESTING.md` TEST-ENC-001: Stage 0 procedure (run matrix R1–R7, up to two 1080p60 encodes).
 
+**2026-10-12 — slice C2: live publishing**
+- `app/src/publisher.c/.h`: RTSP publishing to MediaMTX and RTMP publishing (`flvmux` + `rtmp2sink`), each in its own pipeline fed from the live encode, restarted 5 s after an error, keyframe requested on (re)start. Options `--rtsp-url`, `--rtmp-url`. IMPLEMENTED — NOT TESTED on PACSCORDER hardware.
+- `tests/smoke_publish.sh` (CTest `smoke_publish_dev`): publishes to a private MediaMTX and reads both streams back; checks the recording survives a dead publisher target. TESTED — PASS on the development machine only.
+- **ADR-015 (PROPOSED):** publishers in separate pipelines so a network failure cannot stop the recording.
+
 **2026-10-12 — first application code (slice C1)**
 - `CMakeLists.txt`, `app/CMakeLists.txt`, `tests/CMakeLists.txt`: CMake build and CTest (ADR-014).
 - `app/src/` (`main.c`, `config.c/.h`, `pipeline.c/.h`, `h264_level.c/.h`): the PACSCORDER recorder in C on GStreamer — capture, recording encode with fragmented MP4 every 30 minutes mirrored to two directories, live encode at half the capture rate above 30 fps; `cm4` backend (`v4l2src`, `v4l2h264enc` with the owner's settings) and `dev` backend (test source, `x264enc`). IMPLEMENTED — NOT TESTED on PACSCORDER hardware.
@@ -50,6 +55,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-12: Slice C2 documented (SOFTWARE_ARCHITECTURE §10.1, BUILD_SYSTEM §2A, TESTING "Development tests", STREAMING); REQ-STR-001 and REQ-STR-002 now IMPLEMENTED — NOT TESTED (partial). Slice C1 was committed and pushed as `9ab0b4e`.
 - 2026-10-12: **Coding started** — slice C1 documented in SOFTWARE_ARCHITECTURE §10, BUILD_SYSTEM §2A and TESTING "Development tests"; REQ-ARCH-001, REQ-ENC-001, REQ-REC-001 now IMPLEMENTED — NOT TESTED (partial). The GStreamer/C decisions were committed and pushed as `27bb305`.
 - 2026-10-12, latest: **Owner decisions — GStreamer (ADR-007 ACCEPTED) and C (ADR-013 ACCEPTED)**; Claude's Python proposal (ADR-012) SUPERSEDED BY ADR-013. OQ-015 and OQ-132 ANSWERED. 65 stale ADR-007 status lines annotated.
 - 2026-10-12, latest: **ADR-007 proposal — GStreamer** (OPEN → PROPOSED; reasons: FFmpeg's CM4 encoder wrapper cannot set bitrate mode or level [L-43]; documented fan-out, frame-rate halving, fragmented 30-minute recording, RTSP publishing to MediaMTX) with a pipeline sketch. **ADR-012 (PROPOSED):** application language Python 3 with PyGObject, proposed repository layout; new OQ-132. The ADR decisions were committed and pushed as `78b6d70`.
@@ -210,3 +216,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-12 | Latest: ADR-007 and ADR-012 proposals; OQ-132; `78b6d70` recorded. | Claude (session 2026-10-12) |
 | 2026-10-12 | Latest: ADR-007 and ADR-013 accepted; ADR-012 superseded. | Claude (session 2026-10-12) |
 | 2026-10-12 | Added: application slice C1, development tests, bring-up script, ADR-014. Changed: requirement implementation statuses; `27bb305` recorded. | Claude (session 2026-10-12) |
+| 2026-10-12 | Added: slice C2, `smoke_publish_dev`, ADR-015. Changed: REQ-STR-001/002 statuses; `9ab0b4e` recorded. | Claude (session 2026-10-12) |

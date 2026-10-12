@@ -14,7 +14,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 find_package(PkgConfig REQUIRED)
 # 1.26 is the GStreamer version Raspberry Pi OS ships ([G-26], [G-27]).
-pkg_check_modules(GST REQUIRED IMPORTED_TARGET gstreamer-1.0>=1.26 glib-2.0)
+pkg_check_modules(GST REQUIRED IMPORTED_TARGET
+  gstreamer-1.0>=1.26 gstreamer-app-1.0>=1.26 gstreamer-video-1.0>=1.26 glib-2.0)
 
 add_subdirectory(app)
 

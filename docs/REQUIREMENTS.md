@@ -54,8 +54,8 @@ Fact references such as `[C-37]` point to [REFERENCES.md](REFERENCES.md). Open q
 | REQ-ENC-001 | Video encoding (H.264) | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) | TEST-ENC-001 |
 | REQ-ENC-002 | H.265 (HEVC) encoding (deferred) | DEFERRED | NOT STARTED | — (deferred) |
 | REQ-REC-001 | Recording | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C1, 2026-10-12) | TEST-REC-001 |
-| REQ-STR-001 | RTMP streaming | DRAFT | NOT STARTED | TEST-STR-001 |
-| REQ-STR-002 | WebRTC streaming | DRAFT | NOT STARTED | TEST-STR-002 |
+| REQ-STR-001 | RTMP streaming | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C2, 2026-10-12) | TEST-STR-001 |
+| REQ-STR-002 | WebRTC streaming | DRAFT | IMPLEMENTED — NOT TESTED (partial: slice C2, 2026-10-12) | TEST-STR-002 |
 | REQ-ATEM-001 | Blackmagic ATEM integration | DRAFT | NOT STARTED | TEST-ATEM-001 |
 | REQ-BLD-001 | Reproducible product image build | DRAFT | NOT STARTED | TEST-BLD-001 |
 | REQ-BLD-002 | Project-owned product OS image | DRAFT | NOT STARTED | TEST-BLD-001 |
@@ -305,7 +305,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 - **Source:** ENGINEERING_RULES.md Rule 5 ("RTMP").
 - **Acceptance:** DRAFT. Server targets and bitrate are **UNDEFINED** (OQ-007).
 - **Latency (owner decision, 2026-10-08):** RTMP outputs are best-effort; their latency is set by the receiving platform (OQ-116 ANSWERED: the < 1 s target applies to WebRTC viewers only). For example, YouTube documents under 5 s at best, in ultra-low-latency mode [K-15]. *(Corrected 2026-10-09: [K-15] says Ultra-low gives "less than 5 seconds" for most viewers; the CORRECTED [K-18] reads that as an upper bound for most viewers, not a best case.)*
-- **Implementation:** NOT STARTED.
+- **Implementation:** NOT STARTED. *(2026-10-12: IMPLEMENTED — NOT TESTED (partial: slice C2, 2026-10-12) — RTMP publishing of the live encode from a separate pipeline (`flvmux` + `rtmp2sink`), restarted on failure (ADR-015); video only until audio (slice C4); destinations are OQ-007.)*
 - **Notes:** Legacy RTMP/FLV carries H.264 video and AAC audio [F-31]. GStreamer `rtmp2sink` is a client (publisher) [F-33].
   - *(Added 2026-10-08, research topic H; wording, acceptance and status unchanged.)* HEVC over RTMP: the Enhanced RTMP specification defines the HEVC FourCC `hvc1` [H-24]; FFmpeg 6.1 was the first release to mux HEVC into FLV [H-25], and FFmpeg 7.1.5 can mux HEVC + AAC into enhanced FLV for RTMP publishing; its FLV muxer has no Opus [H-26]. GStreamer 1.26.2's `flvmux` cannot carry H.265 [H-27] (OQ-107, RISK-025). YouTube Live lists H.264, H.265 and AV1 over RTMP/RTMPS with AAC or MP3 audio [H-29]; whether it and other destinations accept FFmpeg's signalling is OQ-106. Components for HEVC over SRT in MPEG-TS exist in the distribution stacks [H-30] (OQ-076). *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. RTMP carries H.264 only (OQ-103 ANSWERED); OQ-106, OQ-107 and RISK-025 stay OPEN, not in current scope.)*
   - *(Added 2026-10-08, research topic I.)* AAC encoders: FFmpeg native `aac` (CORRECTED) [I-40], GStreamer `voaacenc` [I-44] and `avenc_aac` [I-46]. `fdk-aac` would need `--enable-nonfree` in the GPL FFmpeg build, making it unredistributable [I-42], [I-43] (OQ-063, OQ-113).
@@ -323,7 +323,7 @@ HDMI source → TC358743 → CSI-2 → Raspberry Pi CSI-2 receiver → Media Con
 - **Latency (owner decision, 2026-10-08):** under 1 second camera-to-viewer for **WebRTC viewers** ("Under 1 second"; "WebRTC viewers only"; OQ-005, OQ-116 ANSWERED).
 - **Latency criterion and reach (owner decisions, 2026-10-09):** the target is judged at the **95th percentile** — 95 % of camera-to-viewer samples under 1 s, over a sustained run with the recording running ("95th percentile < 1 s"); viewers are on the **LAN only** ("LAN only"). Still open (OQ-008): target browsers, number of viewers, and the sample count and run length of the measurement.
 - **Measurement run, viewers and browsers (owner decisions, 2026-10-09, later):** up to **5 simultaneous LAN viewers**; target browsers **Chrome (and Chromium-based), Safari (macOS and iOS) and Firefox**; and the 95th-percentile latency is measured over a **30-minute run at 1 sample per second (about 1800 samples)** with the recording encode and the mirrored HDD writer running (OQ-008). With these, **OQ-008 is ANSWERED**. Reasoning: a 30-minute run matches the recording file-split boundary (OQ-129) and covers an HDD stall of up to about 3.0 s [J-30] (RISK-028); LAN video egress at 5 viewers plus one RTMP destination is about 102 Mbit/s before audio (reasoning; each board's Ethernet speed not researched, OQ-098). Measured values are OQ-125.
-- **Implementation:** NOT STARTED.
+- **Implementation:** NOT STARTED. *(2026-10-12: IMPLEMENTED — NOT TESTED (partial: slice C2, 2026-10-12) — RTSP publishing of the live encode to MediaMTX, which serves WebRTC/WHEP readers; the browser side and the < 1 s target are tested only on hardware (TEST-STR-002).)*
 - **Notes:**
   - Browser interoperability requires H.264 Constrained Baseline per RFC 7742 [F-36]. RFC 7874 requires WebRTC endpoints to implement Opus and G.711 audio; AAC is not a required WebRTC codec, so AAC audio has to be transcoded (typically to Opus) for browser playback [F-41].
   - Reasoning from H.264 Table A-1 as encoded in FFmpeg: a 1080p H.264 stream needs Level 4.0 or above (1080p60 needs Level 4.2), which a strict `42e01f` (Level 3.1) negotiation does not cover [F-40] (OQ-073).
@@ -435,3 +435,4 @@ Nothing (no hardware exists as of 2026-10-06). No requirement has a test result;
 | 2026-10-12 | Later still on 2026-10-12: REQ-ENC-001 note — non-1080 sources keep their resolution (OQ-131). No requirement wording, status or ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | Implementation status of REQ-ARCH-001, REQ-ENC-001 and REQ-REC-001 changed from NOT STARTED to **IMPLEMENTED — NOT TESTED (partial: slice C1)** in the summary table, with notes on each requirement (what is and is not implemented; nothing run on hardware). No requirement wording or acceptance status changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | REQ-STR-001 and REQ-STR-002 implementation status: **IMPLEMENTED — NOT TESTED (partial: slice C2)**, with notes. No requirement wording or acceptance status changed. | Claude (session 2026-10-12) |

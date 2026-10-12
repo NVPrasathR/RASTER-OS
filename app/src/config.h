@@ -16,6 +16,7 @@ typedef enum {
 } PacsBackend;
 
 #define PACS_MAX_REC_DIRS 2   /* ADR-009: NVMe SSD and HDD mirror */
+#define PACS_MAX_RTMP 4       /* RTMP destinations: which ones is OQ-007 */
 
 typedef struct {
   PacsBackend backend;
@@ -36,8 +37,11 @@ typedef struct {
   guint  fragment_ms;     /* mp4mux fragment-duration — UNDECIDED (OQ-118) */
   guint  rec_bitrate;     /* bit/s: 25 Mbit/s VBR (OQ-005) */
 
-  /* Live encode (OQ-005, OQ-131). */
+  /* Live encode (OQ-005, OQ-131) and publishing (slice C2, ADR-015). */
   guint  live_bitrate;    /* bit/s: 17 Mbit/s CBR (OQ-005) */
+  gchar *rtsp_url;        /* MediaMTX publish URL; MediaMTX serves WebRTC readers */
+  gchar *rtmp_urls[PACS_MAX_RTMP];
+  gint   n_rtmp;
 
   /* Run control. */
   guint  duration_seconds;  /* 0 = until stopped (OQ-006) */

@@ -471,8 +471,8 @@ cmake --build build                       # builds build/app/pacscorder and the 
 ctest --test-dir build --output-on-failure  # development tests (TESTING.md, "Development tests")
 ```
 
-- The build requires `gstreamer-1.0` ≥ 1.26 and `glib-2.0` through `pkg-config`; 1.26 is what Raspberry Pi OS ships [G-26], [G-27].
-- **Development machine used on 2026-10-12:** macOS 26.6.2 (arm64), Apple clang 21.0.0, CMake from Homebrew, GStreamer **1.28.7** from Homebrew (`brew install gstreamer`; the Xcode licence had to be accepted first). `ffprobe` (Homebrew) is used by the smoke test if present. This is newer than the CM4's GStreamer 1.26.2, so results on this machine do not carry over automatically.
+- The build requires `gstreamer-1.0` ≥ 1.26 and `glib-2.0` through `pkg-config`; 1.26 is what Raspberry Pi OS ships [G-26], [G-27]. *(2026-10-12, slice C2: also `gstreamer-app-1.0` and `gstreamer-video-1.0` ≥ 1.26.)*
+- **Development machine used on 2026-10-12:** macOS 26.6.2 (arm64), Apple clang 21.0.0, CMake from Homebrew, GStreamer **1.28.7** from Homebrew (`brew install gstreamer`; the Xcode licence had to be accepted first). `ffprobe` (Homebrew) is used by the smoke test if present. *(2026-10-12, slice C2: the publishing test also needs **MediaMTX** — Homebrew 1.21.0 (`brew install mediamtx`, owner's permission) — and is skipped if MediaMTX or `ffprobe` is missing.)* This is newer than the CM4's GStreamer 1.26.2, so results on this machine do not carry over automatically.
 - **On the CM4:** building natively on Raspberry Pi OS or cross-compiling, and the exact `-dev` packages needed, are BUILD TEST REQUIRED (REQ-BLD-002, TEST-BLD-001).
 - The `cm4` backend needs the V4L2 elements; on a machine without them the program stops with "GStreamer element 'v4l2src' is not available".
 - Build outputs go to `build/`, which `.gitignore` excludes.
@@ -796,3 +796,4 @@ Items marked *research gap* or *research open question* are **not** register fac
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | **§2A Application build — CMake (ADR-014) added**: commands, GStreamer version requirement, the development machine used, and the CM4 build as BUILD TEST REQUIRED. | Claude (session 2026-10-12) |
+| 2026-10-12 | §2A: slice C2 build modules (`gstreamer-app-1.0`, `gstreamer-video-1.0`) and MediaMTX 1.21.0 for the publishing test. | Claude (session 2026-10-12) |

@@ -2201,6 +2201,95 @@ Tests: ctest — h264_level PASS, smoke_record_dev PASS (5/5 runs) on macOS + GS
 
 ---
 
+## 2026-10-12 (ninth entry) — Slice C2: live publishing (RTSP to MediaMTX, RTMP), fault-isolated from the recording
+
+### Objective
+
+The owner approved slice C1 ("Commit and push") and chose slice C2 next: publish the live encode to MediaMTX (for the LAN WebRTC viewers) and over RTMP, tested on the development machine.
+
+### Starting State
+
+Slice C1 committed and pushed as **`9ab0b4e`** (`27bb305..9ab0b4e`). The live branch ended in a `fakesink`. `rtspclientsink`, `rtmp2sink` and `flvmux` were present in the development machine's GStreamer 1.28.7; MediaMTX was not installed.
+
+### Changes
+
+1. **MediaMTX 1.21.0** installed with Homebrew on the development machine (owner's permission), used only by the test.
+2. **Design (ADR-015, PROPOSED):** each publisher is its own pipeline fed from an `appsink` at the end of the live branch, so a publisher error cannot end the main pipeline and stop the recording; failed publishers restart after 5 s; publishers share the main pipeline's clock and base time; a keyframe is requested on (re)start [K-31]. ADR-007's sketch had the publishers in the main pipeline.
+3. **Code:** `app/src/publisher.c/.h` (new); `pipeline.c` (appsink, running-time conversion, publisher start on PLAYING, restart counts at exit); `config.c/.h` (`--rtsp-url`, `--rtmp-url` up to 4); CMake: `gstreamer-app-1.0`, `gstreamer-video-1.0`.
+4. **Faults found by testing and fixed:** (a) RTMP: MediaMTX closed the connection and no stream appeared; `GST_DEBUG=flvmux:5` showed timestamps at 1000 h — the encoder's offset, described in its segment, which the publisher's `appsrc` (segment from 0) did not know, so `rtmp2sink` waited. Fixed by converting each sample to running time before pushing. A hand-run `gst-launch-1.0` RTMP publish to the same MediaMTX had worked, which narrowed it to the application. (b) GStreamer's "Pipeline construction is invalid, please add queues" warning — a `queue` added before the sink side of each publisher.
+5. **Test:** `tests/smoke_publish.sh` (CTest `smoke_publish_dev`, skipped with exit 77 if MediaMTX or `ffprobe` is missing). MediaMTX writes a generated TLS certificate and **private key** (`auto.crt`, `auto.key`) into its working directory; the first test runs, started from the repository root, left them there. They were deleted before any commit (never in git history), and the test now starts MediaMTX inside its temporary directory.
+6. **Documentation:** ADR-015; SOFTWARE_ARCHITECTURE §10.1; BUILD_SYSTEM §2A; TESTING "Development tests"; STREAMING box; REQUIREMENTS, TRACEABILITY and ARCHITECTURE (REQ-STR-001, REQ-STR-002: IMPLEMENTED — NOT TESTED, partial); PROJECT_STATUS; CHANGELOG.
+
+### Files Modified
+
+- New: `app/src/publisher.c`, `app/src/publisher.h`, `tests/smoke_publish.sh`.
+- Changed: `CMakeLists.txt`, `app/CMakeLists.txt`, `app/src/{config.c,config.h,pipeline.c}`, `tests/CMakeLists.txt`; `docs/`: `DECISIONS.md`, `SOFTWARE_ARCHITECTURE.md`, `BUILD_SYSTEM.md`, `TESTING.md`, `STREAMING.md`, `REQUIREMENTS.md`, `TRACEABILITY.md`, `ARCHITECTURE.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+Slice C2; MediaMTX on the development machine.
+
+### Commands Used
+
+```bash
+brew install mediamtx
+cmake --build build && ctest --test-dir build --output-on-failure
+bash tests/smoke_publish.sh build/app/pacscorder        # 3 runs
+GST_DEBUG=flvmux:5,rtmp2sink:4 ./build/app/pacscorder … --rtmp-url rtmp://127.0.0.1:11935/rtmplive
+gst-launch-1.0 videotestsrc … ! x264enc … ! h264parse ! flvmux streamable=true ! rtmp2sink location=…   # reference
+ffprobe -rtsp_transport tcp … rtsp://127.0.0.1:18554/<path>
+```
+
+### Test Results
+
+- `smoke_publish_dev`: **TESTED — PASS**, 3 of 3 runs plus CTest (development machine): RTSP and RTMP both `h264, Constrained Baseline, 1280x720, 30/1` read back through MediaMTX; with the RTSP target down, the recording completed (3 files) and the publisher retried.
+- By hand: MediaMTX started 6 s after the recorder — the RTSP publisher failed twice, connected on the third attempt, the stream became readable; recording unbroken (1364 frames captured and recorded, 682 live).
+- `h264_level`, `smoke_record_dev`: still PASS.
+- **Not a hardware test.** The WebRTC/WHEP side was not exercised (needs a browser; TEST-STR-002 on hardware). Documentation check: PASS.
+
+### Problems Found
+
+See Changes 4. Open: RTMP is video-only until audio (C4); whether destinations accept that is not in the register (OQ-007).
+
+### Root Cause
+
+(a) The encoder's segment offset was not carried across the appsink/appsrc boundary.
+
+### Solution
+
+Running-time conversion in `pipeline.c` (`to_running_time`).
+
+### Current Status
+
+- PARTIAL: slice C2 IMPLEMENTED — NOT TESTED on hardware; development tests PASS.
+- Uncommitted, pending owner approval.
+
+### Next Step
+
+1. Owner: approve the commit below; confirm ADR-015.
+2. Next slices: C3 (EDID / DV timings / source changes in the application), C4 (audio), C5 (drive failure/return, HDD decoupling).
+3. Proposed commit (Rule 15):
+
+```text
+Commit title: feat(stream): publish the live encode over RTSP and RTMP in isolated pipelines (slice C2)
+Commit description: Add live publishing: RTSP to MediaMTX (which serves the WebRTC viewers) and RTMP,
+  each in its own pipeline fed from the live encode so a network failure cannot stop the recording
+  (ADR-015, PROPOSED); failed publishers restart after 5 s and request a keyframe. Convert samples to
+  running time for the publishers (fixes RTMP sending nothing). Add the smoke_publish_dev test with a
+  local MediaMTX. Document C2; REQ-STR-001/002 IMPLEMENTED - NOT TESTED (partial). Development
+  machine only.
+Files changed: CMakeLists.txt, app/**, tests/**, docs/** (11 Markdown files)
+Reason: Rules 1, 3, 10, 13, 15, 16, 17, 24
+Tests: ctest - 3/3 PASS (h264_level, smoke_record_dev, smoke_publish_dev) on macOS + GStreamer
+  1.28.7 + MediaMTX 1.21.0; reconnection checked by hand; doccheck PROBLEMS 0, WARNINGS 0
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -2226,3 +2315,4 @@ Tests: ctest — h264_level PASS, smoke_record_dev PASS (5/5 runs) on macOS + GS
 | 2026-10-12 | 2026-10-12 seventh entry added: `78b6d70` recorded; ADR-007 GStreamer proposal; ADR-012; OQ-132. | Claude (session 2026-10-12) |
 | 2026-10-12 | Seventh entry extended: owner decisions (ADR-007 ACCEPTED; C chosen — ADR-013 ACCEPTED, ADR-012 SUPERSEDED); commit message updated before commit. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 eighth entry added: coding started — slice C1, ADR-014, development tests, bring-up script; `27bb305` recorded. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 ninth entry added: slice C2 (live publishing), ADR-015; `9ab0b4e` recorded. | Claude (session 2026-10-12) |

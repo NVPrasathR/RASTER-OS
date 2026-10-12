@@ -34,6 +34,7 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
   gchar *backend = NULL;
   gchar *fps = NULL;
   gchar **rec_dirs = NULL;
+  gchar **rtmp_urls = NULL;
   gint width = 1920, height = 1080;
   gint split = 1800, fragment = 1000, duration = 0;
   gint rec_br = 25000000, live_br = 17000000;
@@ -62,6 +63,10 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
       "recording bit rate in bit/s (default 25000000, OQ-005)", "BPS" },
     { "live-bitrate", 0, 0, G_OPTION_ARG_INT, &live_br,
       "live bit rate in bit/s (default 17000000, OQ-005)", "BPS" },
+    { "rtsp-url", 0, 0, G_OPTION_ARG_STRING, &cfg->rtsp_url,
+      "publish the live encode over RTSP to this URL (MediaMTX; serves WebRTC viewers)", "URL" },
+    { "rtmp-url", 0, 0, G_OPTION_ARG_STRING_ARRAY, &rtmp_urls,
+      "publish the live encode over RTMP to this URL; repeatable, up to 4 (OQ-007)", "URL" },
     { "duration", 0, 0, G_OPTION_ARG_INT, &duration,
       "stop after N seconds (default 0 = until stopped, OQ-006)", "N" },
     G_OPTION_ENTRY_NULL
@@ -107,6 +112,16 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
     cfg->rec_dirs[i] = g_strdup (rec_dirs[i]);
   cfg->n_rec_dirs = (gint) n;
 
+  n = rtmp_urls ? g_strv_length (rtmp_urls) : 0;
+  if (n > PACS_MAX_RTMP) {
+    g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                 "at most %d --rtmp-url (got %u)", PACS_MAX_RTMP, n);
+    goto out;
+  }
+  for (guint i = 0; i < n; i++)
+    cfg->rtmp_urls[i] = g_strdup (rtmp_urls[i]);
+  cfg->n_rtmp = (gint) n;
+
   if (cfg->device == NULL)
     cfg->device = g_strdup ("/dev/video0");
   if (cfg->dev_pattern == NULL)
@@ -126,6 +141,7 @@ out:
   g_free (backend);
   g_free (fps);
   g_strfreev (rec_dirs);
+  g_strfreev (rtmp_urls);
   return ok;
 }
 
@@ -136,6 +152,9 @@ pacs_config_clear (PacsConfig *cfg)
   g_free (cfg->dev_pattern);
   for (gint i = 0; i < cfg->n_rec_dirs; i++)
     g_free (cfg->rec_dirs[i]);
+  g_free (cfg->rtsp_url);
+  for (gint i = 0; i < cfg->n_rtmp; i++)
+    g_free (cfg->rtmp_urls[i]);
   memset (cfg, 0, sizeof *cfg);
 }
 

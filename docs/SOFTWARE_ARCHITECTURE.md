@@ -1308,7 +1308,7 @@ source ─ tee ─┬─ queue ─ recording encoder ─ caps ─ h264parse ─ 
 | Live encoder | `v4l2h264enc`, caps Constrained Baseline / lowest fitting level, CBR 17 Mbit/s, SPS/PPS repeated | `x264enc` zerolatency, preset ultrafast | OQ-005, OQ-131; [L-13]; [D-15] |
 | Frame-rate drop | `videorate drop-only=true`, caps at half the capture rate above 30 fps | same | OQ-131; [M-53], [M-54] |
 | Writers | `splitmuxsink`, new file every `--split-seconds` (1800), keyframe requests; `mp4mux fragment-duration` = `--fragment-ms` | same | ADR-009, OQ-129; [J-39], [J-44] |
-| Live output | `fakesink` (publishing is a later slice) | same | — |
+| Live output | `fakesink` (publishing is a later slice) *(2026-10-12: with `--rtsp-url`/`--rtmp-url`, an `appsink` feeding the publishers — §10.1)* | same | — |
 
 **Not in slice C1 (open work):** RTSP publishing to MediaMTX and RTMP (ADR-007); audio (REQ-CAP-006); EDID and DV-timings handling and source changes inside the application (REQ-CAP-003, REQ-CAP-004 — the bring-up script does them for now); drive failure, return and alerts (OQ-129, OQ-091); **HDD-branch decoupling — the writer queues keep GStreamer's default blocking limits, so an HDD stall would still back-pressure the recording (OQ-117, RISK-028)**; the fragment duration is a placeholder (OQ-118).
 
@@ -1316,6 +1316,27 @@ source ─ tee ─┬─ queue ─ recording encoder ─ caps ─ h264parse ─ 
 - `x264enc` with the `ultrafast` preset emitted Constrained Baseline even when the caps asked for High; `superfast` emitted High. Only the `dev` stand-in is affected.
 - `gst-discoverer-1.0` reported the second and later fragmented files with cumulative durations (4 s, 8 s, …), while `ffprobe` showed each file starting at 0 with its own length; the smoke test uses `ffprobe`.
 - The first sample of a file can start a fraction of a frame after 0 (0.000167 s seen at 60 fps); the smoke test allows up to one frame period.
+
+### 10.1 Slice C2 — live publishing (added 2026-10-12)
+
+**Status: IMPLEMENTED — NOT TESTED on PACSCORDER hardware**; development tests pass on the development machine (see [TESTING.md](TESTING.md), "Development tests"). Design: ADR-015 (PROPOSED).
+
+| File | Responsibility |
+|---|---|
+| `app/src/publisher.c`, `publisher.h` | One publisher = one pipeline: `appsrc ─ h264parse (config-interval=-1) ─ queue ─ rtspclientsink` (RTSP to MediaMTX, which serves WebRTC readers [K-05], [F-45]) or `… ─ queue ─ flvmux (streamable) ─ rtmp2sink` (RTMP [F-33], [F-35]); restart 5 s after an error; keyframe request on (re)start [K-31] |
+| `app/src/pipeline.c` | The live branch ends in an `appsink` (never blocks; drops when behind) when publishers are configured; samples are converted to running time and handed to every publisher; publishers start when the main pipeline reaches PLAYING, with its clock and base time |
+| `app/src/config.c` | `--rtsp-url URL` (one), `--rtmp-url URL` (up to 4; destinations are OQ-007) |
+
+```text
+main pipeline:  … live encoder ─ caps ─ appsink ──(samples, running time)──┬─▶ RTSP publisher pipeline ─▶ MediaMTX ─▶ WebRTC/WHEP viewers (LAN)
+                                                                          └─▶ RTMP publisher pipeline(s) ─▶ RTMP destination(s)
+```
+
+**Observed on the development machine (2026-10-12):**
+- The encoder's output timestamps were offset by 1000 hours, with the offset described in the segment. Fed unchanged into a publisher's `appsrc` (whose segment starts at 0), `rtmp2sink` waited for that time and sent nothing, and MediaMTX closed the RTMP connection. Converting each sample to running time fixed it. RTSP was not affected.
+- GStreamer warned "Pipeline construction is invalid, please add queues" for `h264parse ─ rtspclientsink` and `h264parse ─ flvmux`; a `queue` before the sink side removed it.
+
+**Not yet in C2:** audio on the outputs (REQ-CAP-006 — the RTMP output is video-only until slice C4; whether the RTMP destinations accept video-only streams is not in the register, OQ-007); the WebRTC/WHEP side is MediaMTX's and is tested in a browser only on hardware (TEST-STR-002); MediaMTX configuration on the product image (BUILD TEST REQUIRED); per-element latency settings of the live path (OQ-126).
 
 ## Verification status
 
@@ -1380,3 +1401,4 @@ Nothing (no hardware exists as of 2026-10-06). No userspace software exists. Eve
 | 2026-10-12 | Box bullet: ADR-007 (GStreamer) and ADR-012 (Python 3 + PyGObject) proposed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | **§10 Implementation — slice C1 added**: files, pipeline, per-element settings for the `cm4` and `dev` backends with sources, open work (incl. HDD decoupling not done, RISK-028), and observations from the development machine. Status IMPLEMENTED — NOT TESTED on PACSCORDER hardware. | Claude (session 2026-10-12) |
+| 2026-10-12 | **§10.1 Slice C2 — live publishing added** (publisher pipelines, running-time conversion, observations, open items); live-output row of §10 updated. | Claude (session 2026-10-12) |

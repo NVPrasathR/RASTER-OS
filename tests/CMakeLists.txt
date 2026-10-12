@@ -9,3 +9,9 @@ add_test(NAME h264_level COMMAND test_h264_level)
 add_test(NAME smoke_record_dev
          COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/smoke_record.sh $<TARGET_FILE:pacscorder>)
 set_tests_properties(smoke_record_dev PROPERTIES TIMEOUT 180)
+
+# Live publishing (slice C2) through a private MediaMTX on localhost; skipped
+# (exit 77) when mediamtx or ffprobe is not installed.
+add_test(NAME smoke_publish_dev
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/smoke_publish.sh $<TARGET_FILE:pacscorder>)
+set_tests_properties(smoke_publish_dev PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)

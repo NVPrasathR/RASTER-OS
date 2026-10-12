@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 10 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED |
+| Document status | Active — 10 ACCEPTED, 3 PROPOSED, 0 OPEN, 2 SUPERSEDED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H, I, J and K) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -39,6 +39,7 @@ Fact references such as `[C-37]` point to the source register [REFERENCES.md](RE
 | ADR-012 | Application language: Python 3 with GStreamer GObject-Introspection bindings | SUPERSEDED BY ADR-013 | 2026-10-12 (decided 2026-10-12) |
 | ADR-013 | Application language: C with GStreamer's native API | ACCEPTED | 2026-10-12 |
 | ADR-014 | Application build system: CMake with pkg-config and CTest | ACCEPTED | 2026-10-12 |
+| ADR-015 | Live publishers in their own pipelines so a network failure cannot stop the recording | PROPOSED | 2026-10-12 |
 
 ---
 
@@ -704,6 +705,39 @@ Use **CMake** (minimum version 3.20) with its `PkgConfig` module to find `gstrea
 
 ---
 
+# ADR-015
+
+## Title
+
+Live publishers run in their own pipelines, fed from the live encode, so that a network failure can never stop the recording.
+
+## Status
+
+PROPOSED — 2026-10-12 (Claude's design choice while implementing slice C2; owner to confirm). Implemented in slice C2 because it is easy to reverse.
+
+## Context
+
+- ADR-007 sketched one pipeline in which the live encode feeds `rtspclientsink` (to MediaMTX) and `flvmux` + `rtmp2sink` directly. In a single GStreamer pipeline, an error in any element — for example a refused or dropped network connection — ends the whole pipeline, which would also stop and close the recording.
+- Recording is the product's primary function (ADR-009: mirrored, power-loss-safe); live outputs depend on the network, MediaMTX and remote RTMP servers (OQ-007), none of which PACSCORDER controls.
+
+## Decision (proposed)
+
+The live encode ends in an `appsink` in the main pipeline. Each publisher (one RTSP publisher to MediaMTX, zero or more RTMP publishers) is a separate pipeline, `appsrc ─ h264parse ─ queue ─ rtspclientsink` or `appsrc ─ h264parse ─ queue ─ flvmux ─ rtmp2sink`, fed every encoded frame. A publisher that fails is logged, stopped and restarted after 5 s; the main pipeline never sees its error. Publishers use the main pipeline's clock and base time, and receive timestamps converted to running time. The `appsrc` drops its oldest frames when the network falls behind, and the `appsink` never blocks the live encoder, so a slow output cannot back-pressure the capture tee or the recording. When a publisher (re)starts it requests a keyframe from the live encoder [K-31].
+
+## Alternatives Considered
+
+- **One pipeline (ADR-007 sketch):** simplest; a network error stops the recording.
+- **One pipeline with error handling that removes and re-adds the failing branch at run time:** keeps one pipeline, but dynamic relinking during playback is harder to get right than restarting a separate pipeline.
+- **A separate process per publisher:** stronger isolation (a crash cannot take down the recorder), more moving parts; can be revisited with OQ-090 (process model).
+
+## Consequences
+
+- Development tests (2026-10-12, development machine): with MediaMTX down, the publisher failed and retried while the recording completed; when MediaMTX came up 6 s later, the publisher reconnected and the stream became readable ([TESTING.md](TESTING.md), "Development tests"). Not yet run on the CM4.
+- Each publisher adds one pipeline and one `h264parse` (no re-encode). CPU cost on the CM4 is part of TEST-PERF-001.
+- A crash (rather than an error) inside a publisher still takes down the process; that is the reason a separate-process design stays an option (OQ-090).
+
+---
+
 # Verification status
 
 ## Verified from sources (fact IDs)
@@ -753,3 +787,4 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-12 | **ADR-007: Proposal (2026-10-12) added — GStreamer** (status OPEN → PROPOSED; evidence tables unchanged; why decide before bring-up; seven sourced reasons; pipeline sketch; known gaps). **ADR-012 added (PROPOSED):** application language Python 3 with PyGObject; proposed repository layout. Index rows; header 7 ACCEPTED, 4 PROPOSED, 0 OPEN, 1 SUPERSEDED. | Claude (session 2026-10-12) |
 | 2026-10-12 | **Owner decisions:** ADR-007 **ACCEPTED** (GStreamer; OQ-015 ANSWERED); the owner chose **C** for the application, so ADR-012 (Python, proposed) is **SUPERSEDED BY ADR-013** and **ADR-013 (C) is added as ACCEPTED** (OQ-132 ANSWERED). Header 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-014 added (ACCEPTED):** application build system CMake (owner's choice over the suggested Meson). Header 10 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-015 added (PROPOSED):** live publishers in separate pipelines fed from the live encode (fault isolation from the recording); implemented in slice C2. Header 10 ACCEPTED, 3 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
