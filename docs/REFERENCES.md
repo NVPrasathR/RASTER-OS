@@ -1,9 +1,9 @@
 # PACSCORDER Source Register (REFERENCES.md)
 | | |
 |---|---|
-| Document status | Active — topics A–G generated 2026-10-06; topics H, I, J and K appended 2026-10-08; topic L appended 2026-10-12 (existing entries unchanged) |
+| Document status | Active — topics A–G generated 2026-10-06; topics H, I, J and K appended 2026-10-08; topics L and M appended 2026-10-12 (existing entries unchanged) |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 22 (unknowns), Rule 23 (source priority) |
-| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I), [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json) (J, K), [research/2026-10-12-bitrate-network-encoder-research.json](research/2026-10-12-bitrate-network-encoder-research.json) (L) |
+| Raw data | [research/2026-10-06-source-research.json](research/2026-10-06-source-research.json) (A–G), [research/2026-10-08-hevc-audio-research.json](research/2026-10-08-hevc-audio-research.json) (H, I), [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json) (J, K), [research/2026-10-12-bitrate-network-encoder-research.json](research/2026-10-12-bitrate-network-encoder-research.json) (L), [research/2026-10-12-bridge-boards-research.json](research/2026-10-12-bridge-boards-research.json) (M) |
 
 Every technical fact used in the PACSCORDER documentation is cited by an ID from this register, for example `[C-37]`.
 
@@ -41,6 +41,7 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 - **2026-10-09 — Tier labels to read with care.** [K-36] is tiered `kernel-source`, but its source is kernel documentation (`mmap.rst`), and its second sentence is labelled REASONING; cite the first sentence as kernel documentation and the second as reasoning. [K-37] and [I-37] are tiered `vendor-other` ("official documentation"), but their source is GStreamer source code (`gstv4l2src.c`). [K-35]'s Fact does not name the timestamp clock (only its Evidence does); [I-33] states it. [K-31] and [K-32] are tiered `kernel-source`, but part of each Fact comes from GStreamer source (`gstv4l2videoenc.c`), and [K-32] also cites a raspberrypi/linux issue; read the GStreamer part as GStreamer source.
 - **2026-10-09 — MediaMTX tiers differ between topics.** [F-44] and [F-45] (MediaMTX's own README, configuration and documentation) are tiered `community`; [K-03], [K-04], [K-05], [K-21], [K-24] and [K-41] to [K-44] cite the same kind of MediaMTX source and are tiered `vendor-other`. Neither tier is ranked by Rule 23. Documents attribute every such statement to MediaMTX ("MediaMTX documents…", "reported by MediaMTX"), so the difference does not change any wording rule.
 - **2026-10-12 — Topic L appended.** Researched for the desk-resolvable parts of OQ-073 (H.264 level bit-rate ceilings, from ITU-T H.264 itself rather than FFmpeg's table), OQ-098 (CM4 and CM4 IO Board Ethernet), OQ-115 (kernel-source inspection of `bcm2835-codec` concurrency) and the commands needed for the encoder-only stage of TEST-ENC-001. Claims L-30, L-31, L-33, L-34 and L-35 are forum posts that the researcher read through WebFetch extraction (the forum blocks direct download); see each entry's verdict.
+- **2026-10-12 — Topic M appended.** Researched for the bridge-board questions OQ-018 to OQ-021 and OQ-024 to OQ-026, the CM4 IO Board camera connectors and cables, and the frame-rate conversion part of OQ-131. Product availability and prices are dated snapshots, not specifications. Several vendor and forum pages refused direct access; those claims were read from Wayback Machine snapshots or from the raspberrypi/documentation sources, as each entry's evidence and verifier note say.
 
 ## Source tiers
 
@@ -70,7 +71,8 @@ These notes record caveats found after the register was generated. Per Rule 21, 
 | [J — Recording storage on CM4/CM5: PCIe NVMe, USB-to-SATA HDD, filesystems, power-loss-safe MP4 (research of 2026-10-08)](#topic-j) | 45 | 39 | 6 | 0 | 0 |
 | [K — Sub-second live latency: WebRTC/WHEP, RTMP/HLS, encoder and capture latency (research of 2026-10-08)](#topic-k) | 45 | 39 | 6 | 0 | 0 |
 | [L — H.264 level bitrate ceilings, CM4 Ethernet, bcm2835-codec encoder concurrency and encoder-test commands (research of 2026-10-12)](#topic-l) | 63 | 56 | 7 | 0 | 0 |
-| **Total** | 620 | 568 | 52 | 0 | 0 |
+| [M — TC358743 bridge boards for the CM4 IO Board, camera connectors and cables, and live frame-rate conversion (research of 2026-10-12)](#topic-m) | 60 | 47 | 13 | 0 | 0 |
+| **Total** | 680 | 615 | 65 | 0 | 0 |
 
 Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); the raw lists are kept in the JSON file linked above.
 
@@ -5887,3 +5889,576 @@ Open questions and gaps raised by the research are consolidated in [OPEN_QUESTIO
 - **Evidence:** Inputs: normalisation algorithm (L-54), v4l2-ctl name2var (L-56), kernel names 'Video Bitrate Mode', 'H264 I-Frame Period', 'H264 Level', 'Video Bitrate', 'H264 Profile', 'Video GOP Size', 'Repeat Sequence Header' (L-59), enum values VBR=0, CBR=1, LEVEL_4_0=11, 4_1=12, 4_2=13, CONSTRAINED_BASELINE=1, MAIN=2, HIGH=4 (L-60), caps level strings '4', '4.1', '4.2' (L-61), precedence (L-62). Worked example 'H264 I-Frame Period': H,2,6,4 -> 'h264'; ' ' skipped; 'I' preceded by non-alnum -> '_i'; '-' skipped; 'F' preceded by non-alnum -> '_f', 'rame'; ' ' skipped; 'P' -> '_p', 'eriod' => 'h264_i_frame_period'. GStreamer ignores the structure name (gst_structure_foreach_id_str over fields, L-55). Only the bcm2835 controls registered in L-57/L-58 and register D-11..D-15 exist on the device; HARDWARE TEST REQUIRED ('v4l2-ctl -d /dev/video11 -l' to confirm the names).
 - **Original claim (before verification):** REASONING: Applying the normalisation (L-54, identical in v4l2-ctl per L-56) to the kernel names (L-59) gives the extra-controls / v4l2-ctl field names: 'Video Bitrate Mode' -> video_bitrate_mode, 'H264 I-Frame Period' -> h264_i_frame_period, 'H264 Level' -> h264_level (also 'Video Bitrate' -> video_bitrate, 'H264 Profile' -> h264_profile, 'Video GOP Size' -> video_gop_size, 'Repeat Sequence Header' -> repeat_sequence_header). Menu controls take the integer value (L-60): video_bitrate_mode=1 for CBR (0 = VBR); h264_level=11/12/13 for 4.0/4.1/4.2; h264_profile=1/2/4 for Constrained Baseline/Main/High. Example (unverified on hardware): extra-controls="controls,video_bitrate_mode=1,video_bitrate=17000000,h264_i_frame_period=60,h264_level=13"; equivalently 'v4l2-ctl -d /dev/video11 -c video_bitrate_mode=1,h264_level=13'. Because caps may override profile/level (L-62), also fixing them in caps, e.g. 'video/x-h264,level=(string)4.2,profile=(string)high', is the more robust choice.
 - **Verifier note:** Re-derived: I ran both GStreamer's gst_v4l2_normalise_control_name and v4l2-ctl's name2var in Python on 'Video Bitrate Mode', 'Video Bitrate', 'Video GOP Size', 'H264 I-Frame Period', 'H264 Level', 'H264 Profile', 'Repeat Sequence Header'. Outputs: video_bitrate_mode, video_bitrate, video_gop_size, h264_i_frame_period, h264_level, h264_profile, repeat_sequence_header (identical for both). Menu values VBR=0, CBR=1, LEVEL_4_0/4_1/4_2 = 11/12/13, CONSTRAINED_BASELINE/MAIN/HIGH = 1/2/4 checked against v4l2-controls.h. bcm2835-codec accepts these: BITRATE 25000..25000000 step 25000 (17000000 = 680 steps), BITRATE_MODE menu max CBR, LEVEL menu includes 4.2, PROFILE menu allows CB/Main/High. extra-controls structure name is ignored (gst_structure_foreach_id_str iterates fields only), and MENU-type controls are entered in the control list (v4l2_calls.c l.333-344). Correction: the 'equivalently v4l2-ctl -d /dev/video11 -c ...' clause is misleading. bcm2835_codec_open() creates a per-open context with its own control handler (rpi-6.18.y l.3422-3425 v4l2_fh_init / hdl = &ctx->hdl; l.3502 ctx->fh.ctrl_handler = hdl), so controls set by a separate v4l2-ctl process are lost when that process closes the node. They never reach a GStreamer pipeline's own open instance. Within one v4l2-ctl invocation common_set() (-c) runs before streaming_set() (v4l2-ctl.cpp l.1493, 1541), so -c works when combined with --stream-mmap --stream-out-mmap. Caution, unverified: a 2022 FFmpeg-devel patch by hydra3333 (patchwork comment 70955) reported that on a Pi 4 with bitrate mode CBR 'encoder hangs and appears to lock /dev/video11 until reboot'. That is a community report only; HARDWARE TEST REQUIRED.
+
+## Topic M
+
+**TC358743 bridge boards for the CM4 IO Board, camera connectors and cables, and live frame-rate conversion (research of 2026-10-12)** — <a id="topic-m"></a>60 claims. Added 2026-10-12 (session 2026-10-12; researcher + two independent adversarial verifiers).
+
+### M-01
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B101, 2-lane
+- **Fact:** Auvidea B101 is a TC358743XBG board that routes at most 2 CSI-2 data lanes (plus clock) to a 15-pin, 1.0 mm pitch FPC connector, powered at 3.3 V.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** p.3 'Technical details': "HDMI to CSI-2 bridge chip: Toshiba TC358743XBG"; "CSI-2: up to 2 lanes plus clock"; "CSI-2 connector: 15 pin FPC with 1.0 mm pitch"; "power: 3.3V"
+
+### M-02
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B101, supported modes
+- **Fact:** Auvidea's B101 documentation (manual v1.4, Feb 2017, and the B101 web page) states HDMI input of 1080p25 only on the Raspberry Pi, attributed to the RPi software of that time (raspivid / camera emulation); it does not document 1080p50/60 or use with the V4L2 tc358743 overlay.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** p.3: "HDMI input: 1080p25 only on the RPi (software limitation of the RPi at this time)"; p.11: "The B101 emulates this camera. This is the reason that only 1080p25 is supported as input resolution, as this is the only native mode of the PI camera." Web page https://auvidea.eu/b101-hdmi-to-csi-2-bridge-15-pin-fpc/ : "HDMI input: 1080p25 only (software limitation at this time)"
+
+### M-03
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B101, audio, reset, INT
+- **Fact:** Auvidea B101 rev 4 (38126-4) adds an 8-pin connector carrying V3.3 out, RESET (3.3 V, active low), CABLE detect and the TC358743 I2S signals A-MCLK, A-DATA, A-BCK, A-LRCK (3.3 V level); the manual says RESET and CABLE may go to Pi GPIO-header GPIOs but does not give a Pi GPIO 18/19/20 wiring for the I2S pins, and no INT pin is listed.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** p.7 'B101 rev 4': "It adds an 8 pin connector for I2S audio, reset and cable detect." "RESET and CABLE may be connected to GPIOs of the GPIO header of the Raspberry Pi to control the hardware reset of the Toshiba TC358743 chip." Pin table: "1 V3.3 V3.3 power out (on-board LDO with 300mA max. current) / 2 RESET hardware reset to the TC358743 HDMI to CSI-2 bridge (3.3V level, low active) / 3 CABLE Cable detect: high (3.3V) is HDMI cable is plugged in / 4 A-MCLK I2S audio master clock (3.3V level) / 5 A-DATA I2S audio data out (3.3V level) / 6 A-BCK I2S audio bit clock (3.3V level) / 7 A-LRCK I2S audio word clock (3.3V level) / 8 GND Ground (0V)"
+
+### M-04
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B101, reset, CAM_GPIO
+- **Fact:** On B101 rev 2/rev 3 the TC358743 RESET is not on the FPC cable; on rev 3.1 a 0-ohm R30 connects TC358743 RESET to CAM_GPIO (pin 11 of the 15-pin cable), so a permanently low CAM_GPIO holds the chip in reset.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** p.4: "The reset signal is not connected via the FPC cable." p.5: "This resistor (R30) with 0 Ohm connects the RESET input of the TC358743 to the CAM_GPIO line (pin 11) on the 15 pin FFC cable." "Note: for rev 3.1 to work properly pin 11 on the cable must be driven high or must be floating. A low on this pin puts the module into Reset state."
+
+### M-05
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B102, 4-lane
+- **Fact:** Auvidea B102 is a TC358743XBG board with up to 4 CSI-2 data lanes on a 22-pin, 0.5 mm pitch FPC connector 'compatible to Raspberry Pi compute module carrier board', 3.3 V power; its web page lists HDMI input modes 1080p30, 1080p25, 720p30, 720p25 only and says it is for developers porting the driver.
+- **Source:** Auvidea: B102 HDMI to CSI-2 Bridge (22 pin FPC) — <https://auvidea.eu/b102-hdmi-to-csi-2-bridge-22-pin-fpc/>
+- **Evidence:** "The HDMI to CSI-2 bridge module has been specifically designed for the Raspberry Pi compute module. It features the 22 pin FPC connector with a pitch of 0.5mm. Please use an FFC cable with contacts on the same side. Please understand that this product is intended for software developers only, who wish to undertake the task to port the driver to the desired target system." "HDMI input: 1080p30, 1080p25, 720p30, 720p25" "CSI-2: up to 4 lanes plus clock" "top connector: 22 pin FPC 0.5mm (compatible to Raspberry Pi compute module carrier board) – contacts on top" "power: 3.3V" "tested on iMX6 development platform" (page fetched 2026-10-12)
+
+### M-06
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B102, audio, cable
+- **Fact:** The Auvidea manual says the B102 22-pin connector has 'the same pinout as the Raspberry Pi 22 pin CSI-2 con[nector]' and asks for a same-side-contacts FFC for the RPi; B102 rev 2 (38127-2) adds an I2S audio/reset/cable-detect connector with the same 8-signal table as B101 rev 4.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** p.8: "The B102 uses a 22 pin FPC connector with 0.5mm pitch and 4 CSI-2 data lanes. It features the same pinout as the Raspberry Pi 22 pin CSI-2 con" "The FPC cable faces with the contacts down. For The RPi and the Auvidea Jetson carrier boards please use an FFC cable with contacts on the same side." p.9 'B102 rev 2': "It adds an 8 pin connector for I2S audio, reset and cable detect." (pin table identical to p.7: V3.3, RESET, CABLE, A-MCLK, A-DATA, A-BCK, A-LRCK, GND)
+
+### M-07
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B102, availability
+- **Fact:** SNAPSHOT 2026-10-12: Auvidea shop lists B102 rev 2 (SKU 70502) at EUR 29.80 + 19% VAT, 'Available on backorder', 'Delivery Time: currently not available', described as '(only for Raspberry Pi Zero)', with a 10-pin 1.25 mm I2S/reset/cable-detect connector (the manual says 8-pin: unresolved discrepancy). The shop states it is only for business customers.
+- **Source:** Auvidea shop: B102 HDMI to CSI-2 bridge (rev 2 with I2S audio) — <https://auvidea.eu/product/b102-hdmi-to-csi-2-bridge-rev-2-with-i2s-audio/>
+- **Evidence:** "HDMI to CSI-2 bridge (ships with 50mm 22 pin FFC cable (0.5mm pitch) and a cable set for the 10 pin connector) (38127-2) (only for Raspberry Pi Zero)" "Available on backorder" "€ 29,80 Plus 19% VAT" "Delivery Time: currently not available" "SKU: 70502" "With 10 pin (1.25mm pitch) connector for I2S digital audio, reset and HDMI cable detect." Shop tag page https://auvidea.eu/product-tag/hdmi/ : "Legal notice: our shop is only for business customers." (seen 2026-10-12)
+
+### M-08
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B101, availability
+- **Fact:** SNAPSHOT 2026-10-12: Auvidea shop lists B101 rev 4 with I2S audio (SKU 70501) at EUR 29.80 + 19% VAT, 'Available on backorder', 'Delivery Time: currently not available', 'compatible only with Jetson TX1 and Raspberry Pi'.
+- **Source:** Auvidea shop: B101 HDMI to CSI-2 bridge (rev 4 with I2S audio) — <https://auvidea.eu/product/b101-70501/>
+- **Evidence:** "HDMI to CSI-2 bridge (ships with 15 pin FFC cable) (38126-4). With picoblade style connector for I2S digital, reset and cable detect. Note: compatible only with Jetson TX1 and Raspberry Pi" "Available on backorder" "€ 29,80 Plus 19% VAT" "Delivery Time: currently not available" "SKU: 70501" (seen 2026-10-12)
+
+### M-09
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B112
+- **Fact:** Auvidea's newer B112 is NOT a TC358743 board: it is based on the Lontium LT6911UXC (HDMI 2.0, 4 CSI-2 lanes); SNAPSHOT 2026-10-12 it is EUR 114.00 and 'Out of stock', 'shipped out untested'.
+- **Source:** Auvidea shop: products tagged HDMI — <https://auvidea.eu/product-tag/hdmi/>
+- **Evidence:** "The B112 is a compact HDMI 2.0 to CSI-2 bridge (4 CSI-2 lanes @ up to 2 GHz)." "It is based on the Lontium LT6911UXC." "It will be shipped out untested." "€ 114,00" "Out of stock" (seen 2026-10-12)
+
+### M-10
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B100
+- **Fact:** Auvidea B100 is a TC358743XBG board with up to 4 CSI-2 lanes plus clock; on the current B100 rev 3 the CSI-2 output is on J1, a 40-pin board-to-board connector (not an FFC camera connector), because the 22-pin FPC connector J3 of earlier revisions 'has been removed from the B100 rev 3 and can now be found on the B102'. Its page says HDMI input up to 1080p60 but that 'All Raspberry Pi models are not supported (yet) software wise'.
+- **Source:** Auvidea: B100 HDMI to CSI-2 Bridge — <https://auvidea.eu/b100-hdmi-to-csi-2-bridge/>
+- **Evidence:** "HDMI input: up to 1080p60" "HDMI to CSI-2 bridge chip: Toshiba TC358743XBG (U1)" "CSI-2: up to 4 lanes plus clock (J1 and J3)" "top connector: 40 pin for board to board connection" "All Raspberry Pi models are not supported (yet) software wise, as the CSI-2 interface of the Raspberry Pi models has not disclosed (yet)." (page fetched 2026-10-12)
+- **Original claim (before verification):** Auvidea B100 is a TC358743XBG board with up to 4 CSI-2 lanes on a 40-pin board-to-board connector (not an FFC camera connector); its page says HDMI input up to 1080p60 but that Raspberry Pi models were not supported software-wise when written.
+- **Verifier note:** Fetched 2026-10-12 with curl (HTTP 200). Technical details: 'HDMI input: up to 1080p60', 'HDMI to CSI-2 bridge chip: Toshiba TC358743XBG (U1)', 'CSI-2: up to 4 lanes plus clock (J1 and J3)', 'top connector: 40 pin for board to board connection', 'power: 3.3V'. Raspberry Pi section: 'All Raspberry Pi models are not supported (yet) software wise, as the CSI-2 interface of the Raspberry Pi models has not disclosed (yet).' Correction: the page's 'Connectors' section says 'J1 is the 40 pin board to board connector on the top of the board. It mates with the following connector: Molex DF12(5. 0)-40DP-0. 5V(86). J3 is the 22 pin FPC connector. It has been removed from the B100 rev 3 and can now be found on the B102. It has the same pinout as the new CSI-2 connector on the RPI compute module base board.' So 'not an FFC camera connector' holds only for rev 3; earlier B100 revisions had a 22-pin FPC (J3).
+
+### M-11
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Auvidea B101, Auvidea B102, refclk, HDCP
+- **Fact:** Neither the Auvidea B10x manual nor the B101/B102 pages state the TC358743 reference-clock frequency, INT routing, EDID handling or HDCP support; the manual's FAQ states the HDMI signal must not be HDCP-encrypted.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** Full-text search of the manual (v1.4 and v1.4.1) for 'MHz', 'crystal', 'oscillat', 'interrupt', 'EDID' returned no matches. p.28 FAQ: "the HDMI signal must not be encrypted with HDCP"
+
+### M-12
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, 4-lane, 2-lane
+- **Fact:** Geekworm C790 uses the TC358743XBG and has both a 15-pin 1.0 mm FPC (front) and a 22-pin 0.5 mm FPC (back); Geekworm states 4 CSI-2 data lanes, with 1080p60 only on CM4 / Pi 5 and 2 lanes / 1080p50 max on Pi 4 and Pi Zero.
+- **Source:** Geekworm Wiki: C790 (last edited 29 July 2026; read via Wayback snapshot 2026-08-28: https://web.archive.org/web/20260828053810/https://wiki.geekworm.com/C790 because the live wiki returned HTTP 403) — <https://wiki.geekworm.com/C790>
+- **Evidence:** 'Hardware Parameters': "HDMI input: Supports up to 1080P60Hz on Raspberry Pi (1080p60 only available with CM4 / Pi 5)" "HDMI to CSI-2 bridge chip: Toshiba TC358743XBG" "4 CSI-2 data lanes" "Pi 4 & Pi Zero series: 2 lanes max, up to 1080p@50fps" "CM4 & Pi 5: 4 lanes supported, up to 1080p@60fps" "Front: 15-pin FPC connector, pitch 1.0 mm" "Back: 22-pin FPC connector, pitch 0.5 mm" "Power: 3.3V"
+
+### M-13
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, cable
+- **Fact:** Geekworm C790 ships with a 15 cm 15-pin 1.0 mm cable, a 15 cm 22-pin 0.5 mm cable (listed 'for Pi 5B / Pi Zero / Zero W / Zero 2W / CM4 / CM3') and a 15 cm I2S cable.
+- **Source:** Geekworm Wiki: C790 (last edited 29 July 2026; read via Wayback snapshot 2026-08-28: https://web.archive.org/web/20260828053810/https://wiki.geekworm.com/C790 because the live wiki returned HTTP 403) — <https://wiki.geekworm.com/C790>
+- **Evidence:** 'Packing List': "1 x C790 HDMI to CSI-2 Module" "1 x 15cm Length FPC 15pin 1.0mm cable (for Pi 4B / 3B / 3A)" "1 x 15cm Length FPC 22pin 0.5mm cable (for Pi 5B / Pi Zero / Zero W / Zero 2W / CM4 / CM3)" "1 x I2S cable (15cm length)"
+
+### M-14
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, INT, reset, audio, connector pinout
+- **Fact:** Geekworm's C790 pin-description image shows: the TC358743 INT, IR, RESETN, 3.3V and GND on a separate 5x1 header (J4), not on the camera connectors; the I2S signals A_SCK, A_SD, A_WFS, A_OSCK plus GND on a GH1.25 connector (J5); the 22-pin connector (J3) carries 4 data lanes + clock, CAM_GPIO on pin 17, pin 18 not connected, SCL0/SDA0 on pins 20/21 and VCC on pin 22; the 15-pin connector (J2) carries 2 lanes + clock, CAM_GPIO pin 11, pin 12 not connected, SCL0/SDA0 13/14, VCC 15.
+- **Source:** Geekworm Wiki: C790 — image 'C790-Interface-Description.jpg' — <https://wiki.geekworm.com/images/d/db/C790-Interface-Description.jpg>
+- **Evidence:** Image text (read from the vendor image, retrieved via Wayback 2026-08-28): callouts "15-Pin 2 channels output (for Pi 4B/3B/2B/Zero 2)" and "22-Pin 4 channels output (for Zero2/CM4/CM3, but Zero2 only support 2 channels)"; schematic "Header 5X1 ... 1 INT, 2 IR, 3 RESETN, 4 3.3V, 5 GND (J4)"; "GH1.25-5 ... 1 A_SCK, 2 A_SD, 3 A_WFS, 4 A_OSCK, 5 GND, 6 GND, 7 GND (J5)"; "FPC22P (J3): 1 GND, 2 CSID0_N, 3 CSID0_P, 4 GND, 5 CSID1_N, 6 CSID1_P, 7 GND, 8 CSIC_N, 9 CSIC_P, 10 GND, 11 CSID2_N, 12 CSID2_P, 13 GND, 14 CSID3_N, 15 CSID3_P, 16 GND, 17 CAM_GPIO, 18 [X], 19 GND, 20 SCL0, 21 SDA0, 22 VCC"; "FPC15P (J2): ... 11 CAM_GPIO, 12 [X], 13 SCL0, 14 SDA0, 15 VCC". The image does not say what CAM_GPIO drives on the C790. NOTE: J5 is labelled 'GH1.25-5' but 7 pins are drawn.
+
+### M-15
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, refclk
+- **Fact:** The Geekworm C790 vendor photo shows a 4-pad SMD frequency-control component next to the TC358743 marked '27.000' over '● MHz' (a pin-1 dot, typical of a packaged oscillator, but whether it is an oscillator or a crystal cannot be determined from the photo), consistent with a 27 MHz TC358743 reference clock; this is read from a photo, not from a written specification.
+- **Source:** Geekworm Wiki: C790 — image 'C790-Interface-Description.jpg' — <https://wiki.geekworm.com/images/d/db/C790-Interface-Description.jpg>
+- **Evidence:** Visual reading of the vendor photo (front view, component between the TC358743 and the I2S connector): package marking "27.000" with "MHz" (text rotated 180 degrees). No written refclk value appears in the C790 wiki text or product page.
+- **Original claim (before verification):** The Geekworm C790 vendor photo shows an oscillator package marked '27.000' 'MHz' next to the TC358743, consistent with a 27 MHz reference clock; this is read from a photo, not from a written specification.
+- **Verifier note:** Retrieved the full-size image via Wayback (20260828053810im_) because the direct URL returned 403. Cropped and enlarged the component at roughly x=580-740, y=520-640 of the 2000x2000 image (front view, below-right of the TC358743 package, left of the 15-pin FPC, above the white I2S connector) and rotated it 180 degrees: marking reads '27.000' on the first line and '● MHz' on the second. Searched the C790 wiki snapshot text and product JSON: no written refclk value. Correction: the claim calls the part an 'oscillator package'; the photo shows only a 4-pad ceramic package with a frequency marking and pin-1 dot, which does not by itself distinguish an oscillator from a crystal.
+
+### M-16
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, audio, GPIO18/19/20
+- **Fact:** Geekworm's C790 I2S wiring diagram connects C790 SCK to Pi header pin 12 (GPIO18), WFS to pin 35 (GPIO19), SD to pin 38 (GPIO20), GND to pin 6, and leaves OSCK not connected.
+- **Source:** Geekworm Wiki: C790 — image 'How to connect I2S of C790' (C790-i2s-connect.jpg) — <https://wiki.geekworm.com/images/a/af/C790-i2s-connect.jpg>
+- **Evidence:** Image table: "GND | OSCK | WFS | SD | SCK" / "PIN 06 | NC | Pin 35 | Pin 38 | Pin 12" with the header diagram labelling pin 12 "GPIO18", pin 35 "GPIO19", pin 38 "GPIO20". Same mapping in I2S-diagram.jpg: "GND PIN06, OSCK NC, WFS PIN35, SD PIN38, SCK PIN12".
+
+### M-17
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, Geekworm C779
+- **Fact:** Geekworm describes C790 as an upgrade of C779 that solved HDMI-IN back-powering, added an I2S audio interface and supports 2-lane and 4-lane at the same time.
+- **Source:** Geekworm Wiki: C790 (last edited 29 July 2026; read via Wayback snapshot 2026-08-28: https://web.archive.org/web/20260828053810/https://wiki.geekworm.com/C790 because the live wiki returned HTTP 403) — <https://wiki.geekworm.com/C790>
+- **Evidence:** 'Overview': "C790 is an upgraded version of C779, C790 has made the following upgrades. Solved the issue of back powering of HDMI IN interface / New added interface to support I2S audio / C790 supports CSI-2 2 lane and 4lane at the same time"
+
+### M-18
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, software
+- **Fact:** The Geekworm C790 wiki gives no CM4 or CM4 IO Board-specific setup; its User Manual section points Pi 5B users to 'RPi5_hdmi_in_card' (GitHub geekworm-com), points Zero, Zero 2, Pi 3B, Pi 4B etc. to 'C779-Software' or a Raspberry Pi official forum post (viewtopic.php?f=38&t=281972), and separately says 'Refer to: https://wiki.blicube.com/blikvm/en/hdmi-csi-i2s/' without tying that link to a platform.
+- **Source:** Geekworm Wiki: C790 (last edited 29 July 2026; read via Wayback snapshot 2026-08-28: https://web.archive.org/web/20260828053810/https://wiki.geekworm.com/C790 because the live wiki returned HTTP 403) — <https://wiki.geekworm.com/C790>
+- **Evidence:** 'User Manual': "Pi 5B platforms HDMI to CSI module test demo reference: RPi5_hdmi_in_card" "In platforms such as Zero, Zero 2, Pi 3B, Pi 4B, etc., there is a reference for testing HDMI to CSI module demo: C779-Software or Raspberry pi official forum post" "Refer to: https://wiki.blicube.com/blikvm/en/hdmi-csi-i2s/"
+- **Original claim (before verification):** The Geekworm C790 wiki does not give CM4 IO Board-specific setup; for non-Pi-5 platforms it points to 'C779-Software', a Raspberry Pi forum post and the BliKVM hdmi-csi-i2s page.
+- **Verifier note:** Wayback snapshot 20260828053810 (live wiki 403). Raw HTML of the 'User Manual' section: first <ul> has 'Due to the absence of hardware encoding on the Pi 5B, the software usage instructions ... are currently divided into two sections: Pi 5B configuration and configuration for other Pi platforms.', 'Pi 5B platforms HDMI to CSI module test demo reference： RPi5_hdmi_in_card' (link github.com/geekworm-com/RPi5_hdmi_in_card), 'In platforms such as Zero, Zero 2, Pi 3B, Pi 4B, etc., there is a reference for testing HDMI to CSI module demo： C779-Software or Raspberry pi official forum post' (link raspberrypi.org/forums/viewtopic.php?f=38&t=281972); a second, separate <ul> has 'Refer to: https://wiki.blicube.com/blikvm/en/hdmi-csi-i2s/'. No CM4 instructions anywhere on the page. Correction: the BliKVM link is in its own list, not part of the non-Pi-5 item, so it is not explicitly scoped to non-Pi-5 platforms.
+
+### M-19
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C790, availability
+- **Fact:** SNAPSHOT 2026-10-12: geekworm.com lists the C790 (SKU 100337) at USD 30.00 (compare-at USD 35.00), available=true.
+- **Source:** Geekworm shop: Geekworm Raspberry Pi Hdmi to CSI-2 Module C790 (product JSON) — <https://geekworm.com/products/c790.js>
+- **Evidence:** Product JSON fetched 2026-10-12: "title": "Geekworm Raspberry Pi Hdmi to CSI-2 Module C790", "available": true, "price": 3000, "compare_at_price": 3500, variant sku "100337". Product page https://geekworm.com/products/c790 : "Regular price $35.00 Sale price $30.00", "HDMI input: supports up to 1080P60Hz on Raspberry Pi (Only use with CM4)"
+
+### M-20
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm X1300, 4-lane, CM4 IO Board, audio
+- **Fact:** Geekworm X1300 is a TC358743XBG board with a single 22-pin 0.5 mm FPC (4 data lanes, up to 1 Gbps/lane per Geekworm), powered 3.3 V via the FFC, with a 10-pin 1.0 mm 'functional connector'; Geekworm lists it as compatible with 'Raspberry Pi 5B Only (NOT Raspberry Pi 4 and Pi 3) / Raspberry Pi Compute Module 4 IO board'. HDMI audio requires extra I2S wiring or the X1300-A2 accessory board.
+- **Source:** Geekworm Wiki: X1300 (last edited 31 October 2024; Wayback snapshot 2026-02-17) — <https://wiki.geekworm.com/X1300>
+- **Evidence:** 'Features': "Compatible With : Raspberry Pi 5B Only (NOT Raspberry Pi 4 and Pi 3) / Raspberry Pi Compute Module 4 IO board" "Equipped with the HDMI to CSI-2 bridge chip: Toshiba TC358743XBG" "Supports MIPI CSI-2 with 4 data lanes, each with speeds of up to 1 Gbps per lane" "Enables HDMI audio input and transmission over I²S - (Note: To capture HDMI audio via I2S, additional wiring or the X1300-A2 accessory board is necessary.)" "Prevents HDMI backpowering to the Raspberry Pi CSI" 'Technical Specification': "Power supply 3.3Vdc via FFC" "HDMI video input connector x1 - Type-A 19-pin" "MIPI connector x1 - 22pin 0.5mm pitch" "10-pin functional connector x1 - 10-pin 1.0pitch" 'Packing List': "2 x 22-pin MIPI FFC (30mm length)"
+
+### M-21
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm X1300, availability
+- **Fact:** SNAPSHOT 2026-10-12: geekworm.com lists X1300 at USD 30.00 (available=true) under the title 'X1300 HDMI to CSI2 Shield for Raspberry Pi 5 Only', and the X1300-A2 I2S audio accessory board at USD 12.00 (available=true).
+- **Source:** Geekworm shop product JSON (x1300, x1300-a2) — <https://geekworm.com/products/x1300.js>
+- **Evidence:** x1300.js fetched 2026-10-12: "title": "Geekworm X1300 HDMI to CSI2 Shield for Raspberry Pi 5 Only", "available": true, "price": 3000. https://geekworm.com/products/x1300-a2.js: "Geekworm  X1300-A2 I2S Audio Accessory Auxiliary Board for X1300 / X630", "available": true, "price": 1200
+
+### M-22
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm X1301, 4-lane, audio, CM4 IO Board
+- **Fact:** Geekworm X1301 is a 40-pin-header HAT (57 x 85.5 mm) with TC358743XBG plus an HDMI splitter for HDMI pass-through, a single 22-pin 0.5 mm FPC, 4 data lanes, I2S audio; power is 5 V from the 40-pin header and 3.3 V via the FFC; its comparison table lists supported SoC 'Pi 5B / 4B / 3B / 3B+ / 3A+ / CM4 IO'.
+- **Source:** Geekworm Wiki: X1301 (last edited 27 May 2026; Wayback snapshot 2026-08-28) — <https://wiki.geekworm.com/X1301>
+- **Evidence:** "It is equipped with the Toshiba TC358743XBG bridge chip and a one-to-two active HDMI splitter chip, enabling support for HDMI input and HDMI Pass-Through up to 1080P at a refresh rate of 60 fps." "Supports MIPI CSI-2 with 4 data lanes, each with speeds of up to 1 Gbps per lane" "Enables HDMI audio input and transmission over I²S" "Features a CSI-2 connector: 22-pin FPC with 0.5mm pitch" "Power supply: 5Vdc via 40-pin GPIO header & 3.3Vdc via FFC" "MIPI cable length: 30mm" "PCB Size: 57 x 85.5 mm"; comparison table row (cells joined with ' | '): "X1301 | HDMI RX to MIPI CSI-2-TX HDMI loop output | 1080p@60fps | X1301-C1 | Yes | Toshiba TC358743XBG | 57 x 85.5 mm | 22-PIN FPC (pitch 0.5 mm) | Pi 5B / 4B / 3B / 3B+ / 3A+ / CM4 IO"
+
+### M-23
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm X1301, INT, reset, audio, GPIO18/19/20
+- **Fact:** Geekworm's X1301 interface image shows the TC358743 RST, INT, IR, GND and 3V3 brought out on 2 mm-pitch PTH holes labelled 'TC358743XBG Pinout' (the image does not show whether any of these are also routed to the 22-pin camera connector), and lists the Pi GPIOs used for I2S as GPIO18 (BCK, labelled pin 12), GPIO19 (LRCK, labelled pin 35) and GPIO20 (DIN, labelled pin 37 — on the standard 40-pin header GPIO20 is pin 38 and pin 37 is GPIO26, so the vendor pin number is inconsistent).
+- **Source:** Geekworm shop image 'X1301-V1.1-IMG-8055-interface.jpg' (X1301 product gallery) — <https://cdn.shopify.com/s/files/1/0068/8481/9002/files/X1301-V1.1-IMG-8055-interface.jpg?v=1751539263>
+- **Evidence:** Image text: "TC358743XBG Pinout PTH Holes, pitch 2mm" with silkscreen "RST INT iR GND 3V3"; "22-pin MIPI connector"; "HDMI IN HDMI video input Max 1920×1080@60fps"; table "Raspberry Pi GPIO used: PIN# 12 | GPIO18 | BCK - I2S audio interface for HDMI sound capture; 35 | GPIO19 | LRCK - I2S audio interface for HDMI sound capture; 37 | GPIO20 | DIN- I2S audio interface for HDMI sound capture"
+- **Original claim (before verification):** Geekworm's X1301 interface image shows the TC358743 RST, INT, IR, GND, 3V3 on 2 mm-pitch PTH holes (not routed to the camera connector), and lists the Pi GPIOs used for I2S as GPIO18 (BCK, labelled pin 12), GPIO19 (LRCK, labelled pin 35) and GPIO20 (DIN, labelled pin 37 — on the standard 40-pin header GPIO20 is pin 38, so the vendor pin number is inconsistent).
+- **Verifier note:** Downloaded the image from the Shopify CDN (HTTP 200, 2000x2000 JPEG) and viewed it. Seen: callout 'TC358743XBG Pinout PTH Holes, pitch 2mm' with silkscreen 'RST INT iR GND 3V3'; '22-pin MIPI connector'; 'HDMI IN HDMI video input Max 1920×1080@60fps'; 'HDMI loop output'; '40-pin GPIO header'; table 'Raspberry Pi GPIO used: PIN# 12 GPIO18 BCK - I2S audio interface for HDMI sound capture / 35 GPIO19 LRCK - ... / 37 GPIO20 DIN- ...'. Standard header mapping cross-checked against Geekworm's own I2S-diagram.jpg (pin 37 = GPIO26, pin 38 = GPIO20). Correction: the parenthetical '(not routed to the camera connector)' is an inference the image does not support; the image gives no 22-pin pinout.
+
+### M-24
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm X1301, availability, cable
+- **Fact:** SNAPSHOT 2026-10-12: geekworm.com lists X1301 (SKU 100435) at USD 38.00 (compare-at USD 42.00), available=true; packing list: X1301 V1.1, 2x 22-to-15-pin FFC 30 mm (Pi 4B/3B+/3B), 2x 22-pin FFC 30 mm (Pi 5).
+- **Source:** Geekworm shop: X1301 product JSON — <https://geekworm.com/products/x1301.js>
+- **Evidence:** x1301.js fetched 2026-10-12: "title": "Geekworm X1301 HDMI to CSI-2 Shield for Raspberry Pi 5/4B/3B+/3B Support 1080P@60fps", "available": true, "price": 3800, "compare_at_price": 4200, sku "100435"; description 'Packing List': "1x X1301 V1.1 HDMI to CSI-2 module / 2x 22-pin to 15-pin MIPI FFC 30mm (For Raspberry Pi 4B/3B+/3B) / 2x 22-pin MIPI FFC 30mm (For Raspberry Pi 5B)"
+
+### M-25
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm X1300, Geekworm X1301, software, overlay
+- **Fact:** Geekworm's X1300/X1301 software page (Pi 5-oriented) uses the stock overlays 'dtoverlay=tc358743,4lane=1' and 'dtoverlay=tc358743-audio', loads a 1080p60 EDID with v4l2-ctl --set-edid, and configures RGB888_1X24 1920x1080 via media-ctl; it gives no CM4-specific instructions.
+- **Source:** Geekworm Wiki: X1300 Software (Wayback snapshot 2026-03-11) — <https://wiki.geekworm.com/X1300_Software>
+- **Evidence:** "This tutorial is only for X1300 and X1301 and X630" "This tutorial ... provides a simple example to check whether the x1300 is working properly on the Raspberry Pi 5." "Add two lines at the end of the file that reads like this: dtoverlay=tc358743,4lane=1 / dtoverlay=tc358743-audio" "If you use X630, please remove ,4lane=1 and dtoverlay=tc358743-audio" "Create an 1920*1080P EDID txt file ... This EDID file will enable the video and audio mode supported." step 10 'Configure the media node.' contains "[fmt:RGB888_1X24/1920x1080 field:none colorspace:srgb]"
+
+### M-26
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Geekworm C779
+- **Fact:** Geekworm C779 (the predecessor) is TC358743XBG with a 15-pin connector only, HDMI input 'up to 1080p25fps' per the product page (the wiki table says 1080p@50fps), no I2S audio; it is not listed for CM4. SNAPSHOT 2026-10-12: USD 25.00, available=true.
+- **Source:** Geekworm shop: C779 product JSON; Geekworm Wiki C790 comparison table — <https://geekworm.com/products/c779.js>
+- **Evidence:** c779.js (2026-10-12): "HDMI input supports up to 1080p25fps" "Limitation: HDMI input supports up to 1080p25fps" "For use with Raspberry Pi 4 Model B ... Raspberry Pi Zero/ Zero W/Zero 2W" "price": 2500, "available": true. Wiki table (https://wiki.geekworm.com/C790, cells joined with ' | '): "C779 | HDMI to CSI-2 | 1080p@50fps | None | NO | Toshiba TC358743XBG | 35 x 50 mm | 15-PIN FPC (pitch 1.0 mm)"
+
+### M-27
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Waveshare HDMI to CSI Adapter, 2-lane
+- **Fact:** Waveshare 'HDMI to CSI Adapter' (SKU 19137) is TC358743XBG, HDMI 1.4 input up to 1080p@30fps, 2-lane MIPI CSI-2 output, 3.3 V operating voltage, I2S audio output.
+- **Source:** Waveshare Wiki: HDMI to CSI Adapter (oldid=111058, fetched 2026-10-12) — <https://www.waveshare.com/wiki/HDMI_to_CSI_Adapter>
+- **Evidence:** 'Specifications': "Controller: TC358743XBG" "Video: HDMI1.4, RGB888, up to 1080p@30fps support" "Video: 2-lane MIP CSI-2" "Audio: I2S audio output, LPCM audio stream format" "Operating voltage: 3.3V"
+
+### M-28
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Waveshare HDMI to CSI Adapter, audio, GPIO18/19/20
+- **Fact:** Waveshare's adapter has no audio connector: audio needs user-soldered wires from reserved pads, documented as WFS to pin 35 (GPIO19), SCK to pin 12 (GPIO18), SD to pin 38 (GPIO20), GND to GND, with dtoverlay=tc358743 and dtoverlay=tc358743-audio.
+- **Source:** Waveshare Wiki: HDMI to CSI Adapter (oldid=111058, fetched 2026-10-12) — <https://www.waveshare.com/wiki/HDMI_to_CSI_Adapter>
+- **Evidence:** 'Hardware Connection > Audio': "To connect the audio, the user needs to prepare the cable separately and do the soldering. Connect the pad reserved on the HDMI to CSI side to the I2S pin of Raspberry Pi as shown in the following diagram." Table: "WFS (PIN35)GPIO19 / SCK (PIN12)GPIO18 / SD (PIN38)GPIO20 / GND GND"; 'Software Settings': "dtoverlay=tc358743" "dtoverlay=tc358743-audio"
+
+### M-29
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Waveshare HDMI to CSI Adapter, HDCP, power
+- **Fact:** Waveshare's FAQ states the adapter does not support HDCP ('Does it come with HDCP?' — 'No.') and that 'The consumption of the adapter is about 260mA.'
+- **Source:** Waveshare Wiki: HDMI to CSI Adapter (oldid=111058, fetched 2026-10-12) — <https://www.waveshare.com/wiki/HDMI_to_CSI_Adapter>
+- **Evidence:** 'FAQ': "Question: Does it come with HDCP? Answer: No." "Question: What is the power consumption? Answer: The consumption of the adapter is about 260mA."
+- **Original claim (before verification):** Waveshare's FAQ states the adapter does not support HDCP and draws about 260 mA.
+
+### M-30
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, Waveshare HDMI to CSI Adapter, availability
+- **Fact:** SNAPSHOT 2026-10-12: waveshare.com lists the HDMI to CSI Adapter (SKU 19137) at USD 24.99 with 'Add to Cart' and schema.org availability InStock.
+- **Source:** Waveshare shop: HDMI To CSI Adapter For Raspberry Pi Series, 1080p@30fps Support — <https://www.waveshare.com/hdmi-to-csi-adapter.htm>
+- **Evidence:** "SKU:19137" "$24.99" "Add to Cart"; page markup "availability": "https://schema.org/InStock"; "* Note: it is required to connect the reserved solder pad to the I2S pin of Raspberry Pi for audio output" (seen 2026-10-12)
+
+### M-31
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M1, 52Pi EP-0214, 4-lane
+- **Fact:** 52Pi EP-0214 HDMI-to-CSI2 board is TC358743XBG with both 15-pin (2 lanes) and 22-pin (4 lanes, 'CM4 Computer module only') cable options and soldering pads, but 52Pi states an HDMI input limitation of 1080p30fps and lists compatibility as Pi 4B/3B+/3B/3A+/Zero family.
+- **Source:** 52Pi Wiki: EP-0214 HDMI-TO-CSI2 adapter board for Raspberry Pi (fetched 2026-10-12) — <https://wiki-md.52pi.com/docs/EP-0214>
+- **Evidence:** "FPC cable supports 15Pin@ 2Lanes or 22Pin @ 4Lanes (CM4 Computer module only)" "Chipset: Toshiba TC358743XBG" "Soldering Pad support" "Limitation: HDMI input support up to 1080p30fps" "Compatible with: Raspberry Pi 4B/3B+/3B/3A+/Pi zero/Pi zero W/Pi zero 2W" "Raspberry Pi Computer Module 4 can use HDMI to CSI-2 Module on PiKVM OS." 'Package Includes': "2 x 22Pin FPC cable / 2 x 15Pin FPC cable"
+
+### M-32
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M1, M3, audio, GPIO18/19/20, Auvidea B101
+- **Fact:** The official Raspberry Pi documentation names the Auvidea B101 and B102 as 'the most widely obtainable' TC358743 boards and gives the Auvidea I2S wiring: LRCK/WFS (B101 header pin 7) to 40-pin header pin 35 / GPIO19, BCK/SCK (pin 6) to pin 12 / GPIO18, DATA/SD (pin 5) to pin 38 / GPIO20, GND (pin 8) to pin 39; tc358743-audio is required in addition to tc358743.
+- **Source:** Raspberry Pi Documentation, Camera software > V4L2 / CSI-2 usage (source documentation/asciidoc/computers/camera/csi-2-usage.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/computers/camera_software.html>
+- **Evidence:** "There are a couple of commercially available boards that connect this chip to the Raspberry Pi. The Auvidea B101 and B102 are the most widely obtainable, but other equivalent boards are available." "The Auvidea boards break the relevant signals out onto a header, which can be connected to the Raspberry Pi device's 40-pin header. The required wiring is:" table "LRCK/WFS | 7 | 35 | 19" "BCK/SCK | 6 | 12 | 18" "DATA/SD | 5 | 38 | 20" "GND | 8 | 39 | N/A"; "The `tc358743-audio` overlay is required _in addition to_ the `tc358743` overlay."
+
+### M-33
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M1, 4-lane, CM4, 1080p60
+- **Fact:** Official Raspberry Pi documentation: with four CSI-2 lanes on a Compute Module, the TC358743 can receive 1080p60 as either RGB888 or YUV422 (complements [C-48] for 2 lanes).
+- **Source:** Raspberry Pi Documentation, Camera software > V4L2 / CSI-2 usage (source documentation/asciidoc/computers/camera/csi-2-usage.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/computers/camera_software.html>
+- **Evidence:** "When using two CSI-2 lanes, the maximum rates that can be supported are 1080p30 as RGB888, or 1080p50 as YUV422. When using four lanes on a Compute Module, 1080p60 can be received in either format."
+
+### M-34
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M1, audio
+- **Fact:** Official Raspberry Pi documentation: the TC358743 audio path does no resampling; audio presence and incoming sample rate are exposed as V4L2 controls, and recording at a different rate than reported emits a warning.
+- **Source:** Raspberry Pi Documentation, Camera software > V4L2 / CSI-2 usage (source documentation/asciidoc/computers/camera/csi-2-usage.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/computers/camera_software.html>
+- **Evidence:** "There is no resampling of the audio. The presence of audio is reflected in the V4L2 control `TC358743_CID_AUDIO_PRESENT` (audio-present), and the sample rate of the incoming audio is reflected in the V4L2 control `TC358743_CID_AUDIO_SAMPLING_RATE` (audio sampling-frequency). Recording when no audio is present or at a sample rate different from that reported emits a warning."
+
+### M-35
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** M2, CM4 IO Board, CAM0, CAM1
+- **Fact:** CM4 IO Board camera connectors: both CSI-2 interfaces (2-channel CSI0 and 4-channel CSI1) are on separate 22-way 0.5 mm pitch connectors, the same as on the earlier CMIO board and different from the Raspberry Pi 4 Model B connector.
+- **Source:** Raspberry Pi Compute Module 4 IO Board datasheet (RP-008172-DS-1, build-date 2022-06-07) — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** Section 2.11 'Dual CSI-2 camera connectors (22-pin 0.5mm pitch cable)': "Both CSI-2 interfaces (2-channel and 4-channel) are brought out to separate 22-way 0.5mm pitch connectors. These connectors are the same as on the existing CMIO board; note that they are different from Raspberry Pi 4 Model B. If the CSI0 interface (2-channel) is used, then the two jumpers on J6 must be fitted to route the I2C bus to the connector."
+
+### M-36
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M2, CM4 IO Board, CAM_GPIO
+- **Fact:** Official Raspberry Pi documentation: on the CM4 IO Board both camera connectors share a single GPIO for the cam1_reg/cam0_reg regulator aliases, so both cameras share the same power-enable/regulator.
+- **Source:** Raspberry Pi Documentation, Compute Module > Attach a Camera Module (source documentation/asciidoc/computers/compute-module/cmio-camera.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/computers/compute-module.html>
+- **Evidence:** 'GPIO pins for shutdown': "For camera shutdown, Device Tree uses the pins assigned by the `cam1_reg` and `cam0_reg` overlays." "The CM4 IO board provides a single GPIO pin for both aliases, so both cameras share the same regulator."
+
+### M-37
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M2, CM4 IO Board, connector pinout, CAM_GPIO
+- **Fact:** Official Raspberry Pi 22-pin CSI connector pinout (used on Compute Module IO boards): pins 2/3, 5/6, 11/12, 14/15 are D-PHY data lanes 0-3, pins 8/9 the clock, pin 17 CAM_IO0 (typically active-high power enable), pin 18 CAM_IO1, pins 20/21 SCL/SDA (pulled up to 3.3 V on the Pi board), pin 22 a 3.3 V supply output; no supply current limit is stated.
+- **Source:** Raspberry Pi Documentation, Camera > Advanced information > Camera connector pinout (22-Pin) (source documentation/asciidoc/accessories/camera/advanced.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/accessories/camera.html>
+- **Evidence:** "This is the pinout of the 22-pin Camera Serial Interface (CSI) connector used on the Raspberry Pi Zero series, the Compute Module IO boards, and flagship models since Raspberry Pi 5. The connector is compatible with Amphenol F32Q-1A7H1-11022." "The I2C lines (SCL and SDA) are pulled up to 3.3 V on the Raspberry Pi board." "Typically, `CAM_IO0` is used as an active-high power enable. Some products don't include `CAM_IO1`." Table rows: "2 CAM_DN0 / 3 CAM_DP0 / 5 CAM_DN1 / 6 CAM_DP1 / 8 CAM_CN / 9 CAM_CP / 11 CAM_DN2 / 12 CAM_DP2 / 14 CAM_DN3 / 15 CAM_DP3 / 17 CAM_IO0 GPIO (for example, Power-Enable) Bidirectional, 3.3 V / 18 CAM_IO1 GPIO (for example, Clock, LED) / 20 SCL / 21 SDA / 22 3V3 3.3 V Supply Output"
+
+### M-38
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** M2, CM4 IO Board, VDDIO, audio
+- **Fact:** The CM4 IO Board sets the CM4 GPIO bank I/O voltage to +3.3 V by default (R5); moving R5 to R4 selects +1.8 V.
+- **Source:** Raspberry Pi Compute Module 4 IO Board datasheet (RP-008172-DS-1, build-date 2022-06-07) — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** Section 2.14 'Jumpers', 'R4/R5 Vref voltage selection': "By default the Raspberry Pi Compute Module 4 IO Board sets the CM4 IO voltage to +3.3V via R5. Moving R5 to R4 sets the IO voltage on CM4 to +1.8V. Moving the resistor requires the use of a soldering iron."
+
+### M-39
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `datasheet` (Rule 23 priority 2 — official hardware datasheet)
+- **Applies to:** M2, CM4 IO Board, 40-pin header
+- **Fact:** The CM4 IO Board has a standard 40-way Raspberry Pi HAT connector with mounting holes so standard HATs can be fitted.
+- **Source:** Raspberry Pi Compute Module 4 IO Board datasheet (RP-008172-DS-1, build-date 2022-06-07) — <https://datasheets.raspberrypi.com/cm4io/cm4io-datasheet.pdf>
+- **Evidence:** Section 2.12 'Raspberry Pi HAT connector': "The Raspberry Pi Compute Module 4 IO Board has a standard Raspberry Pi 40-way HAT connector. Mounting holes are also provided so that standard HATs may be used."
+
+### M-40
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M3, CM4 IO Board, cable
+- **Fact:** Official Raspberry Pi documentation: Compute Module IO boards use the 'mini' 22-pin camera connector; a 15-pin camera needs the Standard-Mini camera cable, and some CM development kits include a CMCDA adaptor board converting the 22-pin IO-board connector to a standard 15-pin connector.
+- **Source:** Raspberry Pi Documentation, Camera > Install a Raspberry Pi camera (source documentation/asciidoc/accessories/camera/install.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/accessories/camera.html>
+- **Evidence:** "Raspberry Pi 5, all Raspberry Pi Zero models, and Compute Module IO boards use the mini, 22-pin connector. For these boards, use the https://www.raspberrypi.com/products/camera-cable/[Standard-Mini camera cable]." "Some Compute Module Development Kits come with a Compute Module Camera and Display Adaptor (CMCDA) board, which converts the mini, 22-pin connector on the IO board into a standard, 15-pin connector."
+
+### M-41
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M3, cable, orientation
+- **Fact:** Official Raspberry Pi documentation (raspberrypi/documentation asciidoc tree at commit 62ba0a0c, 2026-10-08) gives FFC orientation only as 'metallic contacts facing away from the flap': at the Raspberry Pi board connector (install.adoc Step 2) and, at the camera end, 'facing away from the flap and towards the camera board' (Step 3). It states that on Compute Module IO boards 'pin 1 is marked with a small circle or dot depending on the model' (advanced.adoc). No page in that tree states whether a 22-to-15-pin cable must have contacts on the same side or on opposite sides.
+- **Source:** Raspberry Pi Documentation, Camera > Install a Raspberry Pi camera (source documentation/asciidoc/accessories/camera/install.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)); also accessories/camera/advanced.adoc 'Locating pin 1' — <https://www.raspberrypi.com/documentation/accessories/camera.html>
+- **Evidence:** install.adoc: "Insert the end of your camera cable with the metallic contacts facing away from the flap."; advanced.adoc: "** On Raspberry Pi Compute Module IO boards, pin 1 is marked with a small circle or dot depending on the model." Text search of install.adoc, advanced.adoc, csi-2-usage.adoc and cmio-camera.adoc for 'same side' / 'opposite side': the only match is install.adoc "The camera connector is on the opposite side of the board to the camera lens." (about the camera PCB, not FFC contact sidedness).
+- **Original claim (before verification):** Official Raspberry Pi documentation gives cable orientation only as 'metallic contacts facing away from the flap' at the board connector and states that on Compute Module IO boards pin 1 is marked with a small circle or dot; it does not state whether a 22-to-15 cable must have same-side or opposite-side contacts.
+- **Verifier note:** Read install.adoc and advanced.adoc at raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08 17:09:48 +0100), fetched via sparse git clone and raw.githubusercontent.com (same commit the researcher cited). install.adoc line 52: 'Insert the end of your camera cable with the metallic contacts facing away from the flap.' (board connector). Line 70: 'Insert the end of your camera cable with the metallic contacts facing away from the flap and towards the camera board.' (camera connector). advanced.adoc line 30: '** On Raspberry Pi Compute Module IO boards, pin 1 is marked with a small circle or dot depending on the model.' To check the negative part beyond the four files the researcher searched, I sparse-cloned all 279 .adoc files at that commit and searched for 'same side', 'opposite side', 'same-side', 'opposite-side', 'contacts on', 'contacts facing' and 'metallic contacts'. The only FFC-related matches are the install.adoc lines above and a Touch Display line ('Position the metal contacts facing upwards, away from the Touch Display'). The 'opposite side' hits are about the camera lens, the Pi Zero SD slot and a keycap puller. Correction: the claim implied that orientation is given only at the board connector. The docs give the same away-from-flap rule at the camera end too.
+
+### M-42
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `official-rpi` (Rule 23 priority 3 — official Raspberry Pi documentation)
+- **Applies to:** M3, CM4 IO Board, cable, CAM0
+- **Fact:** Official CM camera procedure connects a 15-pin Raspberry Pi camera to CAM1/CAM0 'using a RPI-CAMERA board or a Raspberry Pi Zero camera cable', and for a second camera on a CM4 requires two vertical J6 jumpers.
+- **Source:** Raspberry Pi Documentation, Compute Module > Attach a Camera Module (cmio-camera.adoc, raspberrypi/documentation master @ 62ba0a0c2dd5030fe9b19458fa9bd174a451f79b (2026-10-08)) — <https://www.raspberrypi.com/documentation/computers/compute-module.html>
+- **Evidence:** "Connect the Camera Module to the CAM1 port using a RPI-CAMERA board or a Raspberry Pi Zero camera cable." "Connect the Camera Module to the CAM0 port using a RPI-CAMERA board or a Raspberry Pi Zero camera cable." "_(CM4)_: Connect the J6 GPIO pins with two vertical-orientation jumpers."
+
+### M-43
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M3, Auvidea B101, Auvidea B102, cable
+- **Fact:** The Auvidea B10x Technical Reference Manual (Version 1.4 Preliminary, February 2017) asks for same-side-contact FFC cables when connecting to a Raspberry Pi. For the B101 (15-pin, 1.0 mm pitch), p.3 says the contacts face upwards on the B101 and, on the Raspberry Pi, face the opposite side of the locking latch; p.7 (B101 rev 4) gives the same rule. For the B102 (22-pin), p.8 (rev 1) and p.9 (rev 2) say 'The FPC cable faces with the contacts down'. Auvidea's current B102 web page (fetched 2026-10-12) also asks for a same-side-contacts FFC, but describes the 22-pin connector as '– contacts on top', which conflicts with the manual's 'contacts down'. B102 cable orientation therefore needs hardware verification.
+- **Source:** Auvidea B10x HDMI to CSI-2 bridge, Technical Reference Manual, Version 1.4 Preliminary, February 2017 — <https://auvidea.eu/download/manual/B10x_technical_reference_1.4.pdf>
+- **Evidence:** p.3: "Please use a 15 pin FFC cable with 1mm pitch and contacts on the same side. On the B101 the contacts have to face upwards, when the cable is plugged into the black CSI-2 connector. On the Raspberry Pi the contacts of the FFC cable should face the opposite side of the locking latch." p.9 (B102 rev 2): "The FPC cable faces with the contacts down. For The RPi and the Auvidea Jetson carrier boards please use an FFC cable with contacts on the same side."
+- **Original claim (before verification):** Auvidea requires same-side-contact FFC cables for both the B101 (15-pin, contacts face up on the B101) and the B102 (22-pin, contacts face down on the B102) when connecting to a Raspberry Pi.
+- **Verifier note:** Downloaded the manual PDF (6,420,553 bytes) and extracted the text with pypdf. The cover reads 'Version 1.4', 'Preliminary', 'February 2017'. p.3: 'Please use a 15 pin FFC cable with 1mm pitch and contacts on the same side. On the B101 the contacts have to face upwards, when the cable is plugged into the black CSI-2 connector. On the Raspberry Pi the contacts of the FFC cable should face the opposite side of the locking latch.' p.7 (B101 rev 4): 'The FPC cable faces with the contacts up. For The RPi uses an FFC cable with contacts on the same side.' p.8 (B102 rev 1) and p.9 (B102 rev 2): 'The FPC cable faces with the contacts down. For The RPi and the Auvidea Jetson carrier boards please use an FFC cable with contacts on the same side.' Live B102 page https://auvidea.eu/b102-hdmi-to-csi-2-bridge-22-pin-fpc/ (HTTP 200, 2026-10-12): 'Please use an FFC cable with contacts on the same side.' and 'top connector: 22 pin FPC 0.5mm (compatible to Raspberry Pi compute module carrier board) – contacts on top'. The claim matches the manual, but Auvidea's own documents conflict on the B102 contact direction. The claim stated 'contacts face down' as an unqualified Auvidea requirement, so the conflict was added.
+
+### M-44
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, 4-lane, CAM1, community
+- **Fact:** 6by9 (Raspberry Pi Engineer), 2020-08-05: 4lane=1 is only for a board with all 4 lanes wired to a 22-pin connector (e.g. Auvidea B102) on a Compute Module CAM1 connector that also has all 4 lanes wired; a non-Compute-Module Pi needing 4 lanes has 'no way forward'.
+- **Source:** Raspberry Pi Forums: 'TC358743 HDMI to CSI-2 install instructions (Pi 0-4)' (t=281972), read via Wayback snapshots 2026-03-02 / 2026-03-09 because the live forum returned Cloudflare 403 — <https://forums.raspberrypi.com/viewtopic.php?t=281972>
+- **Evidence:** 6by9, Wed Aug 05, 2020 7:29 am: "If (and only if) you have a device such as the Auvidea B102 that supports the 22pin connector with all 4 lanes wired out, and are using a Compute Module with the CAM1 connector that also has all 4 lanes wired up, you can use dtoverlay=tc358743,4lane=1" ... "Unless on a Compute Module, then as the lines [Lanes needed: 4 / Lanes in use: 4] exceed the number of data lanes on the device (2) then you are stuck and there is no way forward."
+
+### M-45
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, audio, community, Auvidea, Chinese boards
+- **Fact:** 6by9, 2020-08-05: HDMI I2S audio capture 'works fine on Auvidea boards, but not on many of the Chinese boards' because they appear not to implement the TC358743 audio PLL circuitry correctly, which cannot be fixed in software.
+- **Source:** Raspberry Pi Forums: 'TC358743 HDMI to CSI-2 install instructions (Pi 0-4)' (t=281972), read via Wayback snapshots 2026-03-02 / 2026-03-09 because the live forum returned Cloudflare 403 — <https://forums.raspberrypi.com/viewtopic.php?t=281972>
+- **Evidence:** 6by9, Wed Aug 05, 2020 7:29 am, section 'Audio': "Capturing stereo audio from the HDMI source is supported, but requires some extra wiring to connect in the I2S audio interface." "Note that this works fine on Auvidea boards, but not on many of the Chinese boards. They appear to have not implemented the audio PLL circuitry correctly - see https://www.raspberrypi.org/forums/view ... 4&t=279935 (thanks to idcidc for investigating that). There is no way to fix this in software, so please don't ask."
+
+### M-46
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, audio, refclk, Geekworm C779, community
+- **Fact:** Reported by forum user idcidc in the Raspberry Pi Forums topic '[UPDATED, SOLVED] Why "cheap" Chinese HDMI-to-CSI2 adapters (e.g.18810-1 C779) don't provide I2S sound'. The opening post is dated 2020-07-13 and was last edited 2020-08-10. It says the cheap C779 ('18810-1') board gave no I2S audio because 'APLL circuit is not properly routed on PCB', and that a hand-made hardware patch adding the missing circuit restored I2S sound 'as with original B100 board by Auvidea'. On 2020-08-04 the same user reported the C779 crystal as a clear 27 MHz, 'exactly the same as on B100'. Geekworm describes the C790 as an upgraded C779 that adds an I2S audio interface. No equivalent analysis of the C790 audio PLL circuitry was found.
+- **Source:** Raspberry Pi Forums: '[UPDATED, SOLVED] Why "cheap" Chinese HDMI-to-CSI2 adapters (e.g.18810-1 C779) don't provide I2S sound' (t=279935), Wayback snapshot 2026-02-28 — <https://forums.raspberrypi.com/viewtopic.php?t=279935>
+- **Evidence:** idcidc, Mon Jul 13, 2020 1:49 pm: "There are a lot of posts here about problems with I2S on cheap Chinese HDMI-to-CSI2 modules, while more expensive modules by Auvidea with the same TC358743 IC by Toshiba works fine" "In brief: APLL circuit is not properly routed on PCB." "Hardware patch is done, it implements mentioned schematics which is absent on original PCB"; idcidc, Tue Aug 04, 2020 9:06 pm: "I've checked XTAL on my C779 board, I see clear 27MHz (exactly the same as on B100)"
+- **Original claim (before verification):** idcidc, 2020-07-13: the cheap C779 ('18810-1') board gave no I2S audio because the APLL circuit is not properly routed on the PCB; a hand-made hardware patch restored I2S; on 2020-08-04 the same user measured the C779 crystal at 27 MHz, 'exactly the same as on B100'. (Report predates the C790, which Geekworm says adds an I2S interface; no equivalent C790 analysis was found.)
+- **Verifier note:** Read the Wayback snapshot web.archive.org/web/20260228190929id_/https://forums.raspberrypi.com/viewtopic.php?t=279935, and cross-checked the live page via WebFetch, which returned the same APLL sentence and the 'Last edited by idcidc on Mon Aug 10, 2020 8:50 pm, edited 1 time in total.' line. Opening post, Mon Jul 13, 2020 1:49 pm: 'In brief: APLL circuit is not properly routed on PCB.' 'Hardware patch is done, it implements mentioned schematics which is absent on original PCB ... Now sound via I2S works good as with original B100 board by Auvidea'. Because of the 2020-08-10 edit, the 'patch is done' text may not date from 2020-07-13. idcidc, Tue Aug 04, 2020 9:06 pm: 'I've checked XTAL on my C779 board, I see clear 27MHz (exactly the same as on B100), FFT shows strong main frequency, so it looks like no problem with PLL (but I'm unsure...)'. Correction: the claim's parenthetical said the report 'predates the C790' without a source; I found no C790 release date. I replaced it with what the Geekworm C790 wiki says (Wayback 2026-08-28): 'C790 is an upgraded version of C779 ... New added interface to support I2S audio'. I also noted the post's edit date.
+
+### M-47
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, 1080p60, 4-lane, community, Auvidea B101, Auvidea B102
+- **Fact:** 6by9, 2021-09-13: 'There is no way of capturing 1080p60 using a B101. You need to use a B102 and Compute Module to achieve 1080p60.'; 2021-09-15: 'Only the Compute Modules (all varieties) exposes a 4 lane interface.'
+- **Source:** Raspberry Pi Forums: 'TC358743 HDMI to CSI-2 install instructions (Pi 0-4)' (t=281972), read via Wayback snapshots 2026-03-02 / 2026-03-09 because the live forum returned Cloudflare 403 page 3 — <https://forums.raspberrypi.com/viewtopic.php?t=281972&start=50>
+- **Evidence:** 6by9, Mon Sep 13, 2021 3:54 pm: "There is no way of capturing 1080p60 using a B101. You need to use a B102 and Compute Module to achieve 1080p60."; 6by9, Wed Sep 15, 2021 7:57 am: "Pi0 uses the 22pin connector, but only has 2 lanes wired up. Only the Compute Modules (all varieties) exposes a 4 lane interface."
+
+### M-48
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, CM4 IO Board, CAM1, Waveshare HDMI to CSI Adapter, community
+- **Fact:** 6by9, 2023-05 (user on CM4 + CM4 IO Board with a Waveshare adapter): connect to CAM1, not CAM0; 4lane=1 'will potentially cause issues' with the 2-lane Waveshare board; for 1080p60 buy a board that wires all 4 lanes (22-pin) for the CM4 CAM1 connector; Waveshare ships no driver (only EDIDs and a yavta copy) and its cma=96M advice is out of date.
+- **Source:** Raspberry Pi Forums: 'TC358743 HDMI to CSI-2 install instructions (Pi 0-4)' (t=281972), read via Wayback snapshots 2026-03-02 / 2026-03-09 because the live forum returned Cloudflare 403 page 5 — <https://forums.raspberrypi.com/viewtopic.php?t=281972&start=100>
+- **Evidence:** Stalkew, Tue May 02, 2023 2:11 pm: "Trying to connect HDMI to CSI adapter to CM4 and CM4 IO board"; 6by9, Tue May 02, 2023 2:57 pm: "Connect to the CAM1 connector on the CM4, not CAM0."; 6by9, Tue May 02, 2023 9:29 pm: "4lane=1 will potentially cause issues as only 2 are wired out of the Waveshare board." "Waveshare don't actually ship any drivers for it - the ZIP file is a couple of EDIDs, and a copy of yavta" "Their guidance to use \"cma=96M\" in cmdline.txt is also out of date"; 6by9, Thu May 04, 2023 11:19 am: "If you want 1080P60 then you've bought the wrong board - the Waveshare board only supporting 2 data lanes limits it to 1080p50 as YUYV, or 1080p30 as RGB. The CM4 CAM1 connector can support 4 lanes, so if you buy a TC358743 board that also wires up all 4 lanes (look for a 22pin connector) then it can run at 1080p60 in either RGB or YUYV." "That said, the EDID handling has no notion of what can and can't be achieved, it's only when you tried to start streaming that it would fail."
+
+### M-49
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, M3, cable, Geekworm C790, community
+- **Fact:** 6by9, 2023-12-22 (C790 on a Pi Zero 2 W with no /dev/video0): FFCs come with contacts on the same side at each end or on opposite sides; use the FFC supplied with the board or an identical one, as 'Using the wrong type can let the magic smoke out.'
+- **Source:** Raspberry Pi Forums: 'TC358743 HDMI to CSI-2 install instructions (Pi 0-4)' (t=281972), read via Wayback snapshots 2026-03-02 / 2026-03-09 because the live forum returned Cloudflare 403 page 5 — <https://forums.raspberrypi.com/viewtopic.php?t=281972&start=100>
+- **Evidence:** 6by9, Fri Dec 22, 2023 1:44 pm: "Have you checked that your FFC cable is the right way up at each end." "Ensure you use the FFC that came with it, or an identical one. You get FFCs with either the contacts on the same side at each end, or on opposite sides. Using the wrong type can let the magic smoke out." "If you've added \"dtoverlay=tc358743\", then i2c-10 should be enabled. \"sudo i2cdetect -y 10\" should report the addresses that respond"
+
+### M-50
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, EDID, community
+- **Fact:** 6by9 (Raspberry Pi Engineer), 2020-08-05: by default there is no EDID loaded into the chip, and the driver 'puts all the control in the hands of the user, or the user's application'. The driver 'does NOT automatically switch to the resolution detected', and the user 'MUST set the timings via "v4l2-ctl --set-dv-bt-timings"'. If a source still reports 1080p60, it 'would appear not to abide by what is advertised via the EDID'. On 2020-11-27 6by9 added: 'No EDID will mean the source won't create any output.'
+- **Source:** Raspberry Pi Forums: 'TC358743 HDMI to CSI-2 install instructions (Pi 0-4)' (t=281972), read via Wayback snapshots 2026-03-02 / 2026-03-09 because the live forum returned Cloudflare 403 — <https://forums.raspberrypi.com/viewtopic.php?t=281972>
+- **Evidence:** 6by9, Wed Aug 05, 2020 7:29 am: "By default there is no EDID loaded into the chip to allow it to tell the HDMI source what resolutions are supported." "The driver does NOT automatically switch to the resolution detected." "You MUST set the timings via \"v4l2-ctl --set-dv-bt-timings\"." "If it reports 1080p @ 60fps then your source device would appear not to abide by what is advertised via the EDID."
+- **Original claim (before verification):** 6by9, 2020-08-05: the driver loads no EDID by default and does not switch to the detected resolution automatically; the user/application must load an EDID and set DV timings; a source that outputs 1080p60 despite the EDID is not respecting it.
+- **Verifier note:** Wayback snapshot 2025-11-07 of t=281972, 6by9 opening post (Wed Aug 05, 2020 7:29 am), steps 5-6 and troubleshooting: 'This driver puts all the control in the hands of the user, or the user's application. By default there is no EDID loaded into the chip to allow it to tell the HDMI source what resolutions are supported.' 'The driver does NOT automatically switch to the resolution detected.' 'You MUST set the timings via "v4l2-ctl --set-dv-bt-timings".' 'If it reports 1080p @ 60fps then your source device would appear not to abide by what is advertised via the EDID.' The 2020-08-05 post states the 'must' only for DV timings; for the EDID it is implied. 6by9 stated the EDID requirement explicitly on Fri Nov 27, 2020 11:08 am in the same thread (same snapshot): 'No EDID will mean the source won't create any output.' I corrected the attribution and wording to match the quotes; the substance is unchanged.
+
+### M-51
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `community` (not ranked by Rule 23 — community source (forum, issue tracker, third-party project))
+- **Applies to:** M4, Geekworm X1300, 2-lane, cable
+- **Fact:** Reported in the comments on Geekworm's X1300 wiki page (Wayback snapshot 2026-02-17). Both comments are shown as '15 months ago', i.e. about November 2024; the page was last edited 31 October 2024. An anonymous user asked whether the 22-pin-only X1300 could be used on a Raspberry Pi 4 with a 22-pin 0.5 mm to 15-pin 1.0 mm FFC, accepting 1080p50 rather than 1080p60 with fewer CSI lanes. Registered wiki user 'Harry' replied: 'You are right. If you replace the FPC, you can also use the X1300 on the RPi4'. Harry creates and edits Geekworm wiki pages but is not identified as Geekworm staff on the page. The reply conflicts with Geekworm's own X1300 compatibility line, 'Raspberry Pi 5B Only (NOT Raspberry Pi 4 and Pi 3) / Raspberry Pi Compute Module 4 IO board'.
+- **Source:** Geekworm Wiki: X1300 (last edited 31 October 2024; Wayback snapshot 2026-02-17) — comments section — <https://wiki.geekworm.com/X1300>
+- **Evidence:** Anonymous user #1 (15 months before the 2026-02-17 snapshot): "Is there any reason this X1300 set cannot also be used with a rpi4 if I used a 22-pin 0.5 pitch to 15-pin 1.0 pitch FFC cable? I understand that the fewer CSI lanes means 1080p50 rather than 1080p60"; Harry (Geekworm): "You are right. If you replace the FPC, you can also use the X1300 on the RPi4"
+- **Original claim (before verification):** Geekworm staff reply (X1300 wiki comments, ~2025): the 22-pin-only X1300 can be used on a 15-pin 2-lane Pi 4 by replacing the FPC with a 22-to-15 cable (a 4-lane board then runs on a 2-lane connector).
+- **Verifier note:** Live wiki.geekworm.com returned HTTP 403 to curl. I read the Wayback snapshot web.archive.org/web/20260217060335id_/https://wiki.geekworm.com/X1300 ('This page was last edited on 31 October 2024, at 12:35'; oldid=22029). Comments: 'Anonymous user #1 / 15 months ago': 'Is there any reason this X1300 set cannot also be used with a rpi4 if I used a 22-pin 0.5 pitch to 15-pin 1.0 pitch FFC cable? I understand that the fewer CSI lanes means 1080p50 rather than 1080p60, but the X1300 and X630 use the same toshiba hdmi chip.' 'Harry / 15 months ago': 'You are right. If you replace the FPC, you can also use the X1300 on the RPi4'. The raw HTML links Harry to https://wiki.geekworm.com/User:Harry, which is a registered user with an empty user page. A Wayback capture of Special:Contributions/Harry (2024-03-02) shows Harry creating and editing Geekworm wiki pages (e.g. 'PCIe NVMe SSD Compatibility List', 'NVMe SSD boot with the Raspberry Pi 5'), so Harry is very likely a Geekworm wiki editor, but the page does not say so. Corrections: (1) the date '~2025' is wrong; 15 months before 2026-02-17 is about November 2024. (2) The 'Geekworm staff' attribution was softened. (3) Added Geekworm's own contrary compatibility statement from the same page.
+
+### M-52
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M5, videorate, OQ-131
+- **Fact:** GStreamer videorate produces a stream matching the source-pad framerate by dropping and duplicating frames (no interpolation); a target rate such as 30 fps is forced with filtered caps on the source pad.
+- **Source:** GStreamer documentation: videorate (current docs, fetched 2026-10-12; lists properties up to 'Since: 1.28') — <https://gstreamer.freedesktop.org/documentation/videorate/index.html>
+- **Evidence:** "This element takes an incoming stream of timestamped video frames. It will produce a perfect stream that matches the source pad's framerate. The correction is performed by dropping and duplicating frames, no fancy algorithm is used to interpolate frames (yet)." "By default the element will simply negotiate the same framerate on its source and sink pad." "A conversion to a specific framerate can be forced by using filtered caps on the source pad." Example: "gst-launch-1.0 -v v4l2src ! videorate ! video/x-raw,framerate=25/2 ! theoraenc ..."
+
+### M-53
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M5, videorate
+- **Fact:** videorate properties: 'drop-only' (default false) = only drop frames, never duplicate; 'max-rate' (default 2147483647) = maximum framerate to pass through; 'rate' (default 1, since 1.12) = playback speed factor, explicitly not the framerate; 'skip-to-first' (default false) = don't produce buffers before the first one received; 'average-period' (default 0) = cap framerate by dropping using a moving average.
+- **Source:** GStreamer documentation: videorate (current docs, fetched 2026-10-12; lists properties up to 'Since: 1.28') — <https://gstreamer.freedesktop.org/documentation/videorate/index.html>
+- **Evidence:** "drop-only ... Only drop frames, no duplicates are produced. ... Default value : false"; "max-rate ... maximum framerate to pass through ... Default value : 2147483647"; "rate ... Factor of speed for frame displaying ... Default value : 1 Since : 1.12"; "The property rate allows the modification of video speed by a certain factor. It must not be confused with framerate. Think of rate as speed and framerate as flow."; "skip-to-first ... Don't produce buffers before the first one we receive. ... Default value : false"; "average-period ... Arrange for maximum framerate by dropping frames beyond a certain framerate, where the framerate is calculated using a moving average over the configured. ... Default value : 0"
+
+### M-54
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M5, videorate, latency, OQ-131
+- **Fact:** In GStreamer 1.26 videorate source, the default (non-drop-only) mode adds one input-frame duration of latency to the latency query because it holds each frame until the next arrives; drop-only mode reports no added latency and decides per frame immediately.
+- **Source:** GStreamer 1.26 source: subprojects/gst-plugins-base/gst/videorate/gstvideorate.c — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26/subprojects/gst-plugins-base/gst/videorate/gstvideorate.c>
+- **Evidence:** Latency query handler: "/* Drop only has no latency, other modes have one frame latency */ if (!drop_only && videorate->from_rate_numerator != 0) { /* add latency. We don't really know since we hold on to the frames until we get a next frame, which can be anything. We assume however that this will take from_rate time. */ latency = gst_util_uint64_scale (GST_SECOND, videorate->from_rate_denominator, videorate->from_rate_numerator);"; transform_ip: "/* In drop-only mode we can already decide here if we should output the current frame or drop it because it's coming earlier than our minimum allowed frame period. This also keeps latency down to 0 frames */"
+
+### M-55
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M5, videorate, buffer copy, dmabuf
+- **Fact:** In the GStreamer 1.26 videorate source (gstvideorate.c), default (non-drop-only) mode keeps the previous input buffer in prevbuf. It outputs that buffer via gst_buffer_ref (videorate->prevbuf) followed by gst_buffer_make_writable ('make sure we can write to the metadata'). Because prevbuf still holds a reference, this makes a new GstBuffer. Per the GstBuffer documentation, that copy shares (references) the underlying memory unless the memory type requires a copy. The output PTS is then rewritten to the output-grid timestamp. In drop-only mode the input buffer is held in prevbuf only during the chain call and cleared before it returns. If kept, the buffer is pushed by GstBaseTransform itself ('This avoids storing extra reference to the buffer'). Its PTS is not rewritten, but videorate still sets OFFSET/OFFSET_END and the DISCONT/GAP flags on that same buffer. When a fixed output framerate is negotiated, it also sets DURATION to the output frame period.
+- **Source:** GStreamer 1.26 source gstvideorate.c; GStreamer documentation: GstBuffer (gst_buffer_copy, gst_buffer_make_writable) — <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26/subprojects/gst-plugins-base/gst/videorate/gstvideorate.c>
+- **Evidence:** gstvideorate.c gst_video_rate_flush_prev: "outbuf = gst_buffer_ref (videorate->prevbuf); /* make sure we can write to the metadata */ outbuf = gst_buffer_make_writable (outbuf);"; gst_video_rate_push_buffer: "/* We do not need to update time in VFR (variable frame rate) mode */ if (!videorate->drop_only) { GST_BUFFER_PTS (outbuf) = push_ts; } else { /* In drop-only mode, we want GstBaseTransform to push the buffer. This avoids storing extra reference to the buffer. */"; https://gstreamer.freedesktop.org/documentation/gstreamer/gstbuffer.html gst_buffer_copy: "Creates a copy of the given buffer. This will only copy the buffer's data to a newly allocated memory if needed (if the type of memory requires it), otherwise the underlying data is just referenced."
+- **Original claim (before verification):** In GStreamer 1.26 videorate source, default mode keeps a reference to the previous input buffer and pushes it via gst_buffer_ref + gst_buffer_make_writable ('to make sure we can write to the metadata'); per GStreamer docs gst_buffer_copy only references the underlying memory unless the memory type requires a copy. In drop-only mode the input buffer is pushed by GstBaseTransform without an extra stored reference and its timestamps are not rewritten.
+- **Verifier note:** 1.26 gstvideorate.c. gst_video_rate_flush_prev, about line 806: 'outbuf = gst_buffer_ref (videorate->prevbuf); /* make sure we can write to the metadata */ outbuf = gst_buffer_make_writable (outbuf);'. gst_video_rate_push_buffer, about lines 700-790: sets GST_BUFFER_OFFSET/OFFSET_END, sets or unsets DISCONT and GAP, and for rate>0 with to_rate_numerator != 0 sets 'GST_BUFFER_DURATION (outbuf) = videorate->next_ts - push_ts'. Then: '/* We do not need to update time in VFR (variable frame rate) mode */ if (!videorate->drop_only) { GST_BUFFER_PTS (outbuf) = push_ts; } else { /* In drop-only mode, we want GstBaseTransform to push the buffer. This avoids storing extra reference to the buffer. */ gst_buffer_unref (outbuf); return res; }'. In transform_ip's drop-only path (about lines 1821-1834), push_buffer is called with 'gst_buffer_ref (buffer)', i.e. the same input buffer object, not a writable copy. So the OFFSET, flag and DURATION writes land on the buffer GstBaseTransform then pushes. It then runs '/* No need to keep the buffer around for longer */ gst_buffer_replace (&videorate->prevbuf, NULL);' (the buffer had been stored by gst_video_rate_swap_prev earlier in the same call). GstBuffer docs (gstreamer.freedesktop.org/documentation/gstreamer/gstbuffer.html): gst_buffer_copy 'This will only copy the buffer's data to a newly allocated memory if needed (if the type of memory requires it), otherwise the underlying data is just referenced.' gst_buffer_make_writable: 'If there is more than one reference on the object, a copy will be made using gst_buffer_copy ... the underlying memory is not copied if it can be shared amongst multiple buffers.' Correction: the claim said drop-only output 'timestamps are not rewritten'. Only PTS is untouched; DURATION, offsets and the DISCONT/GAP flags are modified.
+
+### M-56
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M5, tee, queue
+- **Fact:** GStreamer tee splits data to multiple pads (e.g. display plus encode-to-file); its documentation requires a separate queue (or multiqueue) in each branch so a blocked branch does not stall the others; tee has an 'allow-not-linked' property for dynamic pipelines.
+- **Source:** GStreamer documentation: tee (coreelements) — <https://gstreamer.freedesktop.org/documentation/coreelements/tee.html>
+- **Evidence:** "Split data to multiple pads. Branching the data flow is useful when e.g. capturing a video where the video is shown on the screen and also encoded and written to a file." "One needs to use separate queue elements (or a multiqueue) in each branch to provide separate threads for each branch. Otherwise a blocked dataflow in one branch would stall the other branches." "allow-not-linked ... This property makes sink pad return GST_FLOW_OK even if there are no source pads or any of them is linked. This is useful to avoid errors when you have a dynamic pipeline and during a reconnection you can have all the pads unlinked or removed."
+
+### M-57
+
+- **Verdict:** `CONFIRMED`
+- **Tier:** `vendor-other` (not ranked by Rule 23 — official documentation of another vendor or standards body)
+- **Applies to:** M5, queue
+- **Fact:** GStreamer queue creates a new thread on its source pad. By default it blocks when full: 200 buffers, 10 MB (10 × 1024 × 1024 = 10,485,760 bytes) or 1 s of data, whichever is reached first. It can instead be set 'leaky' upstream (drop new buffers) or downstream (drop old buffers).
+- **Source:** GStreamer documentation: queue (coreelements) — <https://gstreamer.freedesktop.org/documentation/coreelements/queue.html>
+- **Evidence:** "The queue will create a new thread on the source pad to decouple the processing on sink and source pad." "The default queue size limits are 200 buffers, 10MB of data, or one second worth of data, whichever is reached first." "As said earlier, the queue blocks by default when one of the specified maximums (bytes, time, buffers) has been reached. You can set the leaky property to specify that instead of blocking it should leak (drop) new or old buffers." Queue-leaky: "no (0) – Not Leaky / upstream (1) – Leaky on upstream (new buffers) / downstream (2) – Leaky on downstream (old buffers)"
+- **Original claim (before verification):** GStreamer queue creates a new thread on its source pad; by default it blocks when full (200 buffers, 10 MB, or 1 s, whichever first) and can instead be set 'leaky' upstream (drop new) or downstream (drop old).
+
+### M-58
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** M1, 4-lane, selection input
+- **Fact:** REASONING: Official documentation says two CSI-2 lanes support at most 1080p30 as RGB888 or 1080p50 as YUV422, and four lanes on a Compute Module support 1080p60 in either format (M-33). So 1080p60 UYVY on the CM4 IO Board needs a TC358743 board that routes all 4 data lanes to a 22-pin 0.5 mm FFC connector on the 4-lane CAM1 connector (M-35; 6by9 in M-48). Of the TC358743 boards found with vendor documentation, those are:; Auvidea B102 (M-05); Geekworm C790 (M-12); Geekworm C792: TC358743XBG plus a GSV2001 HDMI splitter, 15-pin and 22-pin connectors, 5 V supply; Geekworm says 4 lanes / 1080p60 on CM4, CM5 and Pi 5; Geekworm X1300 (M-20); Geekworm X1301 (M-22); 52Pi EP-0214 (M-31) The Waveshare HDMI to CSI Adapter (M-27) and Auvidea B101 (M-01) are 2-lane only. Auvidea B100 has 4 lanes, but only on a 40-pin board-to-board connector, so it needs an adapter (M-10). Caveats among the 4-lane boards: the Auvidea B102 rev 2 shop listing is 'Available on backorder', 'Delivery Time: currently not available' and labelled '(only for Raspberry Pi Zero)' (snapshot 2026-10-12, M-07). The B102 web page's HDMI input mode list stops at 1080p30 (M-05). 52Pi states an EP-0214 HDMI input limitation of 1080p30fps (M-31). The X1300 needs extra I2S wiring or the X1300-A2 accessory board for audio (M-20).
+- **Source:** Reasoning over claims M-01, M-05, M-07, M-12, M-20, M-22, M-27, M-31, M-33 — <https://wiki.geekworm.com/C790>
+- **Evidence:** Inputs: M-01, M-05, M-07, M-12, M-20, M-22, M-27, M-31, M-33 (official 4-lane 1080p60 statement).
+- **Original claim (before verification):** REASONING: Of the TC358743 boards found with vendor documentation, only boards that route 4 lanes to a 22-pin 0.5 mm connector can meet 1080p60 UYVY on CM4 CAM1: Auvidea B102 (M-05), Geekworm C790 (M-12), X1300 (M-20), X1301 (M-22), 52Pi EP-0214 (M-31). Waveshare (M-27) and Auvidea B101 (M-01) are 2-lane only. Of the 4-lane boards, B102 is on backorder with 'currently not available' delivery (M-07) and its vendor mode list stops at 1080p30 (M-05); EP-0214's vendor limit is 1080p30 (M-31); X1300 needs extra wiring or an accessory board for audio (M-20).
+- **Verifier note:** Checked each input against its source. M-33: csi-2-usage.adoc at commit 62ba0a0c, verbatim. M-01: B10x manual p.3 'CSI-2: up to 2 lanes plus clock', '15 pin FPC with 1.0 mm pitch'. M-05: live B102 page (2026-10-12) 'HDMI input: 1080p30, 1080p25, 720p30, 720p25', 'CSI-2: up to 4 lanes plus clock', '22 pin FPC 0.5mm'. M-07: live shop page (2026-10-12) 'Available on backorder', '€ 29,80', 'Plus 19% VAT', 'Delivery Time: currently not available', 'SKU: 70502', '(only for Raspberry Pi Zero)'. M-12: C790 wiki via Wayback 2026-08-28 '4 CSI-2 data lanes', 'CM4 & Pi 5: 4 lanes supported, up to 1080p@60fps', 'Back: 22-pin FPC connector, pitch 0.5 mm'. M-20: X1300 wiki via Wayback 2026-02-17 '4 data lanes', 'MIPI connector x1 - 22pin 0.5mm pitch', compatible '... / Raspberry Pi Compute Module 4 IO board', audio '(Note: To capture HDMI audio via I2S, additional wiring or the X1300-A2 accessory board is necessary.)'. M-22: X1301 wiki via Wayback 2026-08-28 '4 data lanes', '22-pin FPC with 0.5mm pitch', comparison row '... / CM4 IO'. M-27: live Waveshare wiki 'Video: 2-lane MIP CSI-2', 'up to 1080p@30fps'. M-31: live 52Pi page '22Pin @ 4Lanes (CM4 Computer module only)', 'Limitation: HDMI input support up to 1080p30fps'. Correction (completeness): the comparison table on the C790 wiki page the researcher cited also lists the Geekworm C792 ('HDMI to CSI-2 with HDMI OUT loop', '1080P@60Hz for Pi 5B, CM4, CM3', '22-PIN FPC (pitch 0.5 mm) on the rear of C792', I2S yes). Its own wiki page (Wayback 2026-02-07, https://wiki.geekworm.com/C792) says 'Pi CM4 /CM5/ 5B can support 4 lan, max ... 1080p60Hz', 'Power supply:5V', 'The hardware programme is GSV2001+TC358743'. C792 was missing from the researcher's 'only' list, so I added it. The B100 (M-10) also has 4 lanes, but not on an FFC camera connector; the manual's 38186 jumper-wire adapter is 'not recommended for a production system'. I did not re-verify the B100 web page itself.
+
+### M-59
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** M2, reset, INT, CAM_GPIO
+- **Fact:** REASONING: The official documentation says the CM4 IO Board provides a single GPIO for both the cam1_reg and cam0_reg aliases, so both camera connectors share one shutdown/regulator line (M-36). On Auvidea B101 rev 3.1, a 0-ohm R30 ties TC358743 RESET to CAM_GPIO (15-pin pin 11), and a low level holds the chip in reset (M-04). With two such boards on CAM0 and CAM1, both bridges would therefore be reset together. The Geekworm C790 brings RESET and INT out on a 5x1 header J4 (INT, IR, RESETN, 3.3V, GND; M-14), and the X1301 on 2 mm-pitch PTH holes (RST, INT, iR, GND, 3V3; M-23). These boards need wires from those pins to CM4 GPIOs (for example via the 40-pin header) if the driver is to use the reset or interrupt line. The vendor images do not say whether the C790's FFC CAM_GPIO pin also drives RESET, or whether the X1301's RST is routed to its FFC. Auvidea B101 rev 4 and B102 rev 2 expose RESET (and CABLE detect) on their 8-pin connector but list no INT pin (M-03, M-06). Their interrupt line is therefore not available without board modification.
+- **Source:** Reasoning over claims M-03, M-04, M-06, M-14, M-23, M-36 — <https://www.raspberrypi.com/documentation/computers/compute-module.html>
+- **Evidence:** Inputs: M-03, M-04, M-06, M-14, M-23, M-36.
+- **Original claim (before verification):** REASONING: Because the CM4 IO Board has one shared CAM_GPIO for both camera connectors (M-36), a board that ties TC358743 RESET to CAM_GPIO (Auvidea B101 rev 3.1, M-04) would reset both bridges together in a two-bridge build; boards exposing RESET/INT only on a header (C790 M-14, X1301 M-23, Auvidea rev 4/rev 2 M-03/M-06) need flying wires to CM4 GPIOs if the driver is to use reset or interrupt lines.
+- **Verifier note:** Checked the inputs. M-36: cmio-camera.adoc at commit 62ba0a0c, verbatim ('single GPIO pin for both aliases, so both cameras share the same regulator'). M-04: B10x manual p.5, verbatim (R30 0 Ohm to CAM_GPIO pin 11; 'A low on this pin puts the module into Reset state'). M-03/M-06: manual p.7 and p.9 8-pin tables (V3.3, RESET, CABLE, A-MCLK, A-DATA, A-BCK, A-LRCK, GND), with no INT. M-14: I viewed the vendor image C790-Interface-Description.jpg (via Wayback; 2000x2000 JPEG). It shows 'Header 5X1' J4 pins 1 INT, 2 IR, 3 RESETN, 4 3.3V, 5 GND; J3 FPC22P pin 17 CAM_GPIO, pin 18 marked X; J2 FPC15P pin 11 CAM_GPIO, pin 12 X. It does not show what CAM_GPIO connects to on the board. M-23: I viewed X1301-V1.1-IMG-8055-interface.jpg (Shopify CDN, 2000x2000). It shows 'TC358743XBG Pinout PTH Holes, pitch 2mm' with RST, INT, iR, GND, 3V3. Whether those nets also reach the 22-pin connector is not shown. Corrections: (1) the claim grouped Auvidea rev 4 / rev 2 with boards exposing 'RESET/INT' on a header, but those boards have no INT pin at all; (2) 'only on a header' for C790/X1301 RESET is not established, because CAM_GPIO on the C790 FFC has an undocumented function.
+
+### M-60
+
+- **Verdict:** `CORRECTED`
+- **Tier:** `reasoning` (Rule 23 priority 8 — reasoning/calculation from cited inputs)
+- **Applies to:** M5, OQ-131, videorate
+- **Fact:** REASONING: For OQ-131 (60 to 30 fps live), consider videorate with output caps framerate=30/1 and drop-only=true. It passes an input frame only when the frame's PTS is at or after the next 1/30 s output slot. With a steady 60 fps input it therefore passes about every other frame; the exact pattern depends on input PTS jitter relative to the 1/30 s grid. In this mode it reports no added latency, decides each frame within the same chain call and keeps no buffer reference between calls (M-54, M-55). Default (non-drop-only) mode instead adds one input-frame period to the latency query: 1/60 s ≈ 16.67 ms at 60 fps input, or 1/50 s = 20 ms at 50 fps input. It also keeps one captured buffer referenced in prevbuf between calls (M-54, M-55). In drop-only mode videorate does not rewrite PTS, so output buffers keep the source PTS. It does, however, set DURATION to the output frame period (1/30 s ≈ 33.33 ms) and rewrite OFFSET/OFFSET_END (M-55).
+- **Source:** Reasoning over claims M-52 to M-55 — <https://gstreamer.freedesktop.org/documentation/videorate/index.html>
+- **Verifier's best source:** <https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.26/subprojects/gst-plugins-base/gst/videorate/gstvideorate.c>
+- **Evidence:** Inputs: M-52, M-53, M-54, M-55. Arithmetic: 1 s / 60 = 16.67 ms; 1 s / 50 = 20 ms.
+- **Original claim (before verification):** REASONING: For OQ-131 (60 to 30 fps live), videorate with caps framerate=30/1 and drop-only=true drops alternate frames with no added latency and no stored reference (M-54, M-55); default mode adds one input-frame of latency (1/60 s = 16.7 ms at 60 fps input; 1/50 s = 20 ms at 50 fps) and holds one capture buffer reference (M-54, M-55). drop-only does not rewrite PTS, so output keeps source timestamps (M-55).
+- **Verifier note:** Re-derived the reasoning from the 1.26 source. Drop-only decision (transform_ip): 'if ((videorate->segment.rate > 0.0 && in_ts >= videorate->next_ts) ...) res = gst_video_rate_push_buffer (...) else videorate->drop++;'. next_ts then advances on the fixed grid 'base_ts + out_frame_count * to_rate_denominator * GST_SECOND / to_rate_numerator'. So with ideal 60 fps PTS, frames 0, 2, 4... pass; with jittered capture PTS, a frame slightly before a slot is dropped and the next one passes, so the pattern is approximately, not strictly, alternate. Latency per the M-54 handler: from_rate_denominator/from_rate_numerator seconds. Arithmetic: 1/60 s = 16.666... ms; 1/50 s = 20 ms; 1/30 s = 33.333... ms. The grid slot is computed with gst_util_uint64_scale, which rounds down, so durations are 33,333,333 ns twice then 33,333,334 ns in each 3-frame cycle. Default mode holds prevbuf between calls (gst_video_rate_swap_prev / gst_buffer_replace). Drop-only clears prevbuf before returning. Corrections: 'output keeps source timestamps' is true for PTS only (DURATION/OFFSET are rewritten), and 'drops alternate frames' is only approximately true. Extra caution not in the claim: in non-skip-to-first mode, next_ts starts at the segment start (base_ts = segment.start at the SEGMENT event). If the first captured PTS were far from the segment start, drop-only would pass every frame until the 1/30 s grid caught up. skip-to-first=true anchors the grid at the first buffer's PTS instead (lines 1791-1795).

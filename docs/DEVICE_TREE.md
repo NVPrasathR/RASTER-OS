@@ -321,6 +321,8 @@ How the labels resolve on each platform:
 
 ### 5.3 Reset GPIO
 
+*(Added 2026-10-12, research topic M.)* On the candidate boards RESETN is not on the camera connector: C790 header J4 [M-14], X1301 PTH holes [M-23]; Auvidea B101 rev 3.1 ties it to CAM_GPIO [M-04]. The CM4 IO Board's camera connectors share one CAM_GPIO [M-36], so a `reset-gpios` line would be a separate CM4 GPIO wired from the board's header (reasoning [M-59]; OQ-020).
+
 - **Stock overlay:** none [B-41], [C-23].
 - **PACSCORDER value:** UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED — OQ-020.
 - RESETN is active low [A-27]. The binding example declares `reset-gpios` with `GPIO_ACTIVE_LOW` [A-27], [B-05].
@@ -329,6 +331,8 @@ How the labels resolve on each platform:
 - Without `reset-gpios`, reasoning from [B-13]: RESETN must already be deasserted by board circuitry when the driver probes.
 
 ### 5.4 Interrupt GPIO
+
+*(Added 2026-10-12, research topic M.)* INT is on the C790's header J4 [M-14] and the X1301's PTH holes [M-23]; Auvidea B101 rev 4 / B102 rev 2 have no INT pin [M-03], [M-06]. Using it needs a wire to a CM4 GPIO and an `interrupts` property (OQ-020).
 
 - **Stock overlay:** none. The driver therefore polls every 1000 ms, or every 10 ms when a CEC adapter is registered [A-30], [C-20]. CEC is not enabled in the Raspberry Pi defconfigs [B-20].
 - **PACSCORDER value:** UNKNOWN — VERIFICATION REQUIRED. VENDOR CONFIRMATION REQUIRED — OQ-020.
@@ -378,6 +382,8 @@ How the labels resolve on each platform:
 - The effective clock mode on the wire is UNKNOWN — KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED (OQ-037).
 
 ### 5.8 CSI lanes
+
+*(Added 2026-10-12, research topic M.)* `4lane` belongs only on a board with all 4 lanes on a 22-pin connector, on the CM4's 4-lane CAM1 connector; on a 2-lane board it can cause problems (community) [M-44], [M-48]. Geekworm's setup uses `dtoverlay=tc358743,4lane=1` [M-25].
 
 - **Stock overlay:** `data-lanes = <1 2>` by default. `4lane` switches both the bridge endpoint and `csi1_ep` to `<1 2 3 4>` [B-42], [C-12].
 - **Receiver limits in the base DT:** Pi 4B `csi1` 2 lanes; CM4 `csi0` 2 lanes and `csi1` 4 lanes [B-48], [C-08]. Unicam accepts only 1, 2 or 4 data lanes, in order, on its endpoint [C-17].
@@ -493,6 +499,8 @@ dtoverlay=tc358743
 ```
 
 ### 6.2 Compute Module 4
+
+*(Added 2026-10-12, research topic M.)* CM4 IO Board: CAM0 (2-lane) and CAM1 (4-lane) are both 22-pin 0.5 mm [M-35]; both share one CAM_GPIO regulator line [M-36]; the GPIO bank runs at 3.3 V by default [M-38]. Bring-up boards: ADR-011 (PROPOSED).
 
 - CAM1: 4 lanes, `csi1`, `i2c-10`. CAM0: 2 lanes, `csi0`, `i2c-0` [C-02], [C-08], [C-25].
 - On the CM4 IO Board, CAM0 needs both J6 jumpers [C-03]. On a custom carrier, Raspberry Pi's camera drivers assume CAM1 uses `i2c-10` and CAM0 uses `i2c-0` [C-25]; the carrier's actual wiring is UNKNOWN (OQ-018).
@@ -864,3 +872,4 @@ Nothing (no hardware exists as of 2026-10-08). No overlay has been loaded and no
 | 2026-10-08 | H.265 deferred (owner: "H.264 only for now", OQ-103; REQ-ENC-002): "second set" paragraph notes that the codec decision was narrowed to H.264 only (H.265 deferred, not in current scope) and that this does not change the Device Tree. No Device Tree content, §9 change-log entry, citation, decision or status changed. | Claude (session 2026-10-08) |
 | 2026-10-09 | Storage + latency (ADR-009 ACCEPTED, OQ-116 ANSWERED, research topics J and K): header (Last updated; Applies to adds the recording-storage `config.txt` settings; Verification adds topics J and K); new "Owner decisions of 2026-10-08" paragraph (ADR-009 touches the CM5 M.2 link and the CM4 USB host; the latency decision does not change the Device Tree); §1 new "Recording-storage interfaces" row; §6.0 new bullet on attested storage syntax (`pciex1`, `pciex1_gen` [J-15], `dtparam=pciex1_gen=3` [J-16], `otg_mode=1` and `dwc2` [J-07], [J-18]), bare `dtparam=pciex1` NEEDS VERIFICATION, PROPOSED keep Gen 2 [J-12], [J-13], [J-16]; §6.2 CM4 storage bullet (USB host choice and UAS binding [J-07], [J-24], OQ-122; no PCIe line known, OQ-121; `pci=nomsi` is a command-line item [J-02], OQ-123) and PROPOSED `otg_mode=1` with a commented `dwc2` alternative in both CM4 snippets; §6.3 Pi 5 storage bullet ([J-15] reasoning, [J-16]; nothing proposed, OQ-098); §6.4 new "Recording storage on CM5" notes ([J-03], [J-10], [J-11], [J-12], [J-13], [J-15], [J-17], [J-18], [J-22]; OQ-124, OQ-052, OQ-121) and PROPOSED `dtparam=pciex1=on` in the CM5 IO Board snippet; §6.5 storage row; §7 storage kernel options [J-29]; §9 new change-log entry "2026-10-09 — Proposed configuration extended: recording-storage interfaces for ADR-009" (no source change; NOT YET LOADED); Verification status lists topic J IDs and the 2026-10-08 storage-latency research JSON. No Device Tree source changed; no REQ, ADR, RISK or OQ status changed; overlay status NOT STARTED unchanged. Verifier pass (same date): header Verification row keeps the original "as of 2026-10-08" with "(still none on 2026-10-09)" added (Rule 21). | Claude (session 2026-10-09) |
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4); 14 stale ADR-004 statements superseded (owner-decision paragraphs of 2026-10-07 and 2026-10-08, §1 CM4 row, §3.5 CM5 status, §5.8, §6.0 audio and snippet bullets, §6.1, §6.2 (2), §6.3, §6.4, §6.5 bring-up row) and one stale ADR-003 (both PROPOSED) line in the §9 entry of 2026-10-06 annotated; §3.3, §3.4, §6.1 (Pi 4 Model B), §6.3 (Pi 5) and §6.4 (CM5) marked not in current scope; Pi 4 Model B / Pi 5 / CM5 rows or columns noted after the tables in §1, §3.5, §3.6, §4.1, §5.1, §5.8, §5.10, §6.5 and §8. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
+| 2026-10-12 | Research topic M: dated notes in §5.3 (RESETN routing on candidate boards; shared CAM_GPIO), §5.4 (INT routing), §5.8 (`4lane` only for 4-lane boards on CAM1) and §6.2 (CM4 IO Board connectors, CAM_GPIO, 3.3 V bank; ADR-011). No overlay or DT content proposed or changed. | Claude (session 2026-10-12) |

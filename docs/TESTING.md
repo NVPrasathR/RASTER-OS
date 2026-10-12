@@ -180,6 +180,8 @@ Confirm that the TC358743 on the PACSCORDER bridge board answers on the platform
 
 ### Setup
 
+*(Added 2026-10-12, research topic M.)* **Bridge board and cable for bring-up:** ADR-011 (PROPOSED) proposes Geekworm C790 boards, an X1301 and, if obtainable, an Auvidea B102. Use only the FFC supplied with the board or an identical one — same-side and opposite-side cables exist and the wrong one can damage the boards (community) [M-49] (RISK-021); the official documentation does not say which type a 22-to-15 cable needs [M-41]. On the CM4 IO Board both camera connectors are 22-pin [M-35]; check pin 1 against the 22-pin pinout [M-37].
+
 - Platform and connector: see the platform reference table. PACSCORDER's choice is UNKNOWN — OWNER DECISION REQUIRED (OQ-011). *(Superseded — OQ-011 ANSWERED 2026-10-09: the product platform is the CM4 (BCM2711); ADR-004 ACCEPTED, ARCH-001. Note added 2026-10-12.)*
 - Bridge board: UNKNOWN — VERIFICATION REQUIRED (OQ-018).
   - The stock overlay and driver request no regulator [C-23]. Reasoning: the connector's CAM_GPIO / power-enable line is therefore expected to stay low [C-51].
@@ -333,6 +335,8 @@ BLOCKED — HARDWARE REQUIRED — not run
 Confirm that a source sees no sink until an EDID is written, that writing the EDID asserts HDMI hot-plug (HPD), and that the EDID must be rewritten after every boot or driver load.
 
 ### Setup
+
+*(Added 2026-10-12, research topic M.)* A Raspberry Pi engineer: with no EDID loaded the source sends no output, and the driver does not switch to the detected timings by itself — the timings must be set (community) [M-50].
 
 - As TEST-DRV-001, with an HDMI source connected and supplying +5V.
 - EDID file: the PACSCORDER EDID content is UNKNOWN — OWNER DECISION REQUIRED (OQ-002).
@@ -575,6 +579,8 @@ Scope against the owner decision of 2026-10-07 (OQ-001 answered: "i need 2 lane 
 - REQ-CAP-007: this test covers the highest rate of the 4-lane configuration (1080p60). The 2-lane configuration cannot carry 1080p60 [C-37], [C-48]; its highest 1920x1080 rates (1080p50 UYVY, 1080p30 RGB888) and every lower rate of both configurations are covered by the TEST-CAP-004 supported-mode matrix, which reuses this test's configuration and measurement steps.
 
 ### Setup
+
+*(Added 2026-10-12, research topic M.)* 1080p60 needs a board that routes all 4 lanes to a 22-pin connector on the CM4 CAM1 connector [M-33], [M-44], [M-48]; candidates per ADR-011 (PROPOSED). Vendors differ on the modes they claim for 4-lane boards — the B102 page lists inputs to 1080p30 [M-05], 52Pi states 1080p30 [M-31], Geekworm states 1080p60 on CM4 for the C790 [M-12] — so the result is measured here, not taken from the vendor.
 
 - **4-lane configuration only:** CM4 CAM1 [C-02], Pi 5 [C-04], CM5 [C-05]. *(Pi 5 / CM5: not run in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001. Note added 2026-10-12.)*
   - **2-lane configurations cannot run this test's 1080p60 run.** The Pi 4 Model B connector has 2 lanes [C-01], and so does CM4 CAM0 [C-02]. Official documentation limits 2 lanes to 1080p30 RGB888 or 1080p50 YUV422 [C-37], and the reasoning in [C-48] agrees. Under REQ-CAP-007 these remain candidates for the 2-lane configuration (ADR-004, OPEN); *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Pi 4 Model B is not in current scope as a product board; the 2-lane configuration is CM4 CAM0 or a 2-lane bridge board (REQ-CAP-007). Note added 2026-10-12.)* they are tested at the rates their link carries in TEST-CAP-004.
@@ -865,6 +871,8 @@ The silicon can also send audio over CSI-2 [A-05]. The Linux driver always confi
 - the audio/video offset and drift (RISK-024, OQ-112).
 
 ### Setup
+
+*(Added 2026-10-12, research topic M.)* **Run this on every candidate bridge board before HW REV A is chosen** (ADR-011, RISK-035): HDMI audio is reported to fail on many non-Auvidea boards because of their audio PLL layout (community) [M-45], [M-46]. C790 wiring per Geekworm: SCK→pin 12 (GPIO18), WFS→pin 35 (GPIO19), SD→pin 38 (GPIO20), GND→pin 6 [M-16]; check the X1301's GPIO20 pin before wiring — its image prints pin 37 [M-23]. The audio path does no resampling; presence and rate are V4L2 controls [M-34].
 
 - **Precondition:** OQ-004 answered "audio required". Otherwise this test does not apply; REQ-CAP-006 is PROPOSED. *(Superseded 2026-10-08: OQ-004 was ANSWERED on 2026-10-07 — "Yes, audio required" — and REQ-CAP-006 is now DRAFT. The test applies on every board.)*
 - Wiring:
@@ -2155,3 +2163,4 @@ Nothing (no hardware exists as of 2026-10-06). No procedure in this document has
 | 2026-10-12 | **TEST-ENC-001 Stage 0 added** (encoder-only capacity run on a CM4 with a synthetic source; no TC358743): Depends-on note, Objective paragraph, Stage 0 procedure under Test (sources, encode settings, steps, run matrix R1–R7, real-time mode, SoC monitoring, optional cross-checks, interpretation), Stage 0 expected result; test-order note. Script: `tools/encoder_capacity_test.sh` (NOT YET RUN ON PACSCORDER HARDWARE; dry-run only with stand-in commands). Cites research topic L. No TEST-ID added, renamed or re-scoped; status stays BLOCKED — HARDWARE REQUIRED. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later on 2026-10-12: TEST-ENC-001 Stage 0 — run R8 added (1080p50 recording + 1080p30 live, 2.67×); dated note that R4 and R8 are the product runs after the 1080p30 live-encode decision (R3 for 1080p30 sources); real-time mode and interpretation notes. `tools/encoder_capacity_test.sh` gained R8. No TEST-ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: TEST-ENC-001 Stage 0 — run R9 added (1080p50 recording + 1080p25 live, 2.5×); note that the product runs are R4, R9 and R3 and R8 is a margin reference. `tools/encoder_capacity_test.sh` gained R9. No TEST-ID changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | Research topic M: dated Setup notes in TEST-HW-001 (bring-up boards per ADR-011; cable sidedness, RISK-021), TEST-DRV-002 (no EDID → no output; timings must be set), TEST-CAP-002 (4-lane 22-pin board on CAM1; vendor mode claims differ) and TEST-AUD-001 (run on every candidate board before HW REV A is chosen; RISK-035; wiring). No TEST-ID changed. | Claude (session 2026-10-12) |

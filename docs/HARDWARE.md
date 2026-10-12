@@ -186,8 +186,8 @@ HDMI source: ATEM switcher output or camera (REQ-CAP-008; models OQ-102)
 
 | Attribute | Value | Resolution |
 |---|---|---|
-| Bridge-side connector (15-pin 1.0 mm or 22-pin 0.5 mm) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 |
-| Cable or adapter, contact sides, length | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 |
+| Bridge-side connector (15-pin 1.0 mm or 22-pin 0.5 mm) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* C790 has both 15-pin and 22-pin [M-12]; X1300 and X1301 22-pin only [M-20], [M-22]; B102 22-pin [M-05]; B101 and Waveshare 15-pin, 2 lanes [M-01], [M-27]. CM4 IO Board side: both CAM0 and CAM1 are 22-pin 0.5 mm [M-35]; 22-pin pinout [M-37].)* |
+| Cable or adapter, contact sides, length | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-021 *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* C790 ships 15 cm 15-pin and 22-pin cables [M-13]; X1301 ships 30 mm 22-pin and 22-to-15 cables [M-24]. Same-side and opposite-side FFCs exist — use the supplied one (community) [M-49]; the official documentation does not say which type a 22-to-15 cable needs [M-41]; Auvidea requires same-side cables [M-43]; a 15-pin camera on a CM IO board needs the Standard-Mini cable or a CMCDA adaptor [M-40].)* |
 | Pi-side connector used (Pi 4B camera port, CM CAM0/CAM1, Pi 5 CAM/DISP0/1, CM5 MIPI0/1) | UNKNOWN — VERIFICATION REQUIRED, one per lane configuration (REQ-CAP-007); connector-to-configuration map in §4.11 | OWNER DECISION REQUIRED — ADR-004, OQ-011, OQ-021 *(Superseded in part — ADR-004 ACCEPTED 2026-10-09: CM4, with CAM1 4-lane and CAM0 2-lane as stated in the header; the Pi 4B, Pi 5 and CM5 connectors are not in current scope, ARCH-001. Note added 2026-10-12.)* |
 
 **Reference facts from sources**
@@ -255,8 +255,8 @@ HDMI source: ATEM switcher output or camera (REQ-CAP-008; models OQ-102)
 
 | Attribute | Value | Resolution |
 |---|---|---|
-| TC358743 audio pins brought out by the bridge board (A_SCK, A_WFS, A_SD; A_OSCK) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-025, OQ-018 |
-| Wiring to Pi GPIO 18/19/20, or to the carrier's I2S pins | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED — OQ-025 (TEST-AUD-001) |
+| TC358743 audio pins brought out by the bridge board (A_SCK, A_WFS, A_SD; A_OSCK) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-025, OQ-018 *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* C790: A_SCK, A_SD, A_WFS, A_OSCK on a GH1.25 connector J5 [M-14]; X1301: I2S on board [M-22]; X1300: via the X1300-A2 board [M-20]; Auvidea B101 rev 4 / B102 rev 2: on an 8-pin connector (10-pin per the shop page) [M-03], [M-06], [M-07]; Waveshare: solder pads [M-28]. Audio works only if the board implements the audio PLL correctly (community) [M-45], [M-46] — RISK-035.)* |
+| Wiring to Pi GPIO 18/19/20, or to the carrier's I2S pins | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED — OQ-025 (TEST-AUD-001) *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* Auvidea per the official documentation [M-32]; C790 per Geekworm's diagram: SCK→pin 12 (GPIO18), WFS→pin 35 (GPIO19), SD→pin 38 (GPIO20) [M-16]; X1301 prints GPIO20 at pin 37 — inconsistent [M-23]; Waveshare [M-28]. The audio path does no resampling [M-34].)* |
 | VDDIO2 voltage, and the carrier's GPIO bank voltage selection | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-024 |
 | Other users of GPIO 18–21 on the carrier or in software | UNKNOWN — VERIFICATION REQUIRED (no carrier pin map exists) | OWNER DECISION REQUIRED — OQ-114, OQ-018 |
 | Audio capture through RP1 I2S1 on CM5 | UNKNOWN — VERIFICATION REQUIRED (unconfirmed by any source) | HARDWARE TEST REQUIRED — OQ-054 (TEST-AUD-001) |
@@ -290,7 +290,7 @@ The overlay and its Device Tree details are in [DEVICE_TREE.md](DEVICE_TREE.md) 
 
 | Attribute | Value | Resolution |
 |---|---|---|
-| RESETN driven by | UNKNOWN — VERIFICATION REQUIRED (Pi GPIO, camera-connector CAM_GPIO, or power-on reset circuit) | VENDOR CONFIRMATION REQUIRED — OQ-020, OQ-022 |
+| RESETN driven by | UNKNOWN — VERIFICATION REQUIRED (Pi GPIO, camera-connector CAM_GPIO, or power-on reset circuit) | VENDOR CONFIRMATION REQUIRED — OQ-020, OQ-022 *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* C790: RESETN on header J4, not on the camera connectors [M-14]; X1301: on PTH holes [M-23]; B101 rev 3.1: tied to CAM_GPIO [M-04]; B101 rev 4 / B102 rev 2: on the audio connector [M-03], [M-06]. The CM4 IO Board's two camera connectors share one CAM_GPIO [M-36] (reasoning [M-59]).)* |
 | Pi GPIO number (if any) | UNKNOWN — VERIFICATION REQUIRED | OQ-020 |
 | Pull resistor and default state | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-020 |
 | Required pulse width and reset-to-I2C-ready time | UNKNOWN — not in the public datasheet | DATASHEET REQUIRED — OQ-031 |
@@ -308,7 +308,7 @@ The overlay and its Device Tree details are in [DEVICE_TREE.md](DEVICE_TREE.md) 
 
 | Attribute | Value | Resolution |
 |---|---|---|
-| INT connected to a Pi GPIO | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-020 |
+| INT connected to a Pi GPIO | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-020 *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* C790: INT on header J4 [M-14]; X1301: on PTH holes [M-23]; Auvidea B101 rev 4 / B102 rev 2: no INT pin [M-03], [M-06]. Wiring INT to a CM4 GPIO needs a flying wire on these boards (reasoning [M-59]).)* |
 | Pi GPIO number (if any) | UNKNOWN — VERIFICATION REQUIRED | OQ-020 |
 | Pull resistor on INT | UNKNOWN — VERIFICATION REQUIRED. It matters if INT is also an address strap. | DATASHEET REQUIRED — OQ-026 |
 
@@ -371,7 +371,7 @@ TC358743 supply rails and recommended operating ranges [A-36], with supply-noise
 
 | Attribute | Value | Resolution |
 |---|---|---|
-| REFCLK oscillator frequency | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED (schematic, BOM); HARDWARE TEST REQUIRED (measure) — OQ-019 |
+| REFCLK oscillator frequency | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED (schematic, BOM); HARDWARE TEST REQUIRED (measure) — OQ-019 *(2026-10-12 — candidates from research topic M; the PACSCORDER value stays UNKNOWN until HW REV A is chosen, ADR-011 PROPOSED:* C790: a 4-pad part marked 27.000 MHz in the vendor photo [M-15]; C779: 27 MHz measured by a user (community) [M-46]; Auvidea: not stated [M-11]; others not stated.)* |
 | Oscillator part, accuracy, jitter | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-019; Toshiba limits: DATASHEET REQUIRED — OQ-031 |
 | Oscillator output level (VDDIO2) | UNKNOWN — VERIFICATION REQUIRED | VENDOR CONFIRMATION REQUIRED — OQ-024 |
 
@@ -573,7 +573,13 @@ No board has been selected. The entries below appear in the sources. They are li
 | Raspberry Pi CM4 IO Board (carrier) | Connectors, lanes and I2C mapping [C-03], [C-25]. *(Added 2026-10-09.)* PCIe Gen 2 x1 socket [J-03], 12 V-only slot power [J-05], USB 2.0 hub with one ~1.2 A VBUS switch [J-06] | official-rpi; datasheet | Named in sources, not selected |
 | Raspberry Pi CM5 IO Board (carrier) | Connectors, J6 jumpers, power-down signal [C-06]; I2C mapping [C-27]. *(Added 2026-10-09.)* M.2 M-key PCIe Gen 2 ×1 slot, 2230–2280 [J-13], [J-14]; two USB 3.0 ports sharing ~1.2 A [J-19]; USB-C PD power [J-20] | official-rpi / kernel-source; datasheet | Named in sources, not selected |
 | Recording storage parts: NVMe SSD, CM4 PCIe-to-M.2 adaptor, HDD, self-powered USB-to-SATA enclosure *(added 2026-10-09)* | None chosen (OQ-121, OQ-122). The Seagate BarraCuda 2.5-inch and 3.5-inch HDD families appear in the register only as datasheet examples of spin-up current, timing and supply voltage [J-30], [J-32]. The bridge chipsets in [J-25] are named only as kernel-quirk examples. | datasheet; kernel-source | Named in sources, not selected |
-| Geekworm C77x / C779 / C790, Waveshare, X1301 | Named only in the research questions and gaps. There is **no** register entry, so nothing about them is stated here. | — | Named in research notes only, not selected |
+| Geekworm C77x / C779 / C790, Waveshare, X1301 | Named only in the research questions and gaps. There is **no** register entry, so nothing about them is stated here. | — | Named in research notes only, not selected *(Superseded 2026-10-12: research topic M added register entries — see the rows below.)* |
+| Auvidea B101 *(row added 2026-10-12)* | TC358743XBG, 2 lanes on a 15-pin 1.0 mm FFC, 3.3 V [M-01]; documented only for 1080p25 on the Pi of 2017 [M-02]; a Raspberry Pi engineer: no 1080p60 with a B101 (community) [M-47]; rev 4 adds I2S/RESET/cable-detect connector [M-03]; rev 3.1 ties RESET to CAM_GPIO [M-04]; backorder, no delivery time (snapshot 2026-10-12) [M-08] | vendor-other; community | 2-lane only; not proposed |
+| Auvidea B102 *(row added 2026-10-12)* | TC358743XBG, up to 4 lanes on a 22-pin 0.5 mm FFC; page lists inputs to 1080p30 [M-05]; same pinout as the Pi 22-pin connector, same-side FFC [M-06], [M-43]; named by the official documentation [M-32]; backorder, no delivery time, business customers only (snapshot 2026-10-12) [M-07]; refclk, INT, EDID, HDCP not documented [M-11] | vendor-other; official-rpi | ADR-011: audio reference if obtainable |
+| Auvidea B100 / B112 *(row added 2026-10-12)* | B100 rev 3: 4 lanes on a 40-pin board-to-board connector only [M-10]; B112 is an LT6911UXC board, not TC358743 [M-09] | vendor-other | Not proposed |
+| Geekworm C790 *(row added 2026-10-12)* | TC358743XBG; 15-pin (2 lanes) and 22-pin (4 lanes) FFC; 1080p60 stated on CM4 [M-12]; cables included [M-13]; INT/RESETN on header J4, I2S on J5 [M-14]; 27.000 MHz part in photo [M-15]; I2S wiring to GPIO 18/19/20 [M-16]; upgraded C779 with I2S [M-17]; no CM4-specific setup on its wiki [M-18]; USD 30, in stock (snapshot 2026-10-12) [M-19]; audio unproven (RISK-035) | vendor-other | ADR-011: primary candidate (×2) |
+| Geekworm X1300 / X1301 / C792 *(row added 2026-10-12)* | X1300: 22-pin, 4 lanes, CM4 IO Board listed; audio via X1300-A2 [M-20], [M-21]. X1301: HAT with HDMI pass-through, 22-pin, 4 lanes, I2S, 5 V from the 40-pin header, CM4 IO listed [M-22]; RST/INT on PTH holes, GPIO20 pin-number error [M-23]; USD 38 in stock [M-24]; Geekworm's Pi 5 setup uses `4lane=1` and `tc358743-audio` [M-25]. C792: 4 lanes, HDMI splitter, 5 V [M-58] | vendor-other | ADR-011: X1301 as second design |
+| Geekworm C779; Waveshare HDMI to CSI; 52Pi EP-0214 *(row added 2026-10-12)* | C779: 15-pin, up to 1080p25 per its page, no I2S [M-26]. Waveshare: 2 lanes, 1080p30, I2S from pads, no HDCP, about 260 mA [M-27], [M-28], [M-29], [M-30]. EP-0214: 4 lanes on 22-pin but a vendor-stated 1080p30 limit [M-31] | vendor-other | Not proposed |
 
 *(Note added 2026-10-12: the Raspberry Pi CM5 IO Board row is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
@@ -602,6 +608,10 @@ This is a list of facts to check against the chosen hardware. It is **not** a pr
 | 15 | *(Added 2026-10-09.)* On the CM4 IO Board, plugging in the micro-USB cable disables the USB hub, and with it the HDD | [J-06] | OQ-122 |
 | 16 | *(Added 2026-10-09.)* A USB-to-SATA bridge can misbehave in UAS mode: stop responding or, rarely, lose written data (reported) | [J-27], [J-28] | RISK-027, OQ-122 |
 | 17 | *(Added 2026-10-09.)* On CM5 the M.2 link is disabled by default in the `rpi-6.18.y` device tree, and the `pciex1` dtparam defaults to off; reasoning: an SSD in the CM5 IO Board's M.2 slot may not enumerate unless the link is enabled (whether firmware enables it at run time is unknown) | [J-15], [J-17] | OQ-124 |
+| 18 | *(Added 2026-10-12.)* The CM4 IO Board's two camera connectors share one CAM_GPIO; a bridge that uses CAM_GPIO as RESET or power-enable couples both connectors (reasoning) | [M-36], [M-59] | OQ-020, ADR-011 |
+| 19 | *(Added 2026-10-12.)* Many non-Auvidea TC358743 boards are reported to give no I2S audio because of the audio PLL layout (community) | [M-45], [M-46] | RISK-035, OQ-025 |
+| 20 | *(Added 2026-10-12.)* A vendor wiring image can be wrong: the X1301 image prints GPIO20 at header pin 37 (GPIO26) | [M-23] | OQ-025 |
+| 21 | *(Added 2026-10-12.)* With no EDID loaded the source sends no output, and the driver does not switch to the detected timings by itself (community) | [M-50] | TEST-DRV-002, REQ-CAP-003 |
 
 *(Note added 2026-10-12: hazards 5 and 17, and the CM5 parts of hazards 4, 11 and 14, are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
@@ -685,3 +695,4 @@ Nothing (no hardware exists as of 2026-10-08). Every PACSCORDER value in this do
 | 2026-10-12 | ADR-004 scope sweep: "Last updated"; 16 stale statements superseded (ADR-004 ACCEPTED 2026-10-09: CM4) — intro (2), §1 Target platform row, §2 Raspberry Pi / CM row, §3 diagram, §4.1 platform row (value and resolution cells), §4.1 software-image and Pi 4 Model B consequence bullets, §4.4 Pi-side connector row, §4.6.1 per-platform lead-in, §4.11 lanes row and lane-configuration paragraph, §5 lead-in and Bring-up role row, Verified-on-hardware paragraph; after-table notes that the Pi 4 Model B / Pi 5 / CM5 columns, rows or items are not in current scope in §1, §2, §4.1, §4.6.1 (2 tables), §4.11, §4.13.1, §4.14.1, §5, §6 and §7 (11 notes). Header "Applies to" already updated 2026-10-09, left as is. No hardware information added (Rule 8). No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | **Catch-up row (Rules 1, 21).** The 2026-10-09 platform decision was committed without a row here (hand commit `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12); recorded from `git show`, edit unchanged): header "Applies to" **rewritten in place** (previous text, beginning "PACSCORDER hardware, all revisions (none defined yet). Candidate platforms: Raspberry Pi 4 Model B, …", kept in git: `git show 27c44d9^:docs/HARDWARE.md`) to name the product platform, CM4 (BCM2711), with CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (ADR-004 ACCEPTED, OQ-011 ANSWERED). | Claude (session 2026-10-12) |
 | 2026-10-12 | Follow-ups after the sweep: §7 hazard 10 evidence note ([C-27] is a CM5-on-CM4-IO-Board fact; CM4 camera-bus sharing is DATASHEET REQUIRED, OQ-026). §4.12 Ethernet: research topic L facts on the CM4 (BCM54210PE Gigabit PHY on every variant, IEEE 1588, MAC on the SoC, IO Board RJ45 and PoE header) [L-15] to [L-21] appended to the two value rows and the reference-facts bullet. No hardware information was invented; the product's interface is still OQ-018. | Claude (session 2026-10-12) |
+| 2026-10-12 | Research topic M: candidate-board facts appended to §4.4 (connector, cable), §4.6.1 (audio pins, wiring), §4.7 (RESETN), §4.8 (INT) and §4.10 (REFCLK), each marked as candidates with the PACSCORDER value still UNKNOWN (Rule 8); §6 rows for Auvidea B101, B102, B100/B112, Geekworm C790, X1300/X1301/C792, C779/Waveshare/52Pi (the earlier "no register entry" row superseded); §7 hazards 18–21. No hardware information invented; HW REV A not chosen (ADR-011 PROPOSED). | Claude (session 2026-10-12) |

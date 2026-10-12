@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 4 ACCEPTED, 4 PROPOSED, 1 OPEN |
+| Document status | Active — 4 ACCEPTED, 6 PROPOSED, 1 OPEN |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H, I, J and K) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -34,6 +34,8 @@ Fact references such as `[C-37]` point to the source register [REFERENCES.md](RE
 | ADR-007 | Userspace media framework | OPEN | 2026-10-06 |
 | ADR-008 | CSI-2 link frequency: keep the default 486 MHz | PROPOSED | 2026-10-06 |
 | ADR-009 | Recording storage and power-loss safety: fragmented MP4 mirrored to NVMe and a self-powered USB-SATA HDD | ACCEPTED | 2026-10-08 |
+| ADR-010 | Capture control model on the CM4: legacy (video-node) mode, the stock overlay default (alternative to ADR-006) | PROPOSED | 2026-10-12 |
+| ADR-011 | Bring-up TC358743 bridge boards for HW REV A (Geekworm C790 ×2, X1301, Auvidea B102 if obtainable) | PROPOSED | 2026-10-12 |
 
 ---
 
@@ -309,7 +311,7 @@ Use Media Controller mode on all platforms. On Pi 4/CM4 this means `dtoverlay=tc
 
 ## Review note (2026-10-12) — rationale after ADR-004
 
-*Added 2026-10-12; the proposed decision and its status are unchanged (PROPOSED, owner decision OQ-014).* ADR-004 was ACCEPTED on 2026-10-09: the product platform is the CM4 only. The proposal's main argument — "one capture application and one procedure serve every platform" — and the Context bullets on Pi 5/CM5 (Media Controller only [B-25], [C-11]; link enable [C-32], [C-33]) no longer apply. Reasoning: with one platform the choice is between legacy video-node mode and Media Controller mode **on CM4 alone**. The Alternatives entry's cost ("doubles the control code and test matrix") no longer arises, and legacy mode matches the official Raspberry Pi example [C-37]. This ADR should be re-evaluated for CM4 alone before the owner decides OQ-014. No new evidence for either mode was added.
+*Added 2026-10-12; the proposed decision and its status are unchanged (PROPOSED, owner decision OQ-014).* ADR-004 was ACCEPTED on 2026-10-09: the product platform is the CM4 only. The proposal's main argument — "one capture application and one procedure serve every platform" — and the Context bullets on Pi 5/CM5 (Media Controller only [B-25], [C-11]; link enable [C-32], [C-33]) no longer apply. Reasoning: with one platform the choice is between legacy video-node mode and Media Controller mode **on CM4 alone**. The Alternatives entry's cost ("doubles the control code and test matrix") no longer arises, and legacy mode matches the official Raspberry Pi example [C-37]. This ADR should be re-evaluated for CM4 alone before the owner decides OQ-014. No new evidence for either mode was added. *(Later on 2026-10-12: the CM4-only alternative is written up as **ADR-010** (PROPOSED, legacy video-node mode), which Claude recommends; the owner chooses between ADR-006 and ADR-010 under OQ-014.)*
 
 ---
 
@@ -424,6 +426,8 @@ On a CM4 CAM1 4-lane link only, evaluate 297 MHz as an alternative for 1080p60 U
 
 *Added 2026-10-12; the proposed decision and its status are unchanged (PROPOSED, owner decision OQ-099).* ADR-004 was ACCEPTED on 2026-10-09: the product platform is the CM4 only. Of the two reasons for 486 MHz "on every platform": (1) consistency with the Pi 5/CM5 receiver [C-52] **no longer applies**; (2) 486 MHz being the only rate that fits 1080p50 UYVY on a 2-lane link [C-48] **still applies** to the CM4 CAM0 2-lane configuration required by REQ-CAP-007. Reasoning: for the CM4 CAM1 4-lane configuration the remaining choice is 486 MHz (1080p60 UYVY on 3 active lanes, unproven, OQ-038) or the 297 MHz alternative already named in the Decision (4 lanes, the case the driver comment describes [C-44]); RGB888 at 1080p50/60 needs 486 MHz [C-49]. Whether the two capture configurations may use different link frequencies is a Device Tree question for TEST-CAP-002 and OQ-099. No new evidence was added.
 
+**Recommendation (Claude, 2026-10-12):** accept ADR-008 as written for the CM4. Its decision — the stock 486 MHz on both configurations for bring-up, with 297 MHz on CAM1 evaluated in TEST-CAP-002 — does not depend on the reason that fell away: 486 MHz is the only rate that carries 1080p50 UYVY on the 2-lane CAM0 [C-48] and RGB888 at 1080p50/60 on CAM1 [C-49], and keeps the Device Tree baseline the unmodified stock overlay. The 3-of-4-lane concern at 1080p60 UYVY remains the thing to test, with corruption already reported on a 4-lane CM4 when the driver chose 3 lanes at 1080p50 RGB24 (community) [C-43] (RISK-006, OQ-038).
+
 ---
 
 # ADR-009
@@ -478,6 +482,90 @@ ACCEPTED — 2026-10-08. All parts are owner decisions: *(Corrected 2026-10-09: 
 
 ---
 
+# ADR-010
+
+## Title
+
+Capture control model on the CM4: legacy (video-node) mode, the stock overlay default.
+
+## Status
+
+PROPOSED — 2026-10-12 (Claude's recommendation; owner decision OQ-014). An alternative to ADR-006 for the CM4-only product (ADR-004 ACCEPTED). If the owner accepts this ADR, ADR-006 becomes SUPERSEDED BY ADR-010; if the owner accepts ADR-006, this ADR becomes SUPERSEDED BY ADR-006.
+
+## Context
+
+- ADR-004 (ACCEPTED 2026-10-09): the product platform is the CM4 only. ADR-006 chose Media Controller mode so that "one capture application and one procedure serve every platform", because Pi 5/CM5 support Media Controller mode only [B-25], [C-11]. That reason no longer applies (ADR-006 review note, 2026-10-12).
+- On the CM4 the stock `tc358743` overlay puts Unicam in legacy (video-node-centric) mode by default; the `media-controller` parameter removes that fragment to select Media Controller mode [B-43], [C-10].
+- In legacy mode the video node forwards the EDID and DV-timings ioctls to the TC358743 sub-device, and sub-device nodes are read-only; in Media Controller mode those ioctls are missing from the video node and must go to a read-write `/dev/v4l-subdevN` [B-25] (CORRECTED), [C-36] (CORRECTED).
+- The official Raspberry Pi TC358743 documentation sets the EDID with `VIDIOC_S_EDID` and the timings with `DV_TIMINGS`, with the `tc358743` overlay [C-37] — the legacy-mode flow on Pi 4/CM4.
+- In Media Controller mode, research found that Unicam may not list UYVY in a filtered `ENUM_FMT` even though setting it works (research gap, topic C — OQ-046).
+
+## Decision (proposed)
+
+On the CM4, use the stock overlay's default **legacy (video-node) mode**: `dtoverlay=tc358743` (with `cam0` for the 2-lane CAM0 configuration [C-10]), no `media-controller` parameter. Control the TC358743 — EDID, DV timings, format — through the Unicam video node.
+
+Reasoning (Claude, from the facts above): it is the default and the officially documented path on this SoC [B-43], [C-37]; it needs no extra overlay parameter (so the bare-parameter syntax question in OQ-100 does not arise for it); it avoids the Media Controller `ENUM_FMT` question (OQ-046); and the benefit that justified Media Controller mode — one procedure across four platforms — disappeared with ADR-004.
+
+## Alternatives Considered
+
+- **ADR-006: Media Controller mode on the CM4** (`media-controller` parameter; control through `/dev/v4l-subdevN`). Kept as the alternative; it would matter again only if a Media-Controller-only platform were reconsidered (ARCH-001).
+
+## Consequences
+
+- Capture procedures and the capture application use `/dev/videoN` for EDID and DV timings; the TC358743 sub-device node is read-only in this mode [C-36].
+- If a Media-Controller-only receiver (for example the Pi 5/CM5 CFE) is ever reconsidered, the control path changes; that cost is accepted because ADR-004 dropped those platforms.
+- Whether Raspberry Pi intends to keep the legacy Unicam mode in future kernels is not in the register: UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED; tracked under OQ-014).
+- Verified by TEST-DRV-002 (EDID load) and TEST-PLT-001 (overlay and media graph); nothing has been run on hardware.
+
+---
+
+# ADR-011
+
+## Title
+
+Bring-up TC358743 bridge boards for HW REV A: Geekworm C790 (two) as the primary candidate, a Geekworm X1301 as a second design, and an Auvidea B102 as the audio reference if it can be obtained.
+
+## Status
+
+PROPOSED — 2026-10-12 (Claude's recommendation from research topic M; owner decision OQ-018). This chooses what to **buy and test**; the board fixed as HW REV A is chosen only after the bench tests named below.
+
+## Context
+
+- 1080p60 needs four CSI-2 lanes on a Compute Module [M-33]; on the CM4 IO Board both camera connectors are 22-pin 0.5 mm, CAM1 with 4 lanes and CAM0 with 2 [M-35], [C-02]. So the 4-lane configuration needs a board that routes all 4 lanes to a 22-pin connector [M-44], [M-48] (reasoning [M-58]).
+- Boards with vendor documentation that route 4 lanes to a 22-pin connector [M-58]: Auvidea B102 [M-05], Geekworm C790 [M-12], C792 [M-58], X1300 [M-20], X1301 [M-22], 52Pi EP-0214 [M-31]. The Waveshare adapter [M-27] and Auvidea B101 [M-01] are 2-lane only; the Auvidea B100 rev 3 has its lanes on a board-to-board connector [M-10].
+- Supply (snapshot 2026-10-12): Auvidea B101/B102 on backorder, no delivery time, business customers only [M-07], [M-08]; C790 USD 30 [M-19], X1300 USD 30 with the X1300-A2 audio board USD 12 [M-21], X1301 USD 38 [M-24], in stock.
+- Vendor mode claims differ: the B102 page lists inputs only up to 1080p30 [M-05] and 52Pi states a 1080p30 limit [M-31]; Geekworm states 1080p60 with 4 lanes on CM4 for the C790 [M-12].
+- Audio is required (REQ-CAP-006) and is the main board-level risk: many non-Auvidea boards are reported not to deliver I2S audio (community) [M-45], [M-46] (RISK-035). The C790 has an I2S connector wired to GPIO 18/19/20 per Geekworm's diagram [M-14], [M-16]; the X1301 lists the same GPIOs but prints GPIO20 at the wrong header pin [M-23].
+- Wiring: the C790 brings RESETN and INT out on a header, not on the camera connector [M-14]; the X1301 brings them out on PTH holes [M-23]. A 27 MHz part is visible next to the C790's TC358743 [M-15], which the stock overlay assumes [B-10].
+
+## Decision (proposed)
+
+For bring-up, buy:
+
+1. **Two Geekworm C790** — one on CM4 CAM1 (4-lane, with the overlay's `4lane` parameter, used as `4lane=1` in Geekworm's and a Raspberry Pi engineer's instructions [M-25], [M-44]; syntax OQ-100) and one on CAM0 (2-lane, the `cam0` parameter [C-10]; J6 jumpers [C-03]), using the 22-pin cables supplied [M-13], [M-49]. Reasoning: in stock, 4 lanes on 22-pin, a documented I2S connector and wiring, and a 27 MHz part visible on the board.
+2. **One Geekworm X1301** — a second, independent layout (with HDMI pass-through, 5 V from the 40-pin header the CM4 IO Board provides [M-22], [M-39]), as the fallback if C790 audio fails.
+3. **One Auvidea B102** if it can be ordered — the board the official documentation names [M-32] and the one a Raspberry Pi engineer reports good audio on [M-45]; its own page lists modes only to 1080p30 [M-05], so it is the audio reference rather than the 1080p60 candidate.
+
+HW REV A is chosen only after, on the candidate board: TEST-HW-001, TEST-DRV-002, TEST-CAP-002 (1080p60 on CAM1) and **TEST-AUD-001** (RISK-035) pass.
+
+## Alternatives Considered
+
+- **Auvidea B102 only:** documented and audio-proven (community), but not obtainable now [M-07].
+- **Waveshare HDMI to CSI adapter:** 2-lane, 1080p30 per its vendor, audio only from solder pads [M-27], [M-28]; cannot meet 1080p60.
+- **52Pi EP-0214:** 4 lanes on 22-pin but a vendor-stated 1080p30 limit [M-31].
+- **Geekworm X1300 + X1300-A2:** 4 lanes on 22-pin, audio through an accessory board [M-20], [M-21]; not proposed first because the C790 has audio on board, but a valid substitute.
+- **Geekworm C792:** 4 lanes, HDMI splitter, 5 V supply [M-58]; less documented in the register than the C790.
+- **A custom PACSCORDER PCB:** the likely product path (OQ-018), after a bench-proven reference exists.
+
+## Consequences
+
+- RESET and INT need wires from the board's header to CM4 GPIOs if the driver is to use them (OQ-020) [M-14], [M-59]; the CM4 IO Board's two camera connectors share one CAM_GPIO [M-36].
+- Use only the supplied FFCs (RISK-021) [M-49].
+- The board's audio is unproven until TEST-AUD-001 (RISK-035).
+- Cost at the 2026-10-12 snapshot: about USD 98 for 2 × C790 and 1 × X1301, plus shipping and the B102 if available [M-19], [M-24], [M-07].
+
+---
+
 # Verification status
 
 ## Verified from sources (fact IDs)
@@ -521,3 +609,5 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-12 | ADR-004 scope sweep: header "Document status" counter corrected in place from "3 ACCEPTED, 4 PROPOSED, 2 OPEN" to "4 ACCEPTED, 4 PROPOSED, 1 OPEN" to match the index (ADR-004 ACCEPTED 2026-10-09); header "Applies to" (all four candidate platforms) superseded; 8 stale statements superseded — ADR-003 Status "ADR-004, OPEN"; ADR-004 Analysis bullets on Pi 4 Model B as a 2-lane candidate, the side-by-side recommended next step, the H.265 and topic J bullets' "ADR-004 status unchanged (OPEN)", the CM5 audio bring-up gate and the two-encode run on both boards; ADR-007 Decision "on the candidate platforms (ADR-004)". No ADR Status or Decision text changed; the ADR-004 criteria table was left as the evaluation record. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | Follow-ups after the sweep: ADR-004 Consequences line — correction note on the list of CM5-specific items (as OQ-011). ADR-006 and ADR-008 — new "Review note (2026-10-12) — rationale after ADR-004" subsections: with CM4 only, ADR-006's main argument no longer applies, and of ADR-008's two reasons only the 2-lane 1080p50 UYVY one remains. **No decision or status changed** (4 ACCEPTED, 4 PROPOSED, 1 OPEN). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later on 2026-10-12: note on the ADR-004 Consequences line — the CM5-only questions are now ANSWERED (owner's instruction); OQ-108 is H.265, not CM5, and stays OPEN. No decision or status changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-010 added (PROPOSED):** capture control model on the CM4 — legacy video-node mode, the stock overlay default — as the CM4-only alternative to ADR-006 (owner decision OQ-014); index row; header 4 ACCEPTED, **5 PROPOSED**, 1 OPEN. ADR-006 review note cross-references ADR-010. ADR-008: Claude's recommendation to accept it as written (its decision does not depend on the CM5 reason). No accepted decision changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-011 added (PROPOSED):** bring-up bridge boards for HW REV A from research topic M — 2 × Geekworm C790, 1 × X1301, an Auvidea B102 if obtainable; HW REV A fixed only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001 pass. Index row; header 4 ACCEPTED, **6 PROPOSED**, 1 OPEN. | Claude (session 2026-10-12) |

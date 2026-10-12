@@ -1834,7 +1834,7 @@ None new. One point needs the owner's confirmation (Changes 2).
 
 ### Current Status
 
-- PASS (documentation consistency). The non-1080 decision is uncommitted, pending owner approval.
+- PASS (documentation consistency). The non-1080 decision is uncommitted, pending owner approval. *(Committed and pushed as `b8091fd` on the owner's "okay", `91ff869..b8091fd`.)*
 - Product work: BLOCKED — HARDWARE REQUIRED.
 
 ### Next Step
@@ -1854,6 +1854,93 @@ Commit description: Record the owner decision of 2026-10-12 that non-1080 inputs
 Files changed: docs/** (10 Markdown files)
 Reason: Rules 1, 3, 11, 12, 15, 21, 22
 Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check
+```
+
+---
+
+## 2026-10-12 (fifth entry) — ADR-010 and ADR-008 recommendations; research topic M (bridge boards); ADR-011 and RISK-035
+
+### Objective
+
+The owner said "continue" without choosing among the three desk tasks offered. Claude chose by impact: research the TC358743 bridge boards (OQ-018 to OQ-021 block the Device Tree and every capture test), with the OQ-131 frame-rate conversion folded in, and write the CM4-only recommendations for ADR-006 and ADR-008 while the research ran.
+
+### Starting State
+
+`main` at `b8091fd` (= `origin/main`). The session was interrupted by a Claude Code restart while the topic M research agent was running; it had written no output, and was resumed from its saved transcript. Git was clean apart from this session's uncommitted ADR-010 work; no hand commit had been made.
+
+### Changes
+
+1. **ADR-010 (PROPOSED):** capture control model on the CM4 — legacy (video-node) mode, the stock overlay default [B-43], [C-10] — as the CM4-only alternative to ADR-006 (owner decision OQ-014). Reasons: officially documented path [C-37]; no extra overlay parameter; avoids the Media Controller `ENUM_FMT` question (OQ-046); the cross-platform reason for ADR-006 disappeared with ADR-004. Cross-referenced in ADR-006, OQ-014, V4L2.md and the TRACEABILITY design cells of REQ-CAP-001 to REQ-CAP-004.
+2. **ADR-008:** recommendation to accept as written — its decision does not depend on the CM5 reason [C-48], [C-49]; the 3-of-4-lane concern stays the thing to test [C-43].
+3. **Research topic M** (1 researcher, resumed once; 2 independent verifiers): 60 facts, 47 CONFIRMED, 13 CORRECTED, 0 UNVERIFIABLE, 0 REFUTED; register 680 facts. Verifiers added the Geekworm C792, corrected the X1301 RESET/INT routing claim (not shown either way), the B102 cable-side conflict, the forum dates and the `videorate` buffer details. The generator was fixed to flatten line breaks in verified statements (M-58 contained a list) and re-run on a clean copy of REFERENCES.md.
+4. **Propagation:** OQ-018, OQ-019, OQ-020, OQ-021, OQ-024, OQ-025, OQ-131 (dated "Known so far" bullets); RISK-004 (supply snapshot), RISK-021 (FFC sidedness, shared CAM_GPIO); HARDWARE §4.4, §4.6.1, §4.7, §4.8, §4.10 (candidate facts, PACSCORDER values still UNKNOWN — Rule 8), §6 candidate rows, §7 hazards 18–21; DEVICE_TREE §5.3, §5.4, §5.8, §6.2; SOFTWARE_ARCHITECTURE (OQ-131 design input); TESTING setup notes in TEST-HW-001, TEST-DRV-002, TEST-CAP-002, TEST-AUD-001; TROUBLESHOOTING §7, §8; README fact range `M-NN`.
+5. **RISK-035 (High):** HDMI audio may not work on non-Auvidea bridge boards [M-45], [M-46]; retired only by TEST-AUD-001 on the candidate board.
+6. **ADR-011 (PROPOSED):** bring-up boards — 2 × Geekworm C790 (CAM1 4-lane, CAM0 2-lane), 1 × Geekworm X1301 (second design), an Auvidea B102 if obtainable (audio reference); HW REV A chosen only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001 pass. About USD 98 at the 2026-10-12 snapshot.
+7. Bookkeeping: commit `b8091fd` recorded in PROJECT_STATUS and this log.
+
+### Files Modified
+
+`docs/`: `REFERENCES.md`, `research/2026-10-12-bridge-boards-research.json` (new), `DECISIONS.md`, `RISKS.md`, `OPEN_QUESTIONS.md`, `HARDWARE.md`, `DEVICE_TREE.md`, `SOFTWARE_ARCHITECTURE.md`, `TESTING.md`, `TROUBLESHOOTING.md`, `V4L2.md`, `TRACEABILITY.md`, `README.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None. No hardware exists; nothing has been bought.
+
+### Software Changes
+
+None.
+
+### Commands Used
+
+```bash
+python3 <scratchpad>/gen_topic_M.py        # register append (re-run after git checkout -- docs/REFERENCES.md)
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- Documentation consistency check — **TESTED — PASS** (documentation only): `facts=680 topics=ABCDEFGHIJKLM … ADR=11 RISK=35 OQ=131`, `distinct facts cited=680/680`, PROBLEMS 0, WARNINGS 0.
+- Register format: no stray lines in topics L and M (every entry field on one line). Tables intact in every edited file.
+- No hardware test possible.
+
+### Problems Found
+
+- The first topic M register append wrote M-58's multi-line verified statement as separate lines; caught by a format check before commit, fixed by flattening and regenerating.
+- Vendor documents disagree with each other or with themselves: B102 cable contact side [M-43], B102 audio connector pin count [M-06], [M-07], X1301 GPIO20 header pin [M-23]; vendor mode claims for 4-lane boards differ [M-05], [M-12], [M-31].
+
+### Root Cause
+
+Generator assumed single-line statements.
+
+### Solution
+
+`flat()` in the generator; documented here.
+
+### Current Status
+
+- PASS (documentation consistency). Uncommitted, pending owner approval.
+- Product work: BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Owner: approve the commit below.
+2. Owner: decide ADR-011 (what to buy), ADR-010 vs ADR-006, and ADR-008.
+3. Owner: buy the CM4 + IO Board + 12 V supply (Stage 0 needs only these) and the ADR-011 boards; record them as HW REV A candidates in HARDWARE.md.
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: research bridge boards (topic M), propose bring-up boards and CM4 control model
+Commit description: Add research topic M (60 verified facts: TC358743 bridge boards for the CM4 IO
+  Board, its camera connectors and cables, videorate frame-rate conversion) and propagate it to
+  OQ-018 to OQ-021, OQ-024, OQ-025, OQ-131, HARDWARE, DEVICE_TREE, SOFTWARE_ARCHITECTURE,
+  TESTING and TROUBLESHOOTING. Propose ADR-011 (bring-up boards: 2x Geekworm C790, 1x X1301,
+  Auvidea B102 if obtainable; HW REV A chosen only after bench tests) and ADR-010 (legacy
+  video-node control on the CM4, alternative to ADR-006); recommend accepting ADR-008. Add
+  RISK-035 (HDMI audio on non-Auvidea boards). Record commit b8091fd.
+Files changed: docs/** (16 files incl. docs/research/2026-10-12-bridge-boards-research.json)
+Reason: Rules 1, 3, 8, 11, 13, 15, 21, 22, 23
+Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0 (680/680 facts cited);
+  register format and table checks
 ```
 
 ---
@@ -1878,3 +1965,4 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check
 | 2026-10-12 | 2026-10-12 second entry added: commit `1f5c0e0`, reword of `3c823b6` to `27c44d9`, push `049d1ee..1f5c0e0`; live encode 1080p30 and OQ-131; CM5-only OQs ANSWERED; doccheck W3 refinement. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 third entry added: commit and push of `c9d7e19`; OQ-131 50 Hz decision (25 fps); Stage 0 run R9. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 fourth entry added: commit and push of `91ff869`; OQ-131 non-1080 decision (keep source resolution; 720p at Level 3.2 or above). | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 fifth entry added: ADR-010, ADR-008 recommendation, research topic M, RISK-035, ADR-011; commit `b8091fd` recorded. | Claude (session 2026-10-12) |

@@ -146,7 +146,7 @@ Every document ends with a change-history table. Changes are added, never rewrit
 | `OQ-NNN` | Open question / owner decision | [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) |
 | `TEST-<AREA>-NNN` | Test procedure | [TESTING.md](TESTING.md) |
 | `ARCH-NNN` | Archived approach *(row added 2026-10-12; ARCH-001 has existed since 2026-10-09)* | [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md) |
-| `A-NN` … `K-NN` | Source fact (topics A–G of 2026-10-06; topics H, I, J and K added 2026-10-08) *(2026-10-12: now `A-NN` … `L-NN` — topic L, H.264 bit-rate ceilings, CM4 Ethernet, encoder concurrency and encoder-test commands, L-01 to L-63)* | [REFERENCES.md](REFERENCES.md) |
+| `A-NN` … `K-NN` | Source fact (topics A–G of 2026-10-06; topics H, I, J and K added 2026-10-08) *(2026-10-12: now `A-NN` … `L-NN` — topic L, H.264 bit-rate ceilings, CM4 Ethernet, encoder concurrency and encoder-test commands, L-01 to L-63)* *(Later on 2026-10-12: `A-NN` … `M-NN` — topic M, TC358743 bridge boards, CM4 IO Board camera connectors and cables, and live frame-rate conversion, M-01 to M-60)* | [REFERENCES.md](REFERENCES.md) |
 
 ### 9. Canonical test IDs
 
@@ -196,3 +196,4 @@ It must report `PROBLEMS (0)`. It checks that every cited fact and every REQ / A
 | 2026-10-08 | TEST-ENC-001 retitled "Sustained real-time H.264 encode (H.265 deferred)" after the owner deferred H.265 (OQ-103); ID unchanged. | Claude (session 2026-10-08) |
 | 2026-10-09 | ID schemes (convention 8): source-fact range extended from `A-NN` … `I-NN` to `A-NN` … `K-NN`, because REFERENCES.md gained topics J (recording storage and power loss, J-01 to J-45) and K (live latency, K-01 to K-45) on 2026-10-08. Header "Project phase" brought in line with PROJECT_STATUS.md (PHASE 1 in progress since 2026-10-07; the header still said PHASE 0). Start-here row "How is recording performed?" now also points to ADR-009 and HARDWARE.md storage. No convention, test ID or title changed. | Claude (session 2026-10-09) |
 | 2026-10-12 | Header Last updated; current-state note (still no hardware, code or tests); convention 5 superseded by ADR-004 ACCEPTED (CM4 is the product platform, other boards are reference); ID-scheme table: `ARCH-NNN` row added and fact range extended to `L-NN` (topic L, 2026-10-12); new convention 10: run `python3 tools/doccheck.py docs` before committing documentation. No test ID or title changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | ID schemes: fact range extended to `M-NN` (topic M, 2026-10-12). | Claude (session 2026-10-12) |

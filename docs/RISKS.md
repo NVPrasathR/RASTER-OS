@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 34 risks, all OPEN |
+| Document status | Active — 35 risks, all OPEN |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5; both the 2-lane and the 4-lane capture configuration (REQ-CAP-007) *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source research only. No risk has been confirmed or retired by a test; nothing has been tested on PACSCORDER hardware. |
@@ -54,6 +54,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 | RISK-032 | Hidden default latencies and queue backlog in the live path | REQ-STR-002, ADR-007 | Medium | OPEN |
 | RISK-033 | NAT traversal and TURN for internet WebRTC viewers *(not in current scope since 2026-10-09 — LAN-only viewers, OQ-008)* *(OQ-008 ANSWERED 2026-10-09; note 2026-10-12)* | REQ-STR-002 | Medium | OPEN |
 | RISK-034 | WebRTC publishing stack: gst-plugins-rs not packaged, WHEP still a draft | REQ-STR-002, ADR-007, ADR-003 *(ACCEPTED 2026-10-07; note 2026-10-12)* | Low | OPEN |
+| RISK-035 | HDMI audio may not work on non-Auvidea TC358743 bridge boards *(added 2026-10-12)* | REQ-CAP-006 | High | OPEN |
 
 *(Note added 2026-10-12: the Pi 5 / CM5 rows (RISK-011, RISK-012; RISK-003 is annotated in its row) and the Pi 4 Model B mention in RISK-001 are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
@@ -101,6 +102,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Evidence:**
   - Research recorded that a Raspberry Pi engineer said, in the community issue thread behind [C-43], that he believed the part is end-of-life (research gap, topic C — not a register fact).
   - Research also found Toshiba's product page showing the part in mass production on 2026-10-06, with no EOL flag (research gap, topic A — not a register fact). The current public datasheet is Rev. 2.20 of 2026-05-11 [A-01].
+  - *(Added 2026-10-12, research topic M.)* Bridge-board supply, snapshot of 2026-10-12: the Auvidea B101 and B102 — the boards the official documentation names [M-32] — are "Available on backorder", "Delivery Time: currently not available", and the shop sells only to business customers [M-07], [M-08]. Geekworm and Waveshare boards were listed in stock [M-19], [M-21], [M-24], [M-26], [M-30]. Auvidea's newer B112 is not a TC358743 board (Lontium LT6911UXC) [M-09].
 - **Impact:** Product BOM continuity.
 - **Open questions:** OQ-085, OQ-034.
 - **Retire by:** Written lifecycle confirmation from Toshiba sales (VENDOR CONFIRMATION REQUIRED).
@@ -287,6 +289,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Evidence:**
   - A Raspberry Pi engineer reported that a wrongly sided 22-to-15-pin adapter on Pi 5 swaps GND and 3V3 and can damage hardware (community source) [C-45].
   - The board must supply its own reference clock: the Pi-side clock node is a `fixed-clock` that only declares the frequency [A-45]; reasoning from the DT: the Pi does not generate it [B-47]. The driver accepts only 26, 27 or 42 MHz [B-07], the datasheet values [A-21]; any other value leads to a kernel BUG (RISK-007) [A-22] (CORRECTED).
+  - *(Added 2026-10-12, research topic M.)* FFCs exist with contacts on the same side at both ends or on opposite sides; a Raspberry Pi engineer advises using the cable supplied with the board or an identical one, because the wrong type "can let the magic smoke out" (community) [M-49]. The official documentation gives orientation only as "contacts facing away from the flap" and does not say which cable type a 22-to-15-pin connection needs [M-41]. Auvidea requires same-side cables, and its B102 manual and web page disagree on the contact side [M-43]. The CM4 IO Board's two camera connectors share one CAM_GPIO [M-36], so a board that ties RESET to CAM_GPIO would reset both bridges together (reasoning) [M-59].
 - **Impact:** Hardware damage, or a kernel BUG (RISK-007).
 - **Open questions:** OQ-018, OQ-019, OQ-021 (including whether one bridge-board design can serve both the 2-lane and the 4-lane configuration required by REQ-CAP-007), OQ-022, OQ-024.
 - **Retire by:** Recording the chosen board's schematic facts in [HARDWARE.md](HARDWARE.md) before first power-up.
@@ -475,6 +478,19 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Open questions:** OQ-074, OQ-066, OQ-015.
 - **Retire by:** An ADR-007 decision that records the WebRTC publishing path (OQ-074), then TEST-BLD-001 (the image contains every element the path needs) and TEST-STR-002.
 
+## RISK-035 — HDMI audio may not work on non-Auvidea TC358743 bridge boards
+
+- **Added:** 2026-10-12, from research topic M.
+- **Evidence:**
+  - A Raspberry Pi engineer stated in 2020 that HDMI I2S audio capture "works fine on Auvidea boards, but not on many of the Chinese boards", because they appear not to implement the TC358743 audio PLL circuitry correctly, which software cannot fix (community) [M-45].
+  - A forum user traced the missing I2S audio of the Geekworm C779 to an audio PLL circuit not routed on the PCB, and restored it with a hand-made patch (community) [M-46].
+  - Geekworm describes the C790 as an upgraded C779 that adds an I2S audio interface, and documents its wiring to GPIO 18/19/20 [M-16], [M-17]; no analysis or report of C790 audio working was found [M-46].
+  - The official Raspberry Pi documentation names the Auvidea B101 and B102 and gives their I2S wiring [M-32]; both are on backorder with no delivery time (snapshot 2026-10-12) [M-07], [M-08].
+- **Impact:** HDMI audio is required in every output (REQ-CAP-006, owner 2026-10-07). A board whose audio PLL is mis-implemented gives no audio, and the fix is a hardware change.
+- **Severity:** High. Claude's assessment: audio is a hard requirement, the documented-good boards are not obtainable now, and the obtainable ones are unproven for audio.
+- **Open questions:** OQ-025 (audio wiring and board audio), OQ-018 (board choice), OQ-004 (ANSWERED: audio required).
+- **Retire by:** TEST-AUD-001 on the candidate bridge board before it is chosen as HW REV A (ADR-011, PROPOSED).
+
 ## Research design risks of topics J and K (2026-10-08) — where each is carried
 
 Every item of `topics.<key>.design_risks` in [research/2026-10-08-storage-latency-research.json](research/2026-10-08-storage-latency-research.json), by 1-based position. These are research statements, not register facts.
@@ -525,3 +541,4 @@ Nothing (no hardware exists as of 2026-10-06). No risk has been confirmed or ret
 | 2026-10-12 | RISK-002: research topic L evidence added (official capacity still 1080p30 [L-29]; Raspberry Pi engineers' opinion and the shared H264 block, community [L-30], [L-31]; one firmware component per session, scheduling in firmware [L-23], [L-24], [L-25], [L-27]; two 1080p60 encodes are 4.0× the specification, reasoning). Retire-by note: TEST-ENC-001 Stage 0 narrows the risk but does not retire it. Status and severity unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later on 2026-10-12: RISK-002 owner-decision bullet — live encode 1080p30, so the encoder must carry 3.0× (4-lane) or 2.67× (2-lane) its 1080p30 specification; Stage 0 runs R4 and R8. Status and severity unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: RISK-002 note — 50 Hz-family combination 1080p50 + 1080p25 = 2.5×, run R9. Status and severity unchanged. | Claude (session 2026-10-12) |
+| 2026-10-12 | Research topic M: **RISK-035 added** (HDMI audio may not work on non-Auvidea bridge boards; High; summary row; header 35 risks). RISK-004 evidence: bridge-board supply snapshot. RISK-021 evidence: FFC sidedness and the shared CAM_GPIO. Status and severity of existing risks unchanged. | Claude (session 2026-10-12) |
