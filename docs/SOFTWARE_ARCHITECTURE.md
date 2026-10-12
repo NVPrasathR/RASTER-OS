@@ -89,6 +89,11 @@ The kernel-side pipeline these responsibilities sit on is described in [ARCHITEC
 > - **Unchanged:** if one drive fills, is absent or fails during a recording, recording continues on the other and the operator is alerted (OQ-129, earlier on 2026-10-09); recording until stopped or the disk is full (OQ-006 ANSWERED); recording encode 25 Mbit/s VBR (OQ-005); ADR-009 ACCEPTED (ext4 is Claude's proposal, OQ-120); two H.264 encodes; H.265 deferred (REQ-ENC-002); ADR-004 and ADR-007 OPEN, *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)* so every GStreamer, FFmpeg or MediaMTX route stays a CANDIDATE.
 > - **Sections changed:** 2, 4, 5.4, 5.4.1, 5.9, 8.
 
+> **Owner decisions of 2026-10-12** (recorded in [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); this document only traces them):
+> - **Live encode resolution and frame rate: 1080p30** (OQ-005), shared by RTMP and WebRTC. Reasoning: 1080p30 fits Level 4, and 17 Mbit/s CBR is 85 % of the Constrained Baseline Level 4 ceiling [L-13], [L-14]. How 60 Hz and 50 Hz captures and non-1080 inputs reach 1080p30 is **OQ-131** (OPEN).
+> - **Encoder load (reasoning from [L-14] and [D-10]):** the recording encode at the capture rate plus the live 1080p30 encode is 3.0× the CM4 encoder's 1080p30 specification on the 4-lane configuration (1080p60 capture) and 2.67× on the 2-lane configuration (1080p50). The first measurement is TEST-ENC-001 Stage 0 (OQ-115, RISK-002).
+> - **CM5-only open questions** (OQ-049 to OQ-055, OQ-059, OQ-060, OQ-124) are ANSWERED as made irrelevant by ADR-004 (CM4).
+
 **Conventions** (from [README.md](README.md)):
 
 - `[X-NN]` cites the source register.
@@ -1324,3 +1329,4 @@ Nothing (no hardware exists as of 2026-10-06). No userspace software exists. Eve
 | 2026-10-12 | OQ-129 (ANSWERED 2026-10-09) propagated into the design/test content: drive return (used again from the next 30-minute file; the gap in the interrupted file stays) added to the "Owner decisions of 2026-10-09, second set on OQ-129" box, §5.4.1 item 7 (new sub-bullet with design requirements) and §5.10 recorder measurements (per-drive return). Insertions only. | Claude (session 2026-10-12) |
 | 2026-10-12 | **Catch-up row (Rules 1, 21).** The 2026-10-09 platform decision was committed without a row here (hand commit `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12); recorded from `git show`): header "Applies to" **rewritten in place** to name the product platform, CM4 (ADR-004 ACCEPTED, OQ-011 ANSWERED), instead of appending a note; the previous text ("… on the four candidate platforms: Raspberry Pi 4 Model B, CM4, …") is kept in git (`git show 27c44d9^:docs/SOFTWARE_ARCHITECTURE.md`). | Claude (session 2026-10-12) |
 | 2026-10-12 | Follow-up after the sweep: note on "uniform on CM4 and CM5" in the OQ-005 owner-decision box. | Claude (session 2026-10-12) |
+| 2026-10-12 | Later on 2026-10-12: new "Owner decisions of 2026-10-12" box (live encode 1080p30, OQ-131, encoder load, CM5-only OQs ANSWERED). | Claude (session 2026-10-12) |

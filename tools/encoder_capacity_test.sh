@@ -60,6 +60,9 @@ case "$MODE" in throughput|realtime) ;; *) echo "bad --mode" >&2; exit 2;; esac
 #          (the encoder never emits B-frames [D-14], [K-30]).
 #   LIVE = live encode (OQ-005): CBR 17 Mbit/s; Constrained Baseline (TESTING.md live-encode
 #          settings; [F-36]); level from the mode; SPS/PPS repeated [D-15], [D-37].
+# Product combinations (live encode 1080p30, owner 2026-10-12, OQ-005): R4 on the 4-lane
+# configuration, R8 on the 2-lane configuration (capture at most 1080p50 [C-48]), R3 for
+# 1080p30 sources. R5-R7 are capacity references.
 # Macroblock rates: 1080p30 = 244,800, 1080p60 = 489,600 MB/s [L-14]; the official
 # specification is 1080p30 encode [D-10], [L-29].
 RUNS="
@@ -70,6 +73,7 @@ R4 REC:1920x1080@60 LIVE:1920x1080@30
 R5 REC:1920x1080@60 LIVE:1920x1080@60
 R6 REC:1920x1080@60 LIVE:1280x720@60
 R7 REC:1920x1080@60 LIVE:1280x720@30
+R8 REC:1920x1080@50 LIVE:1920x1080@30
 "
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "missing command: $1" >&2; exit 3; }; }

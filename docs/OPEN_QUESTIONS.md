@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 130 questions registered: 117 OPEN, 13 ANSWERED |
+| Document status | Active — 131 questions registered: 108 OPEN, 23 ANSWERED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply, recording storage *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H, I, J and K) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -12,7 +12,7 @@ This is the single register of everything PACSCORDER does not yet know and every
 
 ## How to use this register
 
-An OQ is closed only with evidence. To close one, add these fields under the entry without changing the original text: **Answer** (what was found or decided), **Evidence** (a fact ID, a datasheet section, an owner statement with date, or a TEST ID whose result is recorded in [TESTING.md](TESTING.md)), **Answered on** (date) and **Answered by**. Then change **Status** to `ANSWERED` and update every linked REQ, ADR and RISK and every document that carried the UNKNOWN marker. Never delete or renumber an entry (Rules 14 and 21). If an answer later proves wrong, add a dated note and set the status back to `OPEN`. A question made irrelevant by a decision (for example a platform that is dropped) is marked `ANSWERED` with that decision as its evidence. New questions take the next free number after the highest ID in use (OQ-090 to OQ-101 were added on 2026-10-06 after the cross-document review; OQ-102 and OQ-103 on 2026-10-07; OQ-104 to OQ-114 on 2026-10-08 from research topics H and I) and are placed in the matching category section, so numbers inside a category need not be contiguous. *(Added 2026-10-08, later: OQ-115 and OQ-116 were added after owner decisions of 2026-10-08, and OQ-117 to OQ-128 from research topics J (recording storage) and K (live latency). Category 12, Recording & storage, was added for the recording questions that fit no earlier category.)*
+An OQ is closed only with evidence. To close one, add these fields under the entry without changing the original text: **Answer** (what was found or decided), **Evidence** (a fact ID, a datasheet section, an owner statement with date, or a TEST ID whose result is recorded in [TESTING.md](TESTING.md)), **Answered on** (date) and **Answered by**. Then change **Status** to `ANSWERED` and update every linked REQ, ADR and RISK and every document that carried the UNKNOWN marker. Never delete or renumber an entry (Rules 14 and 21). If an answer later proves wrong, add a dated note and set the status back to `OPEN`. A question made irrelevant by a decision (for example a platform that is dropped) is marked `ANSWERED` with that decision as its evidence. New questions take the next free number after the highest ID in use (OQ-090 to OQ-101 were added on 2026-10-06 after the cross-document review; OQ-102 and OQ-103 on 2026-10-07; OQ-104 to OQ-114 on 2026-10-08 from research topics H and I) and are placed in the matching category section, so numbers inside a category need not be contiguous. *(Added 2026-10-08, later: OQ-115 and OQ-116 were added after owner decisions of 2026-10-08, and OQ-117 to OQ-128 from research topics J (recording storage) and K (live latency). Category 12, Recording & storage, was added for the recording questions that fit no earlier category.)* *(2026-10-12: OQ-131 added after the live-encode decision.)*
 
 Conventions used in every entry:
 
@@ -76,18 +76,18 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-046 | Unicam Media Controller mode enumeration of UYVY | 5 Pi 4 / CM4 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-047 | Broadcom documentation of the Unicam per-lane limit | 5 Pi 4 / CM4 | DATASHEET REQUIRED | OPEN |
 | OQ-048 | Pi 4/CM4 firmware variant and GPU memory for the hardware codec | 5 Pi 4 / CM4 | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
-| OQ-049 | TC358743 capture through RP1 CFE on Pi 5/CM5 | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED | OPEN |
-| OQ-050 | Effect of the CFE's 999 Mbps D-PHY setting | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | OPEN |
-| OQ-051 | Source-change event delivery on Pi 5/CM5 | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED | OPEN |
-| OQ-052 | CM5 carrier-board connector and I2C mapping | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | OPEN |
-| OQ-053 | Whether CFE capture buffers use CMA on Pi 5/CM5 | 6 Pi 5 / CM5 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
-| OQ-054 | tc358743-audio overlay on Pi 5/CM5 | 6 Pi 5 / CM5 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
-| OQ-055 | 16K versus 4K page-size kernel on Pi 5/CM5 | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED | OPEN |
+| OQ-049 | TC358743 capture through RP1 CFE on Pi 5/CM5 | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED | ANSWERED |
+| OQ-050 | Effect of the CFE's 999 Mbps D-PHY setting | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | ANSWERED |
+| OQ-051 | Source-change event delivery on Pi 5/CM5 | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED | ANSWERED |
+| OQ-052 | CM5 carrier-board connector and I2C mapping | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | ANSWERED |
+| OQ-053 | Whether CFE capture buffers use CMA on Pi 5/CM5 | 6 Pi 5 / CM5 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
+| OQ-054 | tc358743-audio overlay on Pi 5/CM5 | 6 Pi 5 / CM5 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
+| OQ-055 | 16K versus 4K page-size kernel on Pi 5/CM5 | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-056 | Pi 4/CM4 hardware H.264 encode at 1080p60 | 7 Encoding & DMA | HARDWARE TEST REQUIRED | OPEN |
 | OQ-057 | Pi 4/CM4 encoder input formats and conversion path | 7 Encoding & DMA | HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED | OPEN |
 | OQ-058 | Zero-copy DMABUF from Unicam into the Pi 4/CM4 encoder | 7 Encoding & DMA | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
-| OQ-059 | Pi 5/CM5 software encode: CPU, thermal, latency, concurrency | 7 Encoding & DMA | HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED | OPEN |
-| OQ-060 | Pi 5/CM5 UYVY-to-planar conversion offload | 7 Encoding & DMA | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
+| OQ-059 | Pi 5/CM5 software encode: CPU, thermal, latency, concurrency | 7 Encoding & DMA | HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED | ANSWERED |
+| OQ-060 | Pi 5/CM5 UYVY-to-planar conversion offload | 7 Encoding & DMA | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-061 | CMA budget per platform | 7 Encoding & DMA | HARDWARE TEST REQUIRED | OPEN |
 | OQ-062 | DMA-BUF heap names and uapi header | 7 Encoding & DMA | HARDWARE TEST REQUIRED; BUILD TEST REQUIRED | OPEN |
 | OQ-063 | Audio encoder choice and cost | 7 Encoding & DMA | HARDWARE TEST REQUIRED; LEGAL CLARIFICATION REQUIRED | OPEN |
@@ -151,15 +151,16 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-121 | NVMe SSD and PCIe/M.2 adapter qualification (CM4 IO Board slot, CM5 IO Board M.2) | 2 Hardware & bridge board | VENDOR CONFIRMATION REQUIRED; DATASHEET REQUIRED; HARDWARE TEST REQUIRED; OWNER DECISION REQUIRED | OPEN |
 | OQ-122 | USB-to-SATA bridge qualification: chipset, UAS or Bulk-Only, quirks, sustained throughput | 2 Hardware & bridge board | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-123 | CM4 PCIe interrupt mode (MSI or MSI-X) and NVMe behaviour on kernel 6.18 | 5 Pi 4 / CM4 | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
-| OQ-124 | NVMe on the CM5 IO Board M.2 slot: PCIe enablement, NVMe boot and link speed | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED | OPEN |
+| OQ-124 | NVMe on the CM5 IO Board M.2 slot: PCIe enablement, NVMe boot and link speed | 6 Pi 5 / CM5 | HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED | ANSWERED |
 | OQ-125 | Measured camera-to-viewer latency of the WebRTC path, and its undocumented terms | 9 Streaming & WebRTC | HARDWARE TEST REQUIRED; DATASHEET REQUIRED; VENDOR CONFIRMATION REQUIRED | OPEN |
 | OQ-126 | Live-path element latencies and queue policy | 9 Streaming & WebRTC | BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-127 | Live encode keyframe interval, on-demand keyframes and B-frame settings shared by RTMP and WebRTC | 7 Encoding & DMA | VENDOR CONFIRMATION REQUIRED; BUILD TEST REQUIRED | OPEN |
 | OQ-128 | WebRTC for internet viewers: WHEP through MediaMTX, ICE, STUN and TURN | 9 Streaming & WebRTC | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-129 | Mirrored recording without a duration limit: one drive full, absent or failed; file splitting | 12 Recording & storage | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-130 | Recording capture-to-file < 1 s: against which drive, and with what statistic, is it judged? | 12 Recording & storage | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
+| OQ-131 | Live encode at 1080p30 from other input modes: frame-rate and resolution conversion | 7 Encoding & DMA | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 
-*(Note added 2026-10-12: the Pi 5 / CM5 rows — category 6 (OQ-049 to OQ-055, OQ-124) and OQ-059, OQ-060 — are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001. Their Status stays OPEN.)*
+*(Note added 2026-10-12: the Pi 5 / CM5 rows — category 6 (OQ-049 to OQ-055, OQ-124) and OQ-059, OQ-060 — are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001. Their Status stays OPEN.)* *(Superseded later on 2026-10-12: on the owner's instruction these ten questions are ANSWERED as made irrelevant by ADR-004; OQ-108, listed elsewhere as CM5-related, is an H.265 question and stays OPEN.)*
 
 ---
 
@@ -255,7 +256,8 @@ Product requirements and pending decisions that only the owner can make. Each on
 - **Owner input (2026-10-08, latency):** live latency target **under 1 second camera-to-viewer** ("Under 1 second"). Bitrate and rate control remain open. Whether the target also applies to RTMP outputs (where the receiving platform adds latency) is OQ-116. *(2026-10-08, later: OQ-116 ANSWERED — the < 1 s target applies to WebRTC viewers only; RTMP is best-effort. Bitrate and rate control remain open here.)*
 - **Owner input (2026-10-09, bitrate and rate control):** live encode (shared by RTMP and WebRTC) **CBR at 17 Mbit/s** ("CBR 17 Mbit/s"); recording encode **25 Mbit/s, VBR** ("25 Mbit/s"; VBR, the encoder default, was stated in the question). The options were based on the CM4 encoder's range of 25 kbit/s to 25 Mbit/s, default 10 Mbit/s, VBR or CBR [D-13], and on YouTube's H.264 1080p60 recommendation of 17 Mbit/s (minimum 6) with CBR [H-29], [K-17]. The values were given without a per-mode breakdown; whether they apply unchanged to every input mode (for example 1080p30, 720p) is not stated. With the earlier answers (codec H.264, OQ-103; two encodes; live latency, OQ-116 and OQ-008), the codec, the number of encodes, the live latency and both bitrates are decided. Still open here: a capture-to-file latency target for recordings, if one is required; and the recording encode's profile, level and B-frame settings, which the technical documents list under this question and which the bitrate decision did not cover (the recording keyframe interval is OQ-118). Consequences to check: whether 17 and 25 Mbit/s fit the maximum bitrate of the H.264 profile and level the encoders signal is not in the register (OQ-073); CPU load of two software encodes at these rates on CM5 (OQ-059); *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* two hardware encodes on CM4 (OQ-115).
 - **Owner input (2026-10-09, third — recording encode profile/level/B-frames and recording latency):** the recording encode is **H.264 High profile, Level 4.2, with no B-frames**, the same settings on CM4 and CM5 ("High profile, Level 4.2, no B-frames — uniform across CM4 and CM5"). Reasoning for the choices: High profile is offered by the CM4 hardware encoder [D-11] and is its default [K-30]; Level 4.2 because 1080p60 exceeds Level 4.0's macroblock rate [F-40]; no B-frames so the two platforms produce comparable files — the CM4 hardware encoder never emits B-frames [D-14], and CM5's `x264enc` must be forced B-frame-free (for example `bframes=0`, `profile=baseline` in caps, or `tune=zerolatency`) because its medium-preset default is 3 B-frames [K-29]. The recording path also has a **capture-to-file latency target of under 1 s glass-to-disk** ("Require a bounded capture-to-file latency (e.g. < 1 s glass-to-disk)"). Consequence to verify (reasoning, not a measurement): the mirrored HDD branch can take up to about 3.0 s from standby to ready [J-30] (RISK-028), so a < 1 s glass-to-disk bound cannot hold on the HDD branch during such a stall unless that branch is decoupled or buffered (OQ-117); against which drive the bound is judged, and the statistic (maximum or a percentile) and sample basis of the recording-latency measurement, are carried as OQ-130. Whether 25 Mbit/s fits Level 4.2's maximum bitrate is OQ-073. With the earlier answers, OQ-005 is now fully decided for the current scope.
-- **Answer:** Codec H.264 (OQ-103); two encodes, one recording and one shared live (2026-10-08); live encode CBR 17 Mbit/s, recording encode 25 Mbit/s VBR (2026-10-09); live latency under 1 s camera-to-viewer for WebRTC viewers, judged at the 95th percentile, RTMP best-effort (OQ-116, OQ-008); recording encode H.264 High profile, Level 4.2, no B-frames, uniform on CM4 and CM5; recording capture-to-file latency target under 1 s glass-to-disk. Remaining consequences are tracked elsewhere: profile/level versus bitrate ceiling (OQ-073), CM4 two-encode feasibility (OQ-115), CM5 two-encode CPU (OQ-059), *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* recording keyframe interval (OQ-118), and the drive and statistic basis of the recording-latency target (OQ-130).
+- **Owner input (2026-10-12):** the live encode (shared by RTMP and WebRTC) is **1920x1080 at 30 fps ("1080p30")**, chosen when asked which TEST-ENC-001 Stage 0 run must succeed. Reasoning: 1080p30 is 244,800 macroblocks/s, which fits Level 4 [L-03], [L-14]; 17 Mbit/s CBR is 85 % of the Constrained Baseline Level 4 VCL ceiling [L-13]. How the live encode reaches 1080p30 from other input modes (frame-rate conversion from 60/50 Hz captures, 25 or 30 fps for 50 Hz sources, scaling) is OQ-131.
+- **Answer:** Codec H.264 (OQ-103); two encodes, one recording and one shared live (2026-10-08); live encode CBR 17 Mbit/s, recording encode 25 Mbit/s VBR (2026-10-09); live latency under 1 s camera-to-viewer for WebRTC viewers, judged at the 95th percentile, RTMP best-effort (OQ-116, OQ-008); recording encode H.264 High profile, Level 4.2, no B-frames, uniform on CM4 and CM5; recording capture-to-file latency target under 1 s glass-to-disk. Remaining consequences are tracked elsewhere: profile/level versus bitrate ceiling (OQ-073), CM4 two-encode feasibility (OQ-115), CM5 two-encode CPU (OQ-059), *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* recording keyframe interval (OQ-118), and the drive and statistic basis of the recording-latency target (OQ-130). *(2026-10-12: live encode resolution and frame rate 1080p30 — owner; conversion from other input modes is OQ-131.)*
 - **Evidence:** Owner answers of 2026-10-08 and 2026-10-09, the last two being "High profile, Level 4.2, no B-frames — uniform across CM4 and CM5" and "Require a bounded capture-to-file latency (e.g. < 1 s glass-to-disk)".
 - **Answered on:** 2026-10-09
 - **Answered by:** Owner
@@ -369,7 +371,7 @@ Product requirements and pending decisions that only the owner can make. Each on
 - **Owner input (2026-10-07):** both 2-lane and 4-lane configurations are required (REQ-CAP-007), so the product spans more than one capture configuration. Which platform serves which configuration is still open (ADR-004). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 - **Owner input (2026-10-07, second answer):** bring-up evaluates CM4 and CM5 side by side ("CM4 + CM5 side by side"); the product platform is then decided from measurements (ADR-004 OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 - **Owner decision (2026-10-09):** **the product platform is the CM4 (BCM2711)** ("stick to CM4"). **CM5, BCM2712 and Pi 5 are dropped from the product**, as is Pi 4 Model B as a product board; all remain as reference material and the evaluation that led here (Rule 14), and CM5 is archived in [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md). ADR-004 is ACCEPTED (CM4). CM4 carries the TC358743 on CAM1 (4-lane, 1080p60) and CAM0 (2-lane), with the hardware H.264 encoder [C-02], [D-10]. The CM4 risks it rides on stay OPEN and are now single-platform-critical: 1080p60 hardware encode is unproven (RISK-002, OQ-056) and two concurrent encodes on the one hardware encoder are unproven (OQ-115). CM5-specific questions (OQ-050 to OQ-054, OQ-059, OQ-100, OQ-108, OQ-124) and risks (RISK-003, RISK-014) are **not in current scope**, kept as reference. **OQ-011 ANSWERED.**
-- **Correction (2026-10-12; the answer and status are unchanged):** the list of CM5-specific items in the bullet above is inaccurate in three ways. (1) RISK-014 is CM5-specific only in part: its CM4 HDMI-audio path **stays in current scope**, as the RISK-014 scope note of 2026-10-09 in [RISKS.md](RISKS.md) says. (2) OQ-100 is **not** CM5-specific: it asks about overlay-parameter syntax and whether a `[pi4]` filter section matches a CM4, which stays in scope. (3) OQ-049, OQ-055 and OQ-060 are Pi 5/CM5-specific and are also not in current scope (scope notes added 2026-10-12). Found by the 2026-10-12 ADR-004 scope sweep.
+- **Correction (2026-10-12; the answer and status are unchanged):** the list of CM5-specific items in the bullet above is inaccurate in three ways. (1) RISK-014 is CM5-specific only in part: its CM4 HDMI-audio path **stays in current scope**, as the RISK-014 scope note of 2026-10-09 in [RISKS.md](RISKS.md) says. (2) OQ-100 is **not** CM5-specific: it asks about overlay-parameter syntax and whether a `[pi4]` filter section matches a CM4, which stays in scope. (3) OQ-049, OQ-055 and OQ-060 are Pi 5/CM5-specific and are also not in current scope (scope notes added 2026-10-12). Found by the 2026-10-12 ADR-004 scope sweep. *(Later on 2026-10-12, owner's instruction: the CM5-only questions OQ-049 to OQ-055, OQ-059, OQ-060 and OQ-124 are now **ANSWERED** as made irrelevant by ADR-004, following the register's rule for dropped platforms. OQ-108 is not CM5-specific — it asks whether browsers can receive H.265 over WebRTC — so it stays OPEN, not in current scope because H.265 is deferred (REQ-ENC-002).)*
 - **Known so far, added 2026-10-08 (research topics H and I):**
   - H.265 (software on both): x265's Neon DotProd kernels can apply only on CM5's Cortex-A76, not on CM4's Cortex-A72 [H-04], [H-05]. A Raspberry Pi engineer stated on the forum that software H.265 encode "is too intensive an operation to perform at any significant resolution" (community source) [H-19]. Community benchmarks report Pi 5 ahead of a Cortex-A72 Pi 400 (10.00 versus 4.33 FPS) in a test that is not a 1080p60 live measurement [H-20], [H-21], [H-22] (measurement: OQ-104). *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. With H.264 only (OQ-103 ANSWERED), H.265 cost does not inform the platform decision unless REQ-ENC-002 is re-activated.)*
   - HDMI audio: on CM4 the overlay drives the documented `bcm2835-i2s` path [I-10], [I-13]; on CM5 the overlay's labels resolve to RP1 I2S1, but operation there is unconfirmed [I-05], [I-06], [I-07], [I-08], [I-09] (OQ-054). *(2026-10-09: CM5 is out of scope — ADR-004 ACCEPTED, CM4. Only the CM4 path is in current scope.)*
@@ -1109,6 +1111,8 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 
 > *Not in current scope since 2026-10-09 — ADR-004 ACCEPTED (CM4). This CM5 / Pi 5 / BCM2712 material is kept as reference (Rule 14, ARCH-001); its entries stay OPEN. Note added 2026-10-12.*
 
+> *2026-10-12, later: every question in this category (OQ-049 to OQ-055, OQ-124) is ANSWERED as made irrelevant by ADR-004, on the owner's instruction, together with OQ-059 and OQ-060 in category 7; the entries are kept as reference.*
+
 ## OQ-049 — TC358743 capture through RP1 CFE on Pi 5/CM5
 
 - **Question:** Does TC358743 capture run end-to-end on Pi 5 and CM5 with `tc358743-pi5`, including the `4lane` parameter on the 22-pin connectors, at 1080p60 UYVY and the other required modes?
@@ -1121,8 +1125,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Reasoning: all 1080p30/50/60 modes fit on 4 lanes at 972 Mbps [C-49].
 - **Resolution method:** HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-PLT-001, TEST-CAP-001, TEST-CAP-002
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-050 — Effect of the CFE's 999 Mbps D-PHY setting
 
@@ -1133,8 +1141,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - RP1 supports up to 1.5 Gbps per lane and 8 Gbps in total across its two D-PHYs [C-30].
 - **Resolution method:** HARDWARE TEST REQUIRED (stream stability and CSI-2 error counters across modes). How to read the CFE error counters is not in the source register (KERNEL SOURCE INSPECTION REQUIRED); the Unicam counterpart is OQ-095.
 - **Resolving test:** TEST-CAP-002, TEST-CAP-004
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-051 — Source-change event delivery on Pi 5/CM5
 
@@ -1143,8 +1155,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Known so far:** An open issue reports that CFE video nodes do not deliver the event; a Raspberry Pi engineer said applications should subscribe on the source sub-device [C-42]. The driver sends the event when a sub-device node exists [B-39], and the sub-device has the events flag [B-18]. Without an IRQ the poll interval is 1000 ms [A-30].
 - **Resolution method:** HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-CAP-003
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-052 — CM5 carrier-board connector and I2C mapping
 
@@ -1156,8 +1172,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - CM5 IO Board: official documentation says CAM/DISP 1 needs two J6 jumpers [C-06]; a comment in `bcm2712-rpi-cm5io.dtsi` says no jumper is needed (research gap, topic C).
 - **Resolution method:** HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED.
 - **Resolving test:** TEST-HW-001, TEST-PLT-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-053 — Whether CFE capture buffers use CMA on Pi 5/CM5
 
@@ -1166,8 +1186,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Known so far:** The RP1 CSI nodes have `iommus = <&iommu5>`; whether CFE buffers count against the 64 MB `vc4-kms-v3d-pi5` CMA default is not established (reasoning from kernel source, CORRECTED) [C-53]. CMA defaults per overlay are in [C-40].
 - **Resolution method:** KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED (`CmaFree` in `/proc/meminfo` while streaming).
 - **Resolving test:** TEST-PERF-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-054 — tc358743-audio overlay on Pi 5/CM5
 
@@ -1181,8 +1205,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Scope note (2026-10-08; the question above is unchanged):** The topic I questions on which capture formats and channel counts RP1 I2S1 reports, and on the exact ALSA PCM id string on CM5, are carried by this entry and are resolved by the same test.
 - **Resolution method:** KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-AUD-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-055 — 16K versus 4K page-size kernel on Pi 5/CM5
 
@@ -1191,8 +1219,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Known so far:** `bcm2712_defconfig` uses 16K pages [G-20], [E-51]; Buildroot's Pi 5/CM5 defconfigs force 4K pages [E-09], [G-60]; Raspberry Pi documents that the 4K `kernel8.img` also runs on BCM2712 [G-20]; `rpi-image-gen` tunes EROFS to the page size [G-41].
 - **Resolution method:** HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-PERF-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-124 — NVMe on the CM5 IO Board M.2 slot: PCIe enablement, NVMe boot and link speed
 
@@ -1206,8 +1238,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Research gaps and open questions (topic J): whether CM5 uses usbboot `recovery5` rather than `recovery`, the minimum bootloader version for NVMe boot on CM4/CM5, and whether `PCIE_PROBE` (documented for flagship models since Raspberry Pi 5 only) is needed on CM5.
 - **Resolution method:** HARDWARE TEST REQUIRED (PCIe enumeration on the CM5 IO Board with and without the `dtparam`; bootloader UART log for NVMe boot); VENDOR CONFIRMATION REQUIRED (usbboot README, `rpi-eeprom` release notes).
 - **Resolving test:** TEST-PLT-001, TEST-REC-001, TEST-BLD-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 - **Added:** 2026-10-08 (from research topic J)
 
 ---
@@ -1273,8 +1309,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - *(Added 2026-10-08, research topic K — latency.)* x264's `zerolatency` tune sets no lookahead, no B-frames, sliced threads and no MB-tree [K-27]; with it x264 holds no frames back, and GStreamer `x264enc` reports 0 frames of latency [K-28]. Without it, `x264enc` runs x264's medium preset by default (3 B-frames, rc-lookahead 40), whatever its `bframes=0` property default suggests (CORRECTED) [K-29]. Raspberry Pi documents that on Pi 5 `rpicam-vid --low-latency` drops B-frames and arithmetic coding, and that Pi 5 software encoders generally have longer latency than the old hardware encoders [K-39]; Raspberry Pi engineers reported that libcamera does not support the TC358743 (community source) [C-41], so the equivalent settings have to be made in GStreamer or FFmpeg (reasoning). CM5 capture costs about one frame's readout before the encoder [K-35]. Reasoning (CORRECTED): the CM5 encode term of the < 1 s budget is unknown until per-frame x264 time on BCM2712 is measured [K-45]. Research asked whether x264 at 1080p30 with `zerolatency` and a fast preset stays under 33.3 ms per frame while the recording encode runs, so that no backlog builds (research open question, topic K; OQ-125, OQ-126).
 - **Resolution method:** HARDWARE TEST REQUIRED; VENDOR CONFIRMATION REQUIRED (meaning of the CPU figure; the "H264 accelerators" comment).
 - **Resolving test:** TEST-ENC-001, TEST-PERF-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-060 — Pi 5/CM5 UYVY-to-planar conversion offload
 
@@ -1287,8 +1327,12 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - *(Added 2026-10-08, research topic H.)* The same conversion is needed for software H.265: FFmpeg `libx265` and GStreamer `x265enc` accept only planar formats, not packed UYVY [H-10] (CORRECTED), [H-13]. Reasoning: on the CPU at 1080p60 the conversion reads about 249 MB/s and writes about 187 MB/s before x265 starts [H-43]. Claude's note (not a register fact): if H.264 and H.265 run at once, whether one conversion can feed both encoders is a pipeline design point for ADR-007. *(2026-10-08, later: deferred — REQ-ENC-002; not in current scope. With H.264 only (OQ-103 ANSWERED), the conversion feeds the software H.264 encoder only.)*
 - **Resolution method:** KERNEL SOURCE INSPECTION REQUIRED (PiSP back-end input formats); HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-DMA-001, TEST-ENC-001
-- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001).
-- **Status:** OPEN
+- **Scope note (2026-10-12):** not in current scope — CM5/Pi 5/BCM2712 dropped, ADR-004 ACCEPTED 2026-10-09 (CM4); kept OPEN as reference (ARCH-001). *(Superseded the same day: ANSWERED as made irrelevant by ADR-004 — see below.)*
+- **Answer:** Not applicable to the product. This question concerns Pi 5 / CM5 (BCM2712), which ADR-004 (ACCEPTED 2026-10-09) dropped; the product platform is the CM4. It is closed as made irrelevant by that decision, as this register's rule for dropped platforms says ("How to use this register"). The entry and its research are kept as reference (Rule 14, ARCH-001); if CM5 is ever reconsidered, set the status back to `OPEN` with a dated note.
+- **Evidence:** ADR-004 ACCEPTED 2026-10-09 (owner: "stick to CM4"); owner instruction of 2026-10-12 to apply the register rule to the CM5-only questions ("Mark them ANSWERED").
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner (decision ADR-004; register rule applied on the owner's instruction)
+- **Status:** ANSWERED
 
 ## OQ-061 — CMA budget per platform
 
@@ -1395,6 +1439,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Capacity: the only official figure is "1080p30 encode" [L-29]; the driver comment calls Level 4.0 the hardware spec [L-28]. Raspberry Pi engineers (community): the Pi 4 encoder is "probably not enough for two 1080p30 streams" (an opinion, not a measurement) [L-30]; decodes and encodes load the same H264 block [L-31]; the hardware "can exceed level 4.0" but not reach Level 4.2's limits in all situations [L-32]; Level 4 allows 1080p30 [L-33]. Using `v4l2convert` with the encoder also contends for the ISP [L-34]. No report of two concurrent hardware encodes with measured frame rates was found [L-35].
   - Clocks: `h264_freq` defaults to 500 MHz on CM4 [L-36]; `gpu_freq` sets the group [L-37] (an overclock is OQ-096).
   - **Next step: TEST-ENC-001 Stage 0** — an encoder-only run on a CM4 with a synthetic source, which needs no TC358743 ([TESTING.md](TESTING.md), `tools/encoder_capacity_test.sh`).
+- **Owner input (2026-10-12):** the live encode is **1080p30** (OQ-005). Reasoning from [L-14] and [D-10]: the combinations the CM4 hardware encoder must sustain are then recording 1080p60 + live 1080p30 = 734,400 macroblocks/s, **3.0× the 1080p30 specification** (4-lane configuration; TEST-ENC-001 Stage 0 run R4); recording 1080p50 + live 1080p30 = 652,800, 2.67× (2-lane configuration, whose capture is at most 1080p50 UYVY [C-48]; run R8); and recording 1080p30 + live 1080p30 = 489,600, 2.0× (1080p30 sources; run R3). Which split is acceptable if they are not sustained is still the owner's decision.
 - **Resolution method:** HARDWARE TEST REQUIRED; KERNEL SOURCE INSPECTION REQUIRED (concurrent M2M contexts in `bcm2835-codec`).
 - **Resolving test:** TEST-ENC-001, TEST-PERF-001
 - **Status:** OPEN
@@ -1418,6 +1463,19 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Added:** 2026-10-08 (from research topic K)
 
 ---
+
+## OQ-131 — Live encode at 1080p30 from other input modes: frame-rate and resolution conversion
+
+- **Question:** The live encode is 1080p30 (owner, 2026-10-12; OQ-005). How does the live path reach 1080p30 when the capture is not 1080p30: (a) from 1080p60 / 59.94 captures — drop every other frame?; (b) from 50 Hz-family captures (1080p50, 1080p25) — convert to 30 fps (not a whole-frame ratio from 50) or run the live encode at 25 fps; (c) from non-1080 inputs (for example 720p) — scale up, or encode at the source resolution? Which element does it, and on which block (CPU, ISP)?
+- **Why it matters:** REQ-ENC-001, REQ-STR-001, REQ-STR-002 (< 1 s for WebRTC viewers), OQ-005, OQ-115 (encoder load), OQ-126 (live-path latency).
+- **Known so far:**
+  - The capture runs at the source's mode (REQ-CAP-007); the 2-lane configuration carries at most 1080p50 UYVY for 1920x1080 [C-48].
+  - Using `v4l2convert` with the encoder contends for the ISP (community) [L-34].
+  - No register fact covers a frame-rate conversion element or its cost: BUILD TEST REQUIRED.
+- **Resolution method:** OWNER DECISION REQUIRED (25 or 30 fps for 50 Hz sources; behaviour for non-1080 sources); BUILD TEST REQUIRED; HARDWARE TEST REQUIRED.
+- **Resolving test:** TEST-ENC-001, TEST-STR-002
+- **Status:** OPEN
+- **Added:** 2026-10-12 (consequence of the live-encode resolution and frame-rate decision, OQ-005)
 
 # 8. Build system & OS
 
@@ -1585,6 +1643,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Reasoning [L-10], [L-11], [L-12], [L-13]: the **recording encode (25 Mbit/s VBR, High, Level 4.2) fits** — 40 % of the 62.5 Mbit/s VCL ceiling; the **live encode (17 Mbit/s CBR) fits** in Constrained Baseline, Main and High at Levels 4.0, 4.1 and 4.2 — tightest Constrained Baseline/Main Level 4.0 at 85 % of the VCL ceiling. 25 Mbit/s equals the High Level 4.0 VCL ceiling exactly and exceeds the Constrained Baseline/Main Level 4.0 ceiling, so the recording encode must not signal Level 4.0. Whether the encoder's VBR peaks stay inside the HRD/CPB model is HARDWARE TEST REQUIRED [L-12]; a stream without HRD parameters is evaluated with BitRate and CpbSize at the level ceiling [L-08].
   - Reasoning [L-14]: any 1080p50/60 encode must signal Level 4.2; the CM4 encoder defaults to Level 4.0 [D-12].
   - **The bit-rate part is resolved from the specification; the browser-decoding part (which level the live encode must signal for Chrome, Safari and Firefox) is still OPEN — HARDWARE TEST REQUIRED.**
+- *(Added 2026-10-12.)* The live encode is 1080p30 (owner, OQ-005), so it signals Level 4 [L-03], [L-14] in Constrained Baseline; the browser question narrows to whether Chrome, Safari and Firefox decode a Level 4 stream when `42e01f` (Level 3.1) was negotiated [F-38], [F-39].
 - **Resolution method:** HARDWARE TEST REQUIRED (browser interoperability test).
 - **Resolving test:** TEST-STR-002
 - **Status:** OPEN
@@ -2110,3 +2169,4 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-09 | Owner decision of 2026-10-09 (sixth set): OQ-011 ANSWERED — product platform is the CM4 (BCM2711); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (kept as reference, Rule 14; CM5 archived). ADR-004 ACCEPTED. Owner-input, Answer/Evidence fields and summary row updated. CM5-only OQs (OQ-050 to OQ-054, OQ-059, OQ-100, OQ-108, OQ-124) and risks (RISK-003, RISK-014) stay OPEN but are not in current scope, as the H.265 OQs are. Header counts (130: 117 OPEN, 13 ANSWERED). | Claude (session 2026-10-09) |
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" (all four candidate platforms) superseded; note after the Summary table on the Pi 5 / CM5 rows; category 6 (Pi 5 / CM5) marked not in current scope, and a dated scope note added to each CM5-only entry — OQ-049 to OQ-055, OQ-059, OQ-060 and OQ-124 (OQ-108 already carried a not-in-current-scope note; OQ-100 was not marked, because its config.txt syntax question also covers CM4); stale statements superseded — OQ-005 (CM5 two-encode CPU, 2 lines), OQ-011 ("ADR-004 (OPEN)", Pi 4 Model B 2-lane candidate, per-configuration choice, side-by-side evaluation), OQ-012 ("ADR-003 (PROPOSED)", "stays OPEN until the owner explicitly accepts ADR-003"), OQ-015 (candidate platforms), OQ-063 (CM5 audio-encode cost), OQ-098 ("ADR-004 OPEN", side by side), OQ-104 and OQ-105 (CM4-versus-CM5 decision), OQ-112, OQ-117, OQ-119, OQ-125, OQ-129 and OQ-130 (measurements on CM4 and CM5), Appendix B decisions row (ADR-004 under "OPEN / PROPOSED"); OQ-128 scope note tagged OQ-008 ANSWERED; Verification status: dated count note (117 of 130 OPEN). No Status field and no header count changed (130: 117 OPEN, 13 ANSWERED). No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | Follow-ups after the sweep: OQ-011 "Correction (2026-10-12)" bullet (RISK-014's CM4 audio path stays in scope; OQ-100 is not CM5-specific; OQ-049, OQ-055 and OQ-060 are CM5-specific). Research topic L added as dated "Known so far" bullets to OQ-073 (bit-rate part resolved from ITU-T H.264), OQ-098 (CM4 Ethernet), OQ-115 (kernel-source part done; next step TEST-ENC-001 Stage 0), OQ-056, OQ-057 and OQ-101. **No status changed; counts unchanged (130: 117 OPEN, 13 ANSWERED).** | Claude (session 2026-10-12) |
+| 2026-10-12 | Later on 2026-10-12, owner decisions: OQ-049 to OQ-055, OQ-059, OQ-060 and OQ-124 **ANSWERED** as made irrelevant by ADR-004 (Answer, Evidence, Answered on/by; status and summary rows; their 2026-10-12 scope notes superseded; category 6 note; summary-table note). OQ-108 left OPEN (H.265, not CM5); notes on OQ-011's correction bullet. Live encode 1080p30: owner input on OQ-005 (and its Answer), OQ-115, note on OQ-073. **New OQ-131** (live encode at 1080p30 from other input modes). Header: **131 questions, 108 OPEN, 23 ANSWERED**. | Claude (session 2026-10-12) |

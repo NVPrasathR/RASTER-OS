@@ -16,7 +16,7 @@ Options that were only *considered* and never attempted are not recorded here. T
 
 - **Date attempted:** — (never attempted on hardware; no hardware ever existed)
 - **Date abandoned:** 2026-10-09
-- **Related:** ADR-004 (ACCEPTED, CM4), OQ-011 (ANSWERED), REQ-PLT-001; RISK-003, RISK-014; OQ-050 to OQ-054, OQ-059, OQ-100, OQ-108, OQ-124
+- **Related:** ADR-004 (ACCEPTED, CM4), OQ-011 (ANSWERED), REQ-PLT-001; RISK-003, RISK-014; OQ-050 to OQ-054, OQ-059, OQ-100, OQ-108, OQ-124 *(2026-10-12: OQ-049 to OQ-055, OQ-059, OQ-060 and OQ-124 are ANSWERED as made irrelevant by ADR-004 (owner's instruction). Their entries and research stay in the registers; if CM5 is reconsidered, set them back to OPEN with a dated note.)*
 
 ### What was attempted
 
@@ -68,3 +68,4 @@ Include test IDs, logs and measurements, or link to them.
 |---|---|---|
 | 2026-10-06 | File created with template; no entries. | Claude (session 2026-10-06) |
 | 2026-10-09 | ARCH-001 added: CM5 (BCM2712) dropped as a candidate product platform (owner, "stick to CM4"; ADR-004 ACCEPTED, CM4). Document status and intro updated. | Claude (session 2026-10-09) |
+| 2026-10-12 | ARCH-001 Related line: note that the CM5-only questions are ANSWERED as made irrelevant by ADR-004 (owner's instruction, 2026-10-12) and how to reopen them. | Claude (session 2026-10-12) |

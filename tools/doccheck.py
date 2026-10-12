@@ -23,8 +23,8 @@ PROBLEMS (fail the run):
 WARNINGS (do not fail):
   W1  possible success claim (Rule 10) outside the known false positives
   W2  a register fact is never cited outside REFERENCES.md
-  W3  possibly stale status: an ACCEPTED ADR or ANSWERED OQ is described as
-      OPEN/PROPOSED on the same line, without a superseding note
+  W3  possibly stale status: an ACCEPTED ADR or ANSWERED OQ is followed, in the
+      same clause, by OPEN/PROPOSED, and the line has no superseding note
 """
 import re
 import sys
@@ -77,6 +77,7 @@ SUCCESS_ALLOW = re.compile(
     r"|verified from sources|will be verified|to be verified", re.I)
 
 STALE_WORDS = re.compile(r"\b(OPEN|PROPOSED)\b")
+CLAUSE_END = re.compile(r"\.\s|\||;|" + ID_USE.pattern)
 SUPERSEDE_MARK = re.compile(
     r"Superseded|superseded|ACCEPTED|ANSWERED|was OPEN|was PROPOSED|until "
     r"|opened |reopen|\(O\)\s*→|O → A|O->A", re.I)
@@ -208,6 +209,12 @@ def main(docdir):
                 if pos < 0:
                     continue
                 window = line[pos:pos + len(uid) + 40]
+                # only the same clause: stop at a sentence end, a table-cell
+                # boundary, a semicolon or the next ID (whose own status follows it)
+                tail = window[len(uid):]
+                cut = CLAUSE_END.search(tail)
+                if cut:
+                    window = uid + tail[:cut.start()]
                 if STALE_WORDS.search(window):
                     warnings.append(f"{f}:{n}: {uid} may be shown with a stale status: "
                                     f"…{window.strip()[:80]}…")

@@ -1603,6 +1603,100 @@ Tests: python3 tools/doccheck.py docs → PROBLEMS 0, WARNINGS 0; Rule 21 word-d
 
 ---
 
+## 2026-10-12 (second entry) — Commit, reword and push; live encode 1080p30 (OQ-131 opened); CM5-only questions ANSWERED
+
+### Objective
+
+Act on the owner's "procced" and answers: commit the 2026-10-12 work, reword the hand commit `3c823b6` before pushing, push; record the live-encode decision and the dropped-platform OQ rule.
+
+### Starting State
+
+- `main` at `d16adfd` (the first 2026-10-12 commit, made on "procced") on top of `3c823b6` "mmit"; both local, `origin/main` at `049d1ee`.
+- Owner answers (2026-10-12, via the question tool): **"Reword 3c823b6, then push"**; live encode **"1080p30"**; CM5-only OQs **"Mark them ANSWERED"**.
+
+### Changes
+
+1. **Git.** `3c823b6` amended to its Rule 15 message (the one proposed in the seventh 2026-10-09 entry, plus a line recording the reword) → `27c44d9`; author unchanged (the owner); tree identical. `d16adfd` replayed on top (identical tree) and amended to replace its references to `3c823b6` with `27c44d9` (24 lines, all hash references, verified by diff) → `1f5c0e0`. `git fetch` confirmed `origin/main` was still `049d1ee`; pushed fast-forward `049d1ee..1f5c0e0`. No force push. The old objects `3c823b6` and `d16adfd` exist only in the local reflog.
+2. **Live encode 1080p30** (owner; OQ-005). Recorded as owner input on OQ-005 (and its Answer), OQ-115 (the combinations the encoder must sustain: 3.0× the 1080p30 specification with a 1080p60 recording, 2.67× with 1080p50, 2.0× for 1080p30 sources — reasoning from [L-14], [D-10]) and a note on OQ-073 (Level 4). Propagated to REQ-ENC-001, VIDEO_ENCODER §1 and §7.1, RISK-002, PERFORMANCE, TRACEABILITY and new "Owner decisions of 2026-10-12" boxes in ARCHITECTURE, SOFTWARE_ARCHITECTURE and STREAMING.
+3. **New OQ-131** — how the live path reaches 1080p30 from 60 Hz and 50 Hz captures and from non-1080 inputs (owner decision for 50 Hz sources: 25 or 30 fps; build/hardware test for the element and its cost).
+4. **TEST-ENC-001 Stage 0:** run **R8** added (1080p50 recording + 1080p30 live, 652,800 MB/s, 2.67×) to the matrix and to `tools/encoder_capacity_test.sh`; dated notes that **R4 and R8 are the product runs** (R3 for 1080p30 sources) and that real-time mode should run at least R4 and R8.
+5. **CM5-only OQs ANSWERED** (owner's instruction, following the register's own rule): OQ-049 to OQ-055, OQ-059, OQ-060, OQ-124 — Answer ("made irrelevant by ADR-004"; how to reopen), Evidence, Answered on/by, status and summary rows. **OQ-108 was not closed:** it asks whether browsers receive H.265 over WebRTC, which is H.265 material, not CM5; the 2026-10-09 ADR-004 text called it "CM5 H.264-beside-H.265" and Claude repeated that in the question put to the owner. Notes added to OQ-011, the category 6 header, the summary-table note, DECISIONS (ADR-004 Consequences) and ARCH-001. Register: **131 OQs (108 OPEN, 23 ANSWERED)**.
+6. **`tools/doccheck.py` W3:** now looks for OPEN/PROPOSED only in the same clause as the settled ID (stops at a sentence end, a table-cell boundary, a semicolon or another ID). Closing the CM5 OQs produced five false positives where the word belonged to a neighbouring ADR or to the next sentence; a synthetic regression file confirmed that the real cases (`ADR-004 (OPEN)`, `OQ-008 stays OPEN`, `ADR-004, OPEN)`, `ADR-009 PROPOSED`) are still flagged and the two false-positive shapes are not.
+
+### Files Modified
+
+- Pushed in `27c44d9` / `1f5c0e0`: see the first 2026-10-12 entry.
+- Uncommitted (this entry): `docs/OPEN_QUESTIONS.md`, `DECISIONS.md`, `ARCHIVED_APPROACHES.md`, `REQUIREMENTS.md`, `VIDEO_ENCODER.md`, `RISKS.md`, `PERFORMANCE.md`, `ARCHITECTURE.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `TESTING.md`, `TRACEABILITY.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`; `tools/doccheck.py`, `tools/encoder_capacity_test.sh`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+Tools only (W3 refinement; run R8).
+
+### Commands Used
+
+```bash
+git checkout --detach 3c823b6 && git commit --amend -F <message>     # -> 27c44d9
+git cherry-pick d16adfd                                              # -> replayed, same tree
+git commit --amend --no-edit                                         # hash references -> 1f5c0e0
+git branch -f main HEAD && git checkout main
+git fetch origin && git merge-base --is-ancestor origin/main main && git push origin main
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- Documentation consistency check — **TESTED — PASS** (documentation only): `facts=620 … OQ=131`, `distinct facts cited=620/620`, `PROBLEMS (0)`, `WARNINGS (0)`.
+- Rule 21 audit for this round: removed tokens are the OQ header counts, the 10 status lines and 10 summary-row status cells changed from OPEN to ANSWERED by the register's closing procedure, and one note inserted inside a parenthesis in TESTING.md. Tables intact.
+- `bash -n tools/encoder_capacity_test.sh` passes; stand-in dry run of R8 (levels: recording 4.2, live 4). **NOT YET RUN ON PACSCORDER HARDWARE.**
+- Push: `049d1ee..1f5c0e0  main -> main`.
+
+### Problems Found
+
+- OQ-108 mislabelled as CM5-specific (see Changes 5).
+- The "Counts unchanged" line of the first 2026-10-12 TRACEABILITY state note became out of date within the day; a later state note gives the new counts.
+
+### Root Cause
+
+The OQ-108 label was carried forward from the 2026-10-09 ADR-004 text without checking the entry.
+
+### Solution
+
+Each OQ's question text was read before closing it.
+
+### Current Status
+
+- PASS (documentation consistency). Later 2026-10-12 decisions uncommitted, pending owner approval.
+- Product work: BLOCKED — HARDWARE REQUIRED.
+
+### Next Step
+
+1. Owner: approve the commit below.
+2. Owner: OQ-131 — for 50 Hz sources, should the live encode run at 25 or 30 fps? And for non-1080 inputs, scale to 1080p or keep the source resolution?
+3. Owner: review ADR-006 and ADR-008 (their CM5-based reasons no longer apply).
+4. Owner: obtain a CM4 + IO Board + 12 V supply and run TEST-ENC-001 Stage 0 — the product runs are R4 and R8.
+5. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: decide 1080p30 live encode, close CM5-only questions
+Commit description: Record the owner decisions of 2026-10-12: the live encode (shared by RTMP
+  and WebRTC) is 1080p30 (OQ-005), with new OQ-131 for converting other input modes; and the
+  CM5-only open questions (OQ-049 to OQ-055, OQ-059, OQ-060, OQ-124) are ANSWERED as made
+  irrelevant by ADR-004, per the register's rule (OQ-108, an H.265 question, stays OPEN).
+  Add TEST-ENC-001 Stage 0 run R8 (1080p50 recording + 1080p30 live) and mark R4/R8 as the
+  product runs. Refine the doc check's stale-status warning to the same clause. Record the
+  reword of 3c823b6 to 27c44d9 and the push of 049d1ee..1f5c0e0.
+Files changed: docs/** (15 Markdown files), tools/doccheck.py, tools/encoder_capacity_test.sh
+Reason: Rules 1, 3, 11, 12, 13, 15, 21, 22
+Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; W3 regression file;
+  Rule 21 audit; table check; bash -n and stand-in dry run of R8
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -1620,3 +1714,4 @@ Tests: python3 tools/doccheck.py docs → PROBLEMS 0, WARNINGS 0; Rule 21 word-d
 | 2026-10-09 | Sixth 2026-10-09 entry added: OQ-130 ANSWERED (recording capture-to-file < 1 s judged against the primary drive, the NVMe SSD, at the 95th percentile; the HDD a lagging mirror; ADR-009 mirror refined). Documentation consistency check NOT RUN (doccheck.py unavailable). Noted the external "update by ai" commits that committed the working tree mid-session. Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-09 | Seventh 2026-10-09 entry added: product platform decided — CM4 (ADR-004 ACCEPTED); CM5, BCM2712, Pi 5 and Pi 4 Model B dropped as product boards (CM5 archived, ARCH-001); OQ-011 ANSWERED. Authoritative and reader-facing docs updated; scope rule set for deep inline CM5 content (follow-up sweep recommended). Documentation consistency check NOT RUN (doccheck.py unavailable). Uncommitted, pending owner approval. | Claude (session 2026-10-09) |
 | 2026-10-12 | 2026-10-12 entry added (doc check rebuilt, ADR-004 scope sweep, OQ-129 propagation, hand-commit catch-up, research topic L, TEST-ENC-001 Stage 0). Seventh 2026-10-09 entry's Next Step items 1 and 2 annotated (committed by hand as `3c823b6` "mmit", reworded before push to `27c44d9`; sweep done). | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 second entry added: commit `1f5c0e0`, reword of `3c823b6` to `27c44d9`, push `049d1ee..1f5c0e0`; live encode 1080p30 and OQ-131; CM5-only OQs ANSWERED; doccheck W3 refinement. | Claude (session 2026-10-12) |
