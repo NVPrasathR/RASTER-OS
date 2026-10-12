@@ -23,7 +23,7 @@ PROBLEMS (fail the run):
 WARNINGS (do not fail):
   W1  possible success claim (Rule 10) outside the known false positives
   W2  a register fact is never cited outside REFERENCES.md
-  W3  possibly stale status: an ACCEPTED ADR or ANSWERED OQ is followed, in the
+  W3  possibly stale status: an ACCEPTED or SUPERSEDED ADR, or an ANSWERED OQ, is followed, in the
       same clause, by OPEN/PROPOSED, and the line has no superseding note
 """
 import re
@@ -79,7 +79,7 @@ SUCCESS_ALLOW = re.compile(
 STALE_WORDS = re.compile(r"\b(OPEN|PROPOSED)\b")
 CLAUSE_END = re.compile(r"\.\s|\||;|" + ID_USE.pattern)
 SUPERSEDE_MARK = re.compile(
-    r"Superseded|superseded|ACCEPTED|ANSWERED|was OPEN|was PROPOSED|until "
+    r"Superseded|superseded|ACCEPTED|ANSWERED|SUPERSEDED|was OPEN|was PROPOSED|until "
     r"|opened |reopen|\(O\)\s*→|O → A|O->A", re.I)
 
 
@@ -196,7 +196,7 @@ def main(docdir):
         problems.append(f"RISKS.md header says {hm.group(1)} risks, body defines {len(defined['RISK'])}")
 
     # W3 possibly stale statuses
-    settled = {a for a, s in idx.items() if s == "ACCEPTED"} | \
+    settled = {a for a, s in idx.items() if s in ("ACCEPTED", "SUPERSEDED")} | \
               {o for o, s in oq_status.items() if s == "ANSWERED"}
     for f, t in texts.items():
         if f in ("DEVELOPMENT_LOG.md", "CHANGELOG.md", "REFERENCES.md", "ENGINEERING_RULES.md"):

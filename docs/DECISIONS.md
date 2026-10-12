@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 4 ACCEPTED, 6 PROPOSED, 1 OPEN |
+| Document status | Active — 7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H, I, J and K) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -30,12 +30,12 @@ Fact references such as `[C-37]` point to the source register [REFERENCES.md](RE
 | ADR-003 | OS and image basis: Raspberry Pi OS Lite (64-bit) + `rpi-image-gen` | ACCEPTED | 2026-10-07 (proposed 2026-10-06) |
 | ADR-004 | Product target platform | ACCEPTED | 2026-10-09 (CM4; opened 2026-10-06) |
 | ADR-005 | Default capture pixel format: UYVY (YCbCr 4:2:2 8-bit) | PROPOSED | 2026-10-06 |
-| ADR-006 | One control model: Media Controller mode on every platform | PROPOSED | 2026-10-06 |
+| ADR-006 | One control model: Media Controller mode on every platform | SUPERSEDED BY ADR-010 | 2026-10-06 (decided 2026-10-12) |
 | ADR-007 | Userspace media framework | OPEN | 2026-10-06 |
-| ADR-008 | CSI-2 link frequency: keep the default 486 MHz | PROPOSED | 2026-10-06 |
+| ADR-008 | CSI-2 link frequency: keep the default 486 MHz | ACCEPTED | 2026-10-06 (decided 2026-10-12) |
 | ADR-009 | Recording storage and power-loss safety: fragmented MP4 mirrored to NVMe and a self-powered USB-SATA HDD | ACCEPTED | 2026-10-08 |
-| ADR-010 | Capture control model on the CM4: legacy (video-node) mode, the stock overlay default (alternative to ADR-006) | PROPOSED | 2026-10-12 |
-| ADR-011 | Bring-up TC358743 bridge boards for HW REV A (Geekworm C790 ×2, X1301, Auvidea B102 if obtainable) | PROPOSED | 2026-10-12 |
+| ADR-010 | Capture control model on the CM4: legacy (video-node) mode, the stock overlay default (alternative to ADR-006) | ACCEPTED | 2026-10-12 (decided 2026-10-12) |
+| ADR-011 | Bring-up TC358743 bridge boards for HW REV A (Geekworm C790 ×2, X1301, Auvidea B102 if obtainable) | ACCEPTED | 2026-10-12 (decided 2026-10-12) |
 
 ---
 
@@ -210,7 +210,7 @@ Owner input, 2026-10-07 (second answer): bring-up evaluates **CM4 and CM5 side b
 | Software H.264 1080p30 encode cost | n/a | n/a | ~30–40% CPU (official) [G-22] | same SoC |
 | Known platform issues | — | — | CFE programs D-PHY for 999 Mbps for this bridge [C-31]; reasoning: that matches only the default link rate [C-52] (OQ-050; ADR-008); source-change events are reported not to reach the video node (community source) [C-42] (OQ-051) | as Pi 5; on the CM5 IO Board the CAM/DISP1 jumper documentation conflicts with a DT comment (research gap, topic C — not a register fact; OQ-052) |
 
-The "1080p60 capture possible" row is a bandwidth statement only. Reasoning from the driver's lane formula at 972 Mbps: 1080p60 UYVY (ADR-005, PROPOSED) activates 3 of the 4 configured lanes [C-47]. Capture with 3 of 4 lanes is unproven on both receivers (OQ-038), and image corruption on 3 of 4 lanes (1080p50 RGB888) is reported in a community issue [C-43] (RISK-006). A 4-lane port is therefore necessary for 1080p60 but not yet shown to be sufficient. ADR-008 (PROPOSED; OQ-099) proposes evaluating 297 MHz on a CM4 CAM1 4-lane link, where 1080p60 UYVY uses all 4 lanes.
+The "1080p60 capture possible" row is a bandwidth statement only. Reasoning from the driver's lane formula at 972 Mbps: 1080p60 UYVY (ADR-005, PROPOSED) activates 3 of the 4 configured lanes [C-47]. Capture with 3 of 4 lanes is unproven on both receivers (OQ-038), and image corruption on 3 of 4 lanes (1080p50 RGB888) is reported in a community issue [C-43] (RISK-006). A 4-lane port is therefore necessary for 1080p60 but not yet shown to be sufficient. ADR-008 (PROPOSED; OQ-099) proposes evaluating 297 MHz on a CM4 CAM1 4-lane link, where 1080p60 UYVY uses all 4 lanes. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ## Analysis (Claude's reasoning — not a decision)
 
@@ -284,7 +284,7 @@ One control model: Media Controller mode on every platform.
 
 ## Status
 
-PROPOSED — 2026-10-06 (OQ-014).
+PROPOSED — 2026-10-06 (OQ-014). *(Superseded 2026-10-12: **SUPERSEDED BY ADR-010** — the owner chose legacy video-node mode on the CM4 (OQ-014 ANSWERED). This ADR is kept as the record of the alternative (Rule 13).)*
 
 ## Context
 
@@ -383,7 +383,7 @@ CSI-2 link frequency: keep the overlay default of 486 MHz (972 Mbit/s per lane).
 
 ## Status
 
-PROPOSED — 2026-10-06. Owner decision tracked as OQ-099. Added after the per-document reviews, because [CSI_PIPELINE.md](CSI_PIPELINE.md) and [DEVICE_TREE.md](DEVICE_TREE.md) both recommended this setting without a decision record.
+PROPOSED — 2026-10-06. Owner decision tracked as OQ-099. Added after the per-document reviews, because [CSI_PIPELINE.md](CSI_PIPELINE.md) and [DEVICE_TREE.md](DEVICE_TREE.md) both recommended this setting without a decision record. *(Superseded 2026-10-12: **ACCEPTED** — owner, "Accept ADR-008" (OQ-099 ANSWERED). The decision below now applies: the stock 486 MHz on both CM4 configurations for bring-up, with 297 MHz on CAM1 evaluated in TEST-CAP-002.)*
 
 ## Context
 
@@ -490,7 +490,7 @@ Capture control model on the CM4: legacy (video-node) mode, the stock overlay de
 
 ## Status
 
-PROPOSED — 2026-10-12 (Claude's recommendation; owner decision OQ-014). An alternative to ADR-006 for the CM4-only product (ADR-004 ACCEPTED). If the owner accepts this ADR, ADR-006 becomes SUPERSEDED BY ADR-010; if the owner accepts ADR-006, this ADR becomes SUPERSEDED BY ADR-006.
+PROPOSED — 2026-10-12 (Claude's recommendation; owner decision OQ-014). An alternative to ADR-006 for the CM4-only product (ADR-004 ACCEPTED). If the owner accepts this ADR, ADR-006 becomes SUPERSEDED BY ADR-010; if the owner accepts ADR-006, this ADR becomes SUPERSEDED BY ADR-006. *(Superseded 2026-10-12: **ACCEPTED** — owner chose ADR-010 over ADR-006 (OQ-014 ANSWERED). ADR-006 is now SUPERSEDED BY ADR-010.)*
 
 ## Context
 
@@ -527,7 +527,7 @@ Bring-up TC358743 bridge boards for HW REV A: Geekworm C790 (two) as the primary
 
 ## Status
 
-PROPOSED — 2026-10-12 (Claude's recommendation from research topic M; owner decision OQ-018). This chooses what to **buy and test**; the board fixed as HW REV A is chosen only after the bench tests named below.
+PROPOSED — 2026-10-12 (Claude's recommendation from research topic M; owner decision OQ-018). This chooses what to **buy and test**; the board fixed as HW REV A is chosen only after the bench tests named below. *(Superseded 2026-10-12: **ACCEPTED** — owner, "Accept ADR-011". The boards below are to be bought for bring-up; HW REV A is still chosen only after the bench tests (OQ-018 stays OPEN for the product composition).)*
 
 ## Context
 
@@ -611,3 +611,4 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-12 | Later on 2026-10-12: note on the ADR-004 Consequences line — the CM5-only questions are now ANSWERED (owner's instruction); OQ-108 is H.265, not CM5, and stays OPEN. No decision or status changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-010 added (PROPOSED):** capture control model on the CM4 — legacy video-node mode, the stock overlay default — as the CM4-only alternative to ADR-006 (owner decision OQ-014); index row; header 4 ACCEPTED, **5 PROPOSED**, 1 OPEN. ADR-006 review note cross-references ADR-010. ADR-008: Claude's recommendation to accept it as written (its decision does not depend on the CM5 reason). No accepted decision changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-011 added (PROPOSED):** bring-up bridge boards for HW REV A from research topic M — 2 × Geekworm C790, 1 × X1301, an Auvidea B102 if obtainable; HW REV A fixed only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001 pass. Index row; header 4 ACCEPTED, **6 PROPOSED**, 1 OPEN. | Claude (session 2026-10-12) |
+| 2026-10-12 | **Owner decisions:** ADR-008 **ACCEPTED** (486 MHz; OQ-099 ANSWERED), ADR-010 **ACCEPTED** and ADR-006 **SUPERSEDED BY ADR-010** (legacy video-node mode on the CM4; OQ-014 ANSWERED), ADR-011 **ACCEPTED** (bring-up boards). Status notes appended; index status cells updated; header 7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED. | Claude (session 2026-10-12) |

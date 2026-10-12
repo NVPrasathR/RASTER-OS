@@ -94,10 +94,12 @@ This document is that chain for PACSCORDER. The requirements come from [REQUIREM
 > - Registers now hold **131 OQs (108 OPEN, 23 ANSWERED)**; 34 risks, 21 requirements, 9 ADRs, 17 canonical tests unchanged. *(The "Counts unchanged" line of the note above was true when written.)*
 
 > **Research topic M and two proposals, 2026-10-12** (no owner decision; recorded in the registers):
-> - **ADR-010** (PROPOSED): legacy video-node control on the CM4, the alternative to ADR-006 (OQ-014); traced in the REQ-CAP-001 to REQ-CAP-004 design cells.
-> - **ADR-011** (PROPOSED): bring-up bridge boards (2 × Geekworm C790, 1 × X1301, Auvidea B102 if obtainable); HW REV A is chosen only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001 (OQ-018).
+> - **ADR-010** (PROPOSED): legacy video-node control on the CM4, the alternative to ADR-006 (OQ-014); traced in the REQ-CAP-001 to REQ-CAP-004 design cells. *(Superseded 2026-10-12 — ADR-010 ACCEPTED.)*
+> - **ADR-011** (PROPOSED): bring-up bridge boards (2 × Geekworm C790, 1 × X1301, Auvidea B102 if obtainable); HW REV A is chosen only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001 (OQ-018). *(Superseded 2026-10-12 — ADR-011 ACCEPTED.)*
 > - **RISK-035** (OPEN, High): HDMI audio may not work on non-Auvidea boards → REQ-CAP-006 → TEST-AUD-001 on every candidate board.
 > - Registers: 680 facts (A–M), 11 ADRs (4 ACCEPTED, 6 PROPOSED, 1 OPEN), 35 risks, 131 OQs (108 OPEN, 23 ANSWERED), 21 requirements, 17 canonical tests.
+
+> **Owner decisions, later on 2026-10-12:** ADR-008 ACCEPTED (486 MHz; OQ-099 ANSWERED); ADR-010 ACCEPTED and ADR-006 SUPERSEDED BY ADR-010 (legacy video-node control; OQ-014 ANSWERED) — REQ-CAP-001 to REQ-CAP-004 now trace to ADR-010; ADR-011 ACCEPTED (bring-up boards; OQ-018 stays OPEN for HW REV A). Registers: 11 ADRs (7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED); 131 OQs (106 OPEN, 25 ANSWERED).
 
 ## How to read the matrix
 
@@ -262,7 +264,7 @@ TC358743 driver — in-tree drivers/media/i2c/tc358743.c [A-35]
     ↓
 Device Tree — tc358743 overlay (Pi 4/CM4); dtoverlay=tc358743 resolves to tc358743-pi5 on Pi 5/CM5 [C-11]
     Design: DEVICE_TREE.md · ADR-004 (OPEN) for the platform of the 4-lane configuration (Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)
-            · ADR-008 (PROPOSED, OQ-099): keep link-frequency 486 MHz; evaluate 297 MHz on CM4 CAM1 only
+            · ADR-008 (PROPOSED, OQ-099): keep link-frequency 486 MHz; evaluate 297 MHz on CM4 CAM1 only   [2026-10-12: ADR-008 ACCEPTED]
     Needed for 1080p60: a 4-lane link (reasoning [C-47]). Necessary, not shown sufficient: at 972 Mbps
     1080p60 UYVY uses 3 of the 4 lanes, which is unproven (OQ-038)
     Declared REFCLK must equal the board oscillator [A-45], [B-47]
@@ -293,7 +295,7 @@ Result: none recorded
   - *(Added 2026-10-08.)* Owner, 2026-10-07: bring-up evaluates CM4 and CM5 side by side, and ADR-004 stays OPEN until measured. For this 4-lane chain that means CM4 CAM1 and CM5. *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 - **Lanes** (reasoning). At the overlay default of 972 Mbps per lane, the driver requests 3 lanes for 1080p60 UYVY and 4 for RGB888 [C-47].
   - Capture with 3 of 4 lanes active is unproven (OQ-038), so a 4-lane port alone is not shown to be sufficient for 1080p60 UYVY.
-  - ADR-008 (PROPOSED; OQ-099) proposes keeping 486 MHz (972 Mbps) on every platform. It also proposes evaluating 297 MHz (594 Mbps) on CM4 CAM1 with 4 lanes in TEST-CAP-002, where 1080p60 UYVY uses all 4 lanes [C-47], [C-49].
+  - ADR-008 (PROPOSED; OQ-099) proposes keeping 486 MHz (972 Mbps) on every platform. It also proposes evaluating 297 MHz (594 Mbps) on CM4 CAM1 with 4 lanes in TEST-CAP-002, where 1080p60 UYVY uses all 4 lanes [C-47], [C-49]. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - **Driver.**
   - A reference-clock value other than 26, 27 or 42 MHz leads to a kernel BUG instead of a clean probe failure (kernel source [A-22] and reasoning from it [B-11], both CORRECTED; RISK-007).
   - The FIFO level is hard-coded at 374 [B-12]. An open issue reports image corruption near lane-count limits [C-43] (RISK-006).
@@ -470,3 +472,5 @@ Nothing (no hardware exists as of 2026-10-06). Every Implementation cell is `NOT
 | 2026-10-12 | Later still on 2026-10-12: state-note bullet — non-1080 sources keep their resolution (OQ-131). | Claude (session 2026-10-12) |
 | 2026-10-12 | ADR-010 (PROPOSED, legacy video-node mode on the CM4) noted beside ADR-006 in the REQ-CAP-001, REQ-CAP-002, REQ-CAP-003 and REQ-CAP-004 design cells and in the pipeline sketch. | Claude (session 2026-10-12) |
 | 2026-10-12 | State note for research topic M, ADR-010, ADR-011 and RISK-035, with register counts. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-12 | State note: owner decisions on ADR-006/008/010/011 and the new register counts. | Claude (session 2026-10-12) |

@@ -151,7 +151,7 @@ Only 27 MHz gives the exact rates the timing tables were written for [A-23], [B-
 
 ### 4.5 Recommendation
 
-**PROPOSED — recorded as ADR-008 (PROPOSED). OWNER DECISION REQUIRED (OQ-099).**
+**PROPOSED — recorded as ADR-008 (PROPOSED). OWNER DECISION REQUIRED (OQ-099).** *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ADR-008 proposes keeping `link-frequency` at the default 486000000 on every platform. The reasons:
 
@@ -568,7 +568,7 @@ At 594 Mbps, 1080p50 UYVY and 1080p30 RGB888 use 3 lanes [C-47].
 - That rate costs RGB888 1080p50/60 [C-47].
 - On Pi 5/CM5 it mismatches the 999 Mbps D-PHY setting [C-52].
 - Its per-line slack is 1.89 µs (§10.4).
-- ADR-008 (PROPOSED) proposes evaluating this rate in TEST-CAP-002 on a CM4 CAM1 4-lane link only, not on Pi 5/CM5 (§4.5, OQ-099). Adopting it would need a new ADR.
+- ADR-008 (PROPOSED) proposes evaluating this rate in TEST-CAP-002 on a CM4 CAM1 4-lane link only, not on Pi 5/CM5 (§4.5, OQ-099). Adopting it would need a new ADR. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Resolution:** HARDWARE TEST REQUIRED on each 4-lane candidate (OQ-038). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* Resolving tests: TEST-CAP-002, TEST-CAP-004.
 
@@ -644,8 +644,8 @@ media-ctl -d <M> -V '"csi2":4 [fmt:UYVY8_1X16/1920x1080 field:none colorspace:sm
 | ADR-002 (PROPOSED) | §7.2, §12: patch the in-tree driver only for defects shown on hardware | — |
 | ADR-004 (OPEN) *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* | §11, §11.3: platform choice, per lane configuration (REQ-CAP-007) | — |
 | ADR-005 (PROPOSED) | §9, §10.6, §13: UYVY default and its 3-lane consequence at 1080p60 | — |
-| ADR-006 (PROPOSED) | §7.1: Media Controller mode on every platform | — |
-| ADR-008 (PROPOSED) | §4.5, §13: keep link-frequency 486 MHz on every platform; evaluate 297 MHz on CM4 CAM1 only (OQ-099) | — |
+| ADR-006 (PROPOSED) | §7.1: Media Controller mode on every platform | — *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
+| ADR-008 (PROPOSED) | §4.5, §13: keep link-frequency 486 MHz on every platform; evaluate 297 MHz on CM4 CAM1 only (OQ-099) | — *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)* |
 | RISK-001 | §10–§11 | OPEN |
 | RISK-006 | §10.6, §12 | OPEN |
 | RISK-007 | §4.2 | OPEN |
@@ -701,3 +701,4 @@ Every procedure in §14 is **NOT YET RUN ON PACSCORDER HARDWARE**. Every hardwar
 | 2026-10-07 | Owner decisions of 2026-10-07 propagated: both 2-lane and 4-lane configurations required (REQ-CAP-007; OQ-001 ANSWERED) in the header, intro, §1, §2, §6, §11.2 ("Whether 1080p60 is mandatory: OQ-001" replaced; Pi 4 Model B and CM4 CAM0 recorded as 2-lane candidates) and §13; new §11.3 maps candidate connectors to configurations and gives per-configuration supported-mode limits [C-37], [C-48], [C-49], [B-33], lower/fractional-rate reasoning [B-28] (OQ-040), HDMI sources = ATEM outputs and cameras (REQ-CAP-008, OQ-102, [F-23], [B-27]) and the per-configuration EDID note (OQ-002, reasoning [B-24]); §5 EDID note extended; ADR-004 now a per-configuration choice (still OPEN); traceability rows added for REQ-CAP-007 and REQ-CAP-008; OQ list adds OQ-009, OQ-040, OQ-102 and marks OQ-001/OQ-009 ANSWERED. Added citations B-27, B-28, F-23. No platform chosen; no ADR status changed. | Claude (session 2026-10-07) |
 | 2026-10-09 | Live latency (OQ-116 ANSWERED, research topic K): header (Last updated; Applies to adds the REQ-STR-002 receiver term; Verification adds research topic K of 2026-10-08); §1 bullet "Capture adds about one frame's readout" [K-34], [K-35]; §2 diagram lines for the undocumented TC358743 buffering latency [K-38] and frame-end buffer completion [K-34], [K-35]; new §7.4 "Frame completion and capture latency": Unicam (CM4) and RP1 CFE (CM5) timestamp at frame start and complete at frame end [K-34], [K-35] (CFE `CLOCK_MONOTONIC` from [I-33]), Unicam drops into a dummy buffer when none is queued [K-34] (CFE equivalent KERNEL SOURCE INSPECTION REQUIRED), Pi 4 Model B / Pi 5 by reasoning, the budget's 33.3 ms readout term labelled as reasoning [K-45] (CORRECTED), reasoning that V4L2 timestamps cannot show the bridge's delay (OQ-125, OQ-027), pointers to V4L2.md §12.2 and PERFORMANCE.md; §12 row on the bridge's undocumented buffering latency [K-38]; §15 rows REQ-STR-002 and RISK-031, OQ list adds OQ-116 and OQ-125; Verification status adds K-34, K-35, K-38, K-45 and the new reasoning items. No requirement, ADR, risk or OQ status changed; nothing measured. Verifier pass (same date): §1 bullet title "Capture adds about one frame's readout" → "Capture adds at least one frame's readout on CM4 and about one on CM5" ([K-34] says at least one; [K-35] about one); header Verification row now names §1 and [I-33] from research topic I, which §7.4 cites. Main session, same date: "no hardware exists as of" dates restored to their original values with "still none on 2026-10-09" appended (Rule 21). | Claude (session 2026-10-09) |
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4); 11 stale statements superseded or marked (§1 "four candidate platforms", ADR-004 OPEN, the Pi 5/CM5 999 Mbps bullet and unresolved item; §11.2 and §11.3 ADR-004 OPEN; §13 "each 4-lane candidate"; §14 Pi 5 / CM5 procedure; §15 REQ-PLT-001 "all four platforms", ADR-004 (OPEN) row and OQ-011 ANSWERED in the OQ list); §7.2 (RP1 CFE — Pi 5 and CM5) marked not in current scope; Pi 4 Model B / Pi 5 / CM5 rows, columns or lines noted after the §2 diagram and the tables in §7.3, §7.4, §9, §11.1, §11.2, §11.3 and §14. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |

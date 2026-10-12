@@ -125,7 +125,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
   - Reasoning (inputs [C-47], [C-48]): the per-active-lane load of that reported case (1080p50 RGB888 on 3 lanes, 128 % of 2 lanes = 85.3 % of 3 lanes at 972 Mbps) equals that of 1080p50 UYVY on 2 lanes (85.3 %), which official documentation lists as supported [C-37]. 1080p60 UYVY on 4-lane ports also runs on 3 of 4 lanes [C-47]. See [CSI_PIPELINE.md](CSI_PIPELINE.md) §10.6.
 - **Impact:** Some input modes may stream visibly corrupted video. The scope includes 1080p50 UYVY on 2 lanes and 1080p60 UYVY on 3 of 4 lanes, not only RGB888. Under REQ-CAP-007 (owner, 2026-10-07) both of these are required modes: 1080p50 UYVY is within the 2-lane physical limit [C-37], [C-48] (C-48 is reasoning), and 1080p60 is required on the 4-lane configuration.
 - **Open questions:** OQ-035, OQ-038, OQ-095, OQ-099.
-- **Retire by:** TEST-CAP-004 across the supported-mode matrix, including 1080p50 UYVY on 2 lanes and 1080p60 UYVY on 4-lane ports. Prefer UYVY (ADR-005), which lowers the lane count per mode but does not by itself remove this risk. ADR-008 (PROPOSED; OQ-099) proposes keeping the default 486 MHz link frequency and evaluating 297 MHz on a CM4 CAM1 4-lane link, which avoids the 3-of-4-lane case for 1080p60 UYVY. How to read CSI-2 error counters is not in the source register for either receiver (OQ-050 for CFE, OQ-095 for Unicam).
+- **Retire by:** TEST-CAP-004 across the supported-mode matrix, including 1080p50 UYVY on 2 lanes and 1080p60 UYVY on 4-lane ports. Prefer UYVY (ADR-005), which lowers the lane count per mode but does not by itself remove this risk. ADR-008 (PROPOSED; OQ-099) proposes keeping the default 486 MHz link frequency and evaluating 297 MHz on a CM4 CAM1 4-lane link, which avoids the 3-of-4-lane case for 1080p60 UYVY. How to read CSI-2 error counters is not in the source register for either receiver (OQ-050 for CFE, OQ-095 for Unicam). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ## RISK-007 — Wrong reference clock causes a kernel BUG
 
@@ -169,7 +169,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Evidence:** The CFE driver falls back to 999 Mbps when it cannot determine a sensor link rate [C-31]. Reasoning from driver source: it cannot read one from this bridge, so it always programs 999 Mbps [B-49]. Reasoning: that matches the default 972 Mbps link but not `link-frequency=297000000` (594 Mbps) [C-52].
 - **Impact:** Possible unreliable reception at the non-default link frequency on Pi 5/CM5.
 - **Open questions:** OQ-050, OQ-095, OQ-099.
-- **Retire by:** Using the default link frequency on Pi 5/CM5 (ADR-008, PROPOSED; OQ-099), plus a hardware test of stream stability and CSI-2 error counters. How to read those counters on CFE is not in the source register: UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED; OQ-050). The Unicam counterpart, needed to compare against Pi 4/CM4 on the same modes, is OQ-095.
+- **Retire by:** Using the default link frequency on Pi 5/CM5 (ADR-008, PROPOSED; OQ-099), plus a hardware test of stream stability and CSI-2 error counters. How to read those counters on CFE is not in the source register: UNKNOWN — VERIFICATION REQUIRED (KERNEL SOURCE INSPECTION REQUIRED; OQ-050). The Unicam counterpart, needed to compare against Pi 4/CM4 on the same modes, is OQ-095. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ## RISK-012 — Pi 5/CM5 path has no official documentation
 
@@ -489,7 +489,7 @@ A risk is retired only by test evidence (Rule 10). It is never deleted; a retire
 - **Impact:** HDMI audio is required in every output (REQ-CAP-006, owner 2026-10-07). A board whose audio PLL is mis-implemented gives no audio, and the fix is a hardware change.
 - **Severity:** High. Claude's assessment: audio is a hard requirement, the documented-good boards are not obtainable now, and the obtainable ones are unproven for audio.
 - **Open questions:** OQ-025 (audio wiring and board audio), OQ-018 (board choice), OQ-004 (ANSWERED: audio required).
-- **Retire by:** TEST-AUD-001 on the candidate bridge board before it is chosen as HW REV A (ADR-011, PROPOSED).
+- **Retire by:** TEST-AUD-001 on the candidate bridge board before it is chosen as HW REV A (ADR-011, PROPOSED). *(Superseded 2026-10-12 — ADR-011 ACCEPTED.)*
 
 ## Research design risks of topics J and K (2026-10-08) — where each is carried
 
@@ -542,3 +542,4 @@ Nothing (no hardware exists as of 2026-10-06). No risk has been confirmed or ret
 | 2026-10-12 | Later on 2026-10-12: RISK-002 owner-decision bullet — live encode 1080p30, so the encoder must carry 3.0× (4-lane) or 2.67× (2-lane) its 1080p30 specification; Stage 0 runs R4 and R8. Status and severity unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: RISK-002 note — 50 Hz-family combination 1080p50 + 1080p25 = 2.5×, run R9. Status and severity unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: **RISK-035 added** (HDMI audio may not work on non-Auvidea bridge boards; High; summary row; header 35 risks). RISK-004 evidence: bridge-board supply snapshot. RISK-021 evidence: FFC sidedness and the shared CAM_GPIO. Status and severity of existing risks unchanged. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |

@@ -40,7 +40,7 @@ Fact IDs such as `[B-41]` point to [REFERENCES.md](REFERENCES.md). Facts from th
 | Interrupt GPIO | None; driver polls every 1000 ms [A-30], [C-20] | UNKNOWN — VERIFICATION REQUIRED | OQ-020 | [§5.4](#54-interrupt-gpio) |
 | Power supplies | None in binding, overlay or driver [B-04], [B-05], [C-23] | UNKNOWN — VERIFICATION REQUIRED | OQ-022, OQ-023 | [§5.5](#55-power-supplies) |
 | CSI endpoint | Port 0 endpoint linked to `csi1` (`csi0` with `cam0`) [B-42] | UNKNOWN — VERIFICATION REQUIRED | OQ-021 | [§5.6](#56-csi-endpoint) |
-| Clock configuration | REFCLK: `fixed-clock`, 27 MHz declared. Link: `link-frequencies` 486000000. `clock-noncontinuous` [A-45], [B-41] | REFCLK UNKNOWN (OQ-019). Link frequency: PROPOSED keep 486000000 (ADR-008, PROPOSED). | OQ-019, OQ-037, OQ-050, OQ-099 | [§5.7](#57-clock-configuration) |
+| Clock configuration | REFCLK: `fixed-clock`, 27 MHz declared. Link: `link-frequencies` 486000000. `clock-noncontinuous` [A-45], [B-41] | REFCLK UNKNOWN (OQ-019). Link frequency: PROPOSED keep 486000000 (ADR-008, PROPOSED). | OQ-019, OQ-037, OQ-050, OQ-099 | [§5.7](#57-clock-configuration) *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)* |
 | CSI lanes | `data-lanes = <1 2>`; `<1 2 3 4>` with `4lane` [B-42], [C-12] | Both needed: `<1 2>` for the 2-lane and `<1 2 3 4>` for the 4-lane configuration (REQ-CAP-007). Routed lanes per board: UNKNOWN — VERIFICATION REQUIRED | OQ-021, OQ-038 | [§5.8](#58-csi-lanes) |
 | Lane mapping | `clock-lanes = <0>`, data lanes in order [B-41], [C-12] | UNKNOWN — VERIFICATION REQUIRED | OQ-021 | [§5.9](#59-lane-mapping) |
 | Compatible string | `"toshiba,tc358743"` [A-20], [B-41] | PROPOSED: same, if the in-tree driver is used (ADR-002 PROPOSED, not decided) | OQ-013 | [§5.10](#510-compatible-strings) |
@@ -124,7 +124,7 @@ tc358743: tc358743@f {
 - Compatible `brcm,bcm2835`; it includes `tc358743.dtsi` [B-43], [E-42].
 - By default, `fragment@100` (`legacy_frag`) changes the `csi1` compatible to `"brcm,bcm2835-unicam-legacy"`, so Unicam runs in video-node-centric (legacy) mode [B-43], [C-10].
 - `media-controller = <0>,"!100"` removes that fragment when set, which leaves the Media Controller compatible in place [B-43], [E-42]. `cam0` also retargets the legacy fragment to `csi0` [C-10].
-- **Effect on control.** In legacy mode, EDID and DV-timings ioctls go through the video node, and sub-device nodes are registered read-only. In Media Controller mode they must be issued on a read-write `/dev/v4l-subdevN` (both CORRECTED) [B-25], [C-36]. This choice is ADR-006 (PROPOSED: Media Controller mode everywhere; OQ-014).
+- **Effect on control.** In legacy mode, EDID and DV-timings ioctls go through the video node, and sub-device nodes are registered read-only. In Media Controller mode they must be issued on a read-write `/dev/v4l-subdevN` (both CORRECTED) [B-25], [C-36]. This choice is ADR-006 (PROPOSED: Media Controller mode everywhere; OQ-014). *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 
 ### 3.3 `tc358743-pi5-overlay.dts` (BCM2712)
 
@@ -493,18 +493,18 @@ camera_auto_detect=0
 # Option A — overlay default: legacy Unicam video-node mode [B-43], [C-10]
 dtoverlay=tc358743
 
-# Option B — ADR-006 (PROPOSED): Media Controller mode [B-43], [G-12]
+# Option B — ADR-006 (PROPOSED): Media Controller mode [B-43], [G-12]   [2026-10-12: ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node)]
 # Bare boolean parameter form: NEEDS VERIFICATION (§6.0; OQ-100)
 #dtoverlay=tc358743,media-controller
 ```
 
 ### 6.2 Compute Module 4
 
-*(Added 2026-10-12, research topic M.)* CM4 IO Board: CAM0 (2-lane) and CAM1 (4-lane) are both 22-pin 0.5 mm [M-35]; both share one CAM_GPIO regulator line [M-36]; the GPIO bank runs at 3.3 V by default [M-38]. Bring-up boards: ADR-011 (PROPOSED).
+*(Added 2026-10-12, research topic M.)* CM4 IO Board: CAM0 (2-lane) and CAM1 (4-lane) are both 22-pin 0.5 mm [M-35]; both share one CAM_GPIO regulator line [M-36]; the GPIO bank runs at 3.3 V by default [M-38]. Bring-up boards: ADR-011 (PROPOSED). *(Superseded 2026-10-12 — ADR-011 ACCEPTED.)*
 
 - CAM1: 4 lanes, `csi1`, `i2c-10`. CAM0: 2 lanes, `csi0`, `i2c-0` [C-02], [C-08], [C-25].
 - On the CM4 IO Board, CAM0 needs both J6 jumpers [C-03]. On a custom carrier, Raspberry Pi's camera drivers assume CAM1 uses `i2c-10` and CAM0 uses `i2c-0` [C-25]; the carrier's actual wiring is UNKNOWN (OQ-018).
-- Capability: 1080p60 on CAM1 with 4 lanes [C-37], [C-49]. The 4-lane port is necessary but not shown sufficient for 1080p60 UYVY: at the default 972 Mbit/s the driver activates 3 of the 4 lanes (reasoning) [C-47], which is unproven (OQ-038). ADR-008 (PROPOSED) proposes evaluating `link-frequency=297000000` for this case in TEST-CAP-002 (§5.7; OQ-099). CAM0 has the same 2-lane limits as Pi 4B [C-37], [C-48].
+- Capability: 1080p60 on CAM1 with 4 lanes [C-37], [C-49]. The 4-lane port is necessary but not shown sufficient for 1080p60 UYVY: at the default 972 Mbit/s the driver activates 3 of the 4 lanes (reasoning) [C-47], which is unproven (OQ-038). ADR-008 (PROPOSED) proposes evaluating `link-frequency=297000000` for this case in TEST-CAP-002 (§5.7; OQ-099). CAM0 has the same 2-lane limits as Pi 4B [C-37], [C-48]. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - Under REQ-CAP-007, CAM1 is a candidate for the 4-lane configuration and CAM0 for the 2-lane configuration (§5.8 table). This is a mapping, not a platform choice (ADR-004, OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 - `4lane` is documented for the Compute Module CAM1 connector [G-12]. **Never use `4lane` with `cam0`** (CAM0 is 2-lane [C-02]; §5.8 warning).
 - **Bring-up platform** (owner, 2026-10-07: CM4 and CM5 side by side; ADR-004 OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
@@ -522,7 +522,7 @@ camera_auto_detect=0
 # Bare boolean form: NEEDS VERIFICATION (§6.0; OQ-100)
 dtoverlay=tc358743,4lane
 # For 1080p60 UYVY see §5.7: 3 of 4 lanes at the default link frequency (OQ-038; ADR-008).
-# ADR-006 (PROPOSED) adds Media Controller mode. Combined-parameter syntax NEEDS VERIFICATION (OQ-100):
+# ADR-006 (PROPOSED) adds Media Controller mode. Combined-parameter syntax NEEDS VERIFICATION (OQ-100):   [2026-10-12: ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node)]
 #dtoverlay=tc358743,4lane,media-controller
 # Added 2026-10-08. HDMI audio, required (REQ-CAP-006): in addition to tc358743 [C-37], [G-14].
 # CM4: bcm2835-i2s on GPIO 18-21 [I-10]. Claims GPIO 18-21 (OQ-114). Test: TEST-AUD-001.
@@ -542,7 +542,7 @@ otg_mode=1
 camera_auto_detect=0
 # Connector 0 [C-39], [B-42]. Never add 4lane here.
 dtoverlay=tc358743,cam0
-# ADR-006 (PROPOSED). Combined-parameter syntax NEEDS VERIFICATION (OQ-100):
+# ADR-006 (PROPOSED). Combined-parameter syntax NEEDS VERIFICATION (OQ-100):   [2026-10-12: ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node)]
 #dtoverlay=tc358743,cam0,media-controller
 # Added 2026-10-08. HDMI audio, required (REQ-CAP-006): in addition to tc358743 [C-37], [G-14].
 # CM4: bcm2835-i2s on GPIO 18-21 [I-10]. Claims GPIO 18-21 (OQ-114). Test: TEST-AUD-001.
@@ -566,7 +566,7 @@ otg_mode=1
 - **Do not add `media-controller`.** `tc358743-pi5` has no such parameter [G-13]. What the loader does with an unknown parameter is NEEDS VERIFICATION (OQ-100).
 - **`4lane` on Pi 5.** The README text that calls it CM-CAM1-only is stale [C-13]. Whether capture through it succeeds end to end on the Pi 5 connectors is HARDWARE TEST REQUIRED (OQ-049).
 - **`4lane` with `cam0`.** `4lane` is documented to set `data-lanes` on `csi1_ep` [B-42]. Whether the `cam0` + `4lane` combination also updates the `csi0` endpoint is NEEDS VERIFICATION — KERNEL SOURCE INSPECTION REQUIRED (OQ-049). A 4-lane configuration on CAM/DISP0 is therefore not settled; the CAM/DISP0 snippet below keeps it as a commented alternative.
-- Keep `link-frequency` at its default (§5.7; ADR-008, PROPOSED; OQ-099; RISK-011, OQ-050).
+- Keep `link-frequency` at its default (§5.7; ADR-008, PROPOSED; OQ-099; RISK-011, OQ-050). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - **HDMI audio** *(added 2026-10-08; required, REQ-CAP-006)*. `tc358743-audio` is not in `overlay_map` and loads under its own name; `bcm2712` covers Pi 5 [I-05], [I-06]. The labels it needs are defined in `bcm2712-rpi.dtsi` [I-07]; whether the Pi 5 board Device Tree includes that file is not in the register: KERNEL SOURCE INSPECTION REQUIRED (OQ-054). Pi 5 is not a bring-up platform (owner, 2026-10-07: CM4 and CM5), so no audio line is written into the Pi 5 snippets; §6.0 applies if Pi 5 is used.
 - **Recording storage** *(added 2026-10-09; research topic J)*. The `pciex1` / `pciex1_gen` dtparams are BCM2712 base parameters [J-15], so they exist on Pi 5 as on CM5 (reasoning from the "2712 only" scope in [J-15]). Raspberry Pi's PCIe documentation warns that Pi 5 is not certified for Gen 3.0 and enables Gen 3 with `dtparam=pciex1_gen=3` [J-16]; that line is not proposed (§6.0). Whether the Pi 5 board Device Tree enables `pcie1` by default is not in the register (KERNEL SOURCE INSPECTION REQUIRED), and Pi 5 USB and storage were not researched (OQ-098). No storage line is written into the Pi 5 snippets.
 - There is no official Pi 5 TC358743 documentation [C-38]. A Raspberry Pi engineer reported a capture sequence for Pi 5 on kernel 6.18.39 [C-33] (community report; 6.18.39 is the reporter's kernel, not the 6.18.50 that Raspberry Pi OS 2026-10-06 ships [G-04]). It is a userspace procedure; see [V4L2.md](V4L2.md) and [TESTING.md](TESTING.md).
@@ -663,11 +663,11 @@ dtparam=pciex1=on
 |---|---|---|---|---|
 | Overlay applied | `tc358743` [G-12] | `tc358743` [G-12] | `tc358743-pi5` [C-11], [G-13] | `tc358743-pi5` [C-11], [E-43] |
 | Receiver compatible | `brcm,bcm2835-unicam-legacy` by default; Media Controller compatible with `media-controller` [B-43] | as Pi 4B [B-43] | `raspberrypi,rp1-cfe` [B-44] | `raspberrypi,rp1-cfe` [C-29] |
-| Control model | Legacy by default; Media Controller with `media-controller` (ADR-006 PROPOSED) [C-10] | as Pi 4B | Media Controller only [C-11] | Media Controller only [C-11] |
+| Control model | Legacy by default; Media Controller with `media-controller` (ADR-006 PROPOSED) [C-10] | as Pi 4B | Media Controller only [C-11] | Media Controller only [C-11] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 | Lane configuration it can serve (REQ-CAP-007; §5.8) | 2-lane only [C-01] | CAM0: 2-lane only; CAM1: 4-lane [C-02] | 4-lane; 2-lane with a 2-lane bridge board (reasoning; OQ-021) | as Pi 5; carrier-dependent (OQ-052) |
 | `4lane` allowed | **No** (2-lane) [C-01], [C-17] | CAM1 only [C-02], [G-12] | By lanes, yes [C-04]; HARDWARE TEST REQUIRED (OQ-049). With `cam0` (CAM/DISP0), whether it reaches `csi0`: NEEDS VERIFICATION (OQ-049) | By lanes, yes [C-05]; carrier-dependent (OQ-052) |
 | `cam0` | Not applicable (reasoning) [C-07] | CAM0, 2 lanes [C-02] | CAM/DISP0 [C-26] | Carrier-dependent (OQ-052) |
-| `media-controller` | Optional (ADR-006 PROPOSED) | Optional (ADR-006 PROPOSED) | Not a parameter [G-13] | Not a parameter [G-13] |
+| `media-controller` | Optional (ADR-006 PROPOSED) | Optional (ADR-006 PROPOSED) | Not a parameter [G-13] | Not a parameter [G-13] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 | `link-frequency` | Default 486000000 (PROPOSED keep: ADR-008, OQ-099) | as Pi 4B; ADR-008 proposes evaluating 297000000 on CAM1 4-lane only, for 1080p60 UYVY in TEST-CAP-002 | Keep default (ADR-008); CFE uses 999 Mbps [C-31], [C-52] | as Pi 5 |
 | Default I2C bus | `i2c-10` [C-24] | CAM1 `i2c-10`, CAM0 `i2c-0` [C-25] | CAM/DISP1 `i2c-11` [C-26] | Carrier-dependent [C-27] |
 | Audio overlay `tc358743-audio` (added 2026-10-08; audio required, REQ-CAP-006) | PROPOSED line (§6.0) [G-14]; label resolution not covered by topic I: KERNEL SOURCE INSPECTION REQUIRED | PROPOSED line (§6.2); `bcm2835-i2s`, GPIO 18–21 ALT0 [I-10] | PROPOSED line (§6.0); labels in `bcm2712-rpi.dtsi` [I-07], Pi 5 inclusion KERNEL SOURCE INSPECTION REQUIRED (OQ-054) | PROPOSED line (§6.4); RP1 I2S1, GPIO 18–21 [I-07], [I-08]; capture unconfirmed (OQ-054) |
@@ -873,3 +873,4 @@ Nothing (no hardware exists as of 2026-10-08). No overlay has been loaded and no
 | 2026-10-09 | Storage + latency (ADR-009 ACCEPTED, OQ-116 ANSWERED, research topics J and K): header (Last updated; Applies to adds the recording-storage `config.txt` settings; Verification adds topics J and K); new "Owner decisions of 2026-10-08" paragraph (ADR-009 touches the CM5 M.2 link and the CM4 USB host; the latency decision does not change the Device Tree); §1 new "Recording-storage interfaces" row; §6.0 new bullet on attested storage syntax (`pciex1`, `pciex1_gen` [J-15], `dtparam=pciex1_gen=3` [J-16], `otg_mode=1` and `dwc2` [J-07], [J-18]), bare `dtparam=pciex1` NEEDS VERIFICATION, PROPOSED keep Gen 2 [J-12], [J-13], [J-16]; §6.2 CM4 storage bullet (USB host choice and UAS binding [J-07], [J-24], OQ-122; no PCIe line known, OQ-121; `pci=nomsi` is a command-line item [J-02], OQ-123) and PROPOSED `otg_mode=1` with a commented `dwc2` alternative in both CM4 snippets; §6.3 Pi 5 storage bullet ([J-15] reasoning, [J-16]; nothing proposed, OQ-098); §6.4 new "Recording storage on CM5" notes ([J-03], [J-10], [J-11], [J-12], [J-13], [J-15], [J-17], [J-18], [J-22]; OQ-124, OQ-052, OQ-121) and PROPOSED `dtparam=pciex1=on` in the CM5 IO Board snippet; §6.5 storage row; §7 storage kernel options [J-29]; §9 new change-log entry "2026-10-09 — Proposed configuration extended: recording-storage interfaces for ADR-009" (no source change; NOT YET LOADED); Verification status lists topic J IDs and the 2026-10-08 storage-latency research JSON. No Device Tree source changed; no REQ, ADR, RISK or OQ status changed; overlay status NOT STARTED unchanged. Verifier pass (same date): header Verification row keeps the original "as of 2026-10-08" with "(still none on 2026-10-09)" added (Rule 21). | Claude (session 2026-10-09) |
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4); 14 stale ADR-004 statements superseded (owner-decision paragraphs of 2026-10-07 and 2026-10-08, §1 CM4 row, §3.5 CM5 status, §5.8, §6.0 audio and snippet bullets, §6.1, §6.2 (2), §6.3, §6.4, §6.5 bring-up row) and one stale ADR-003 (both PROPOSED) line in the §9 entry of 2026-10-06 annotated; §3.3, §3.4, §6.1 (Pi 4 Model B), §6.3 (Pi 5) and §6.4 (CM5) marked not in current scope; Pi 4 Model B / Pi 5 / CM5 rows or columns noted after the tables in §1, §3.5, §3.6, §4.1, §5.1, §5.8, §5.10, §6.5 and §8. No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: dated notes in §5.3 (RESETN routing on candidate boards; shared CAM_GPIO), §5.4 (INT routing), §5.8 (`4lane` only for 4-lane boards on CAM1) and §6.2 (CM4 IO Board connectors, CAM_GPIO, 3.3 V bank; ADR-011). No overlay or DT content proposed or changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |

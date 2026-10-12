@@ -110,6 +110,8 @@ The kernel-side pipeline these responsibilities sit on is described in [ARCHITEC
 
 ## 1. Scope and boundary
 
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* The CM4 product uses legacy (video-node) mode: EDID and DV timings go through the Unicam video node [B-25], [C-36], [C-37]; text below that routes them through `/dev/v4l-subdevN` describes the superseded ADR-006 and is kept as reference.
+
 **Kernel/userspace boundary.** ADR-001 (ACCEPTED) and REQ-DRV-001 put the CSI-2 receiver, DMA and TC358743 register access in the kernel. Userspace software therefore:
 
 - talks to the hardware **only** through device nodes, ioctls and events;
@@ -273,7 +275,7 @@ Each subsection uses the same headings: purpose, traces, inputs, outputs, interf
    | | Pi 4 / CM4 | Pi 5 / CM5 |
    |---|---|---|
    | Overlay | `tc358743` [G-12] | `tc358743`, which the overlay map redirects to `tc358743-pi5` [C-11], [E-43] |
-   | Control model | Add `media-controller` for Media Controller mode (ADR-006, PROPOSED); the default is legacy video-node mode [C-10] | Always Media Controller [C-11] |
+   | Control model | Add `media-controller` for Media Controller mode (ADR-006, PROPOSED); the default is legacy video-node mode [C-10] | Always Media Controller [C-11] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
    | Lanes | `4lane` switches both endpoints to 4 lanes; documented for the CM CAM1 connector [G-12], [B-42] | `4lane` is available [G-13]. Reasoning: the shared `tc358743.dtsi` defaults to 2 data lanes [C-12], so 4-lane operation on Pi 5/CM5 needs this parameter (OQ-049). Whether `4lane` together with `cam0` gives 4 lanes on `csi0`: NEEDS VERIFICATION, because `4lane` is defined on the TC358743 endpoint and `csi1_ep` [B-42], and the README text for `tc358743-pi5` is stale [C-13]. |
    | Connector | `cam0` retargets I2C, CSI and clock to connector 0 [C-10] | `cam0` selects connector 0; otherwise connector 1 [C-39] (CORRECTED), [G-13] |
 
@@ -344,7 +346,7 @@ Each subsection uses the same headings: purpose, traces, inputs, outputs, interf
   - pixel format (ADR-005);
   - supported-mode list, per lane configuration (OQ-002; REQ-CAP-007);
   - lane configuration of the unit, 2-lane or 4-lane (REQ-CAP-007). Reasoning: the service needs it to choose the supported-mode list and to predict lane-count failures before streaming [B-31], [C-16]. The lanes actually wired on the PACSCORDER board: UNKNOWN — VERIFICATION REQUIRED; VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED (OQ-021);
-  - link frequency (overlay default 486 MHz, i.e. 972 Mbps per lane [A-45]; ADR-008, PROPOSED, proposes keeping it; OQ-099).
+  - link frequency (overlay default 486 MHz, i.e. 972 Mbps per lane [A-45]; ADR-008, PROPOSED, proposes keeping it; OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Outputs.**
 
@@ -403,7 +405,7 @@ Each subsection uses the same headings: purpose, traces, inputs, outputs, interf
 7. **Audio rate and presence (added 2026-10-08; audio is required, REQ-CAP-006).**
    - Read "Audio sampling rate" (0x00981980) and "Audio present" (0x00981981) after the signal locks and before audio capture opens ALSA [I-20]. A rate of 0 means no TMDS signal [I-19].
    - Subscribe to `V4L2_EVENT_CTRL` for both controls; the driver updates the rate on the CBIT `FS` interrupt and the present flag on audio lock or unlock [I-21]. Forward every change to audio capture (5.8), which must reopen ALSA at the new rate (RISK-023, OQ-111).
-   - Node: on CM5 the controls exist only on the TC358743 sub-device node; on CM4 in legacy Unicam mode they are also copied to `/dev/videoN` [I-23]. Reasoning from [I-23]: under ADR-006 (PROPOSED; Media Controller mode everywhere) Unicam does not copy them, so the sub-device node serves both boards.
+   - Node: on CM5 the controls exist only on the TC358743 sub-device node; on CM4 in legacy Unicam mode they are also copied to `/dev/videoN` [I-23]. Reasoning from [I-23]: under ADR-006 (PROPOSED; Media Controller mode everywhere) Unicam does not copy them, so the sub-device node serves both boards. *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
    - Latency: without a wired INT pin a change takes up to about 1 s, plus I2C time, to reach the control [I-22] (OQ-020).
 
 **Conditions the service must distinguish.** These are derived from driver return codes; this is not a state-machine design.
@@ -1336,3 +1338,4 @@ Nothing (no hardware exists as of 2026-10-06). No userspace software exists. Eve
 | 2026-10-12 | Later still on 2026-10-12: bullet in the 2026-10-12 owner-decision box — 50 Hz-family sources, live encode at 25 fps (OQ-131). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: box bullet — non-1080 sources keep their resolution on the live encode (OQ-131; Level 3.2 for 720p at 17 Mbit/s). | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: box bullet — `videorate drop-only` and `tee`/`queue` as OQ-131 design input (no decision; ADR-007 OPEN). | Claude (session 2026-10-12) |
+| 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): dated note that EDID and DV timings go through the Unicam video node; ADR-006 text kept as reference; stale ADR-006/ADR-008/ADR-010/ADR-011 status lines annotated. | Claude (session 2026-10-12) |

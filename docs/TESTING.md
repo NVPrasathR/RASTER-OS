@@ -94,7 +94,7 @@ This document holds one procedure for each canonical test ID in [README.md](READ
 | H.265 encoder *(added 2026-10-08; deferred — REQ-ENC-002; not in current scope)* | software only: no HEVC encoder in `bcm2835-codec` [D-24] | as Pi 4 [D-24] | software only [D-31] | software only [D-31] |
 | x265 SIMD paths *(added 2026-10-08; deferred — REQ-ENC-002; not in current scope)* | reasoning: as CM4, because Pi 4 Model B is also BCM2711 [D-10], [H-05] | Cortex-A72: Neon only, no DotProd; I8MM, SVE, SVE2 not applicable [H-05] | reasoning: as CM5, because Pi 5 is also BCM2712 [D-30], [H-05] | Cortex-A76: Neon DotProd kernels can apply, enabled only if the kernel reports ASIMDDP [H-04], [H-05]; whether they are active is OQ-105 |
 | HDMI audio CPU DAI behind `i2s_clk_consumer` *(added 2026-10-08)* | not covered by the topic I research (CM4 and CM5 only) | single `bcm2835-i2s` on GPIO 18–21 (ALT0) [I-10]; capture exactly 2 channels, 8–384 kHz, S16_LE / S24_LE / S32_LE [I-13] | not covered by the topic I research (OQ-054) | RP1 I2S1 (`rp1_i2s1`, `snps,designware-i2s`) on GPIO 18–21 [I-07], [I-08]; the clock-consumer instance a codec-master link needs [I-09]; channel count and formats come from hardware registers [I-14]. **Operation unconfirmed** (OQ-054) |
-| TC358743 audio controls appear on *(added 2026-10-08)* | not covered by the topic I research | `/dev/videoN` with legacy Unicam (stock overlay, `media-controller` off) [I-23]; in Media Controller mode (ADR-006, PROPOSED) reasoning from [I-23]: the TC358743 sub-device node | not covered by the topic I research | only the TC358743 `/dev/v4l-subdevN` [I-23] |
+| TC358743 audio controls appear on *(added 2026-10-08)* | not covered by the topic I research | `/dev/videoN` with legacy Unicam (stock overlay, `media-controller` off) [I-23]; in Media Controller mode (ADR-006, PROPOSED) reasoning from [I-23]: the TC358743 sub-device node | not covered by the topic I research | only the TC358743 `/dev/v4l-subdevN` [I-23] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 | Expected ALSA PCM name *(added 2026-10-08)* | not covered by the topic I research | `bcm2835-i2s-dir-hifi dir-hifi-0` [I-15]; card index varies, reported as card 0 and card 1 in the same 2019 thread (community source) [I-16] | not covered by the topic I research | reasoning from source: `1f000a4000.i2s-dir-hifi dir-hifi-0` [I-17]. Select the device by card id `tc358743` on both boards [I-15], [I-17] |
 | NVMe SSD attachment, ADR-009 *(added 2026-10-09)* | not covered by the topic J research (CM4 and CM5 only) | one PCIe Gen 2 x1 lane [J-01]. CM4 IO Board: the single PCIe Gen 2 x1 socket, with a passive PCIe-to-M.2 adaptor [J-03], [J-11]; slot powered only from the +12 V barrel input [J-05]; SSD appears as `/dev/nvme0`, namespace `/dev/nvme0n1` [J-11]; the two official datasheets disagree on MSI-X (OQ-123) [J-02] | not covered by the topic J research | CM5 IO Board M.2 M-key slot: PCIe Gen 2 x1 by default, Gen 3 "experimental and therefore unsupported" [J-13]; 2230, 2242, 2260 and 2280 [J-14]. In `rpi-6.18.y` the `pcie1` link used by the slot is "disabled" in the device tree and the `pciex1` dtparam (alias `nvme`) defaults to off [J-15], [J-17]; whether the firmware enables it at run time is unknown (research gap, topic J; OQ-124) |
 | USB path for the HDD, ADR-009 *(added 2026-10-09)* | not covered by the topic J research | USB 2.0 only; no USB 3.0 controller [J-01], [J-08]. CM4 IO Board: on-board USB2514B hub, one VBUS switch of about 1.2 A for the connectors; plugging in the micro-USB cable disables the hub [J-06]. USB is enabled by `otg_mode=1` (XHCI USB 2.0) in Raspberry Pi OS, or by `dtoverlay=dwc2,dr_mode=host` per the IO Board datasheet [J-07]; `uas` cannot bind behind `dwc2` but can under `otg_mode=1` [J-24] | not covered by the topic J research | two USB 3.0 interfaces [J-18] on RP1's two xHCI controllers, each port with independent bandwidth [J-21]; the NVMe link and RP1 are on separate PCIe root ports [J-17]. CM5 IO Board: two USB 3.0 Type-A ports sharing about 1.2 A of VBUS [J-19]; 600 mA peripheral limit on a 5 V/3 A supply [J-20] |
@@ -180,7 +180,7 @@ Confirm that the TC358743 on the PACSCORDER bridge board answers on the platform
 
 ### Setup
 
-*(Added 2026-10-12, research topic M.)* **Bridge board and cable for bring-up:** ADR-011 (PROPOSED) proposes Geekworm C790 boards, an X1301 and, if obtainable, an Auvidea B102. Use only the FFC supplied with the board or an identical one — same-side and opposite-side cables exist and the wrong one can damage the boards (community) [M-49] (RISK-021); the official documentation does not say which type a 22-to-15 cable needs [M-41]. On the CM4 IO Board both camera connectors are 22-pin [M-35]; check pin 1 against the 22-pin pinout [M-37].
+*(Added 2026-10-12, research topic M.)* **Bridge board and cable for bring-up:** ADR-011 (PROPOSED) proposes Geekworm C790 boards, an X1301 and, if obtainable, an Auvidea B102. Use only the FFC supplied with the board or an identical one — same-side and opposite-side cables exist and the wrong one can damage the boards (community) [M-49] (RISK-021); the official documentation does not say which type a 22-to-15 cable needs [M-41]. On the CM4 IO Board both camera connectors are 22-pin [M-35]; check pin 1 against the 22-pin pinout [M-37]. *(Superseded 2026-10-12 — ADR-011 ACCEPTED.)*
 
 - Platform and connector: see the platform reference table. PACSCORDER's choice is UNKNOWN — OWNER DECISION REQUIRED (OQ-011). *(Superseded — OQ-011 ANSWERED 2026-10-09: the product platform is the CM4 (BCM2711); ADR-004 ACCEPTED, ARCH-001. Note added 2026-10-12.)*
 - Bridge board: UNKNOWN — VERIFICATION REQUIRED (OQ-018).
@@ -245,6 +245,8 @@ Confirm that the in-tree `tc358743` driver (ADR-002, PROPOSED) probes the bridge
 
 ### Setup
 
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
+
 - Image: the driver is built as module `tc358743` [A-35]. It is enabled as a module in both Raspberry Pi arm64 defconfigs [E-39], and the 2026-10-06 image ships `tc358743.ko.xz` for both kernels [G-16].
 - **Reference clock — check before first boot.**
   - The DT clock frequency must equal the bridge board's oscillator. That frequency is UNKNOWN — VERIFICATION REQUIRED (VENDOR CONFIRMATION REQUIRED, OQ-019).
@@ -257,7 +259,7 @@ Confirm that the in-tree `tc358743` driver (ADR-002, PROPOSED) probes the bridge
 
   | Platform | Line |
   |---|---|
-  | Pi 4 Model B | `dtoverlay=tc358743,media-controller` (ADR-006 PROPOSED) [B-43] — bare parameter: syntax NEEDS VERIFICATION (OQ-100) |
+  | Pi 4 Model B | `dtoverlay=tc358743,media-controller` (ADR-006 PROPOSED) [B-43] — bare parameter: syntax NEEDS VERIFICATION (OQ-100) *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
   | CM4, CAM1 with a 4-lane board | `dtoverlay=tc358743,4lane,media-controller` [B-42], [B-43] — bare and combined parameters: syntax NEEDS VERIFICATION (OQ-100) |
   | CM4, CAM0 | `dtoverlay=tc358743,cam0,media-controller` [B-42], [B-43] — 2 lanes only [C-02]; combined parameters: syntax NEEDS VERIFICATION (OQ-100) |
   | Pi 5 | `dtoverlay=tc358743-pi5` [G-13], or `dtoverlay=tc358743`, which is redirected to it [C-11]. [DEVICE_TREE.md](DEVICE_TREE.md) §6.3 proposes naming `tc358743-pi5` explicitly. Add `,4lane` for a 4-lane board and `,cam0` for CAM/DISP0 [G-13], [C-39]; a bare `4lane` and the combination `cam0,4lane` are NEEDS VERIFICATION (OQ-100) |
@@ -335,6 +337,8 @@ BLOCKED — HARDWARE REQUIRED — not run
 Confirm that a source sees no sink until an EDID is written, that writing the EDID asserts HDMI hot-plug (HPD), and that the EDID must be rewritten after every boot or driver load.
 
 ### Setup
+
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
 
 *(Added 2026-10-12, research topic M.)* A Raspberry Pi engineer: with no EDID loaded the source sends no output, and the driver does not switch to the detected timings by itself — the timings must be set (community) [M-50].
 
@@ -507,6 +511,8 @@ Confirm that, for every source mode PACSCORDER must accept, the DV timings are d
 
 ### Setup
 
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
+
 - As TEST-DRV-002, with the EDID loaded.
 - Sources (REQ-CAP-008): run with both source types the owner named on 2026-10-07 — an ATEM switcher's HDMI output and each camera connected directly. The ATEM and camera models are OPEN (OQ-102); record the model and firmware of every source in the result entry. *(Superseded 2026-10-08: OQ-102 ANSWERED 2026-10-07 — any HDMI camera, no model list. Use representative cameras and an ATEM; the accepted set is defined by the supported-mode matrix and the EDID (OQ-002), and unsupported modes are rejected per REQ-CAP-005.)*
   - ATEM Mini Pro: set its HDMI output to Program first; it defaults to multiview [F-25].
@@ -580,13 +586,15 @@ Scope against the owner decision of 2026-10-07 (OQ-001 answered: "i need 2 lane 
 
 ### Setup
 
-*(Added 2026-10-12, research topic M.)* 1080p60 needs a board that routes all 4 lanes to a 22-pin connector on the CM4 CAM1 connector [M-33], [M-44], [M-48]; candidates per ADR-011 (PROPOSED). Vendors differ on the modes they claim for 4-lane boards — the B102 page lists inputs to 1080p30 [M-05], 52Pi states 1080p30 [M-31], Geekworm states 1080p60 on CM4 for the C790 [M-12] — so the result is measured here, not taken from the vendor.
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
+
+*(Added 2026-10-12, research topic M.)* 1080p60 needs a board that routes all 4 lanes to a 22-pin connector on the CM4 CAM1 connector [M-33], [M-44], [M-48]; candidates per ADR-011 (PROPOSED). Vendors differ on the modes they claim for 4-lane boards — the B102 page lists inputs to 1080p30 [M-05], 52Pi states 1080p30 [M-31], Geekworm states 1080p60 on CM4 for the C790 [M-12] — so the result is measured here, not taken from the vendor. *(Superseded 2026-10-12 — ADR-011 ACCEPTED.)*
 
 - **4-lane configuration only:** CM4 CAM1 [C-02], Pi 5 [C-04], CM5 [C-05]. *(Pi 5 / CM5: not run in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001. Note added 2026-10-12.)*
   - **2-lane configurations cannot run this test's 1080p60 run.** The Pi 4 Model B connector has 2 lanes [C-01], and so does CM4 CAM0 [C-02]. Official documentation limits 2 lanes to 1080p30 RGB888 or 1080p50 YUV422 [C-37], and the reasoning in [C-48] agrees. Under REQ-CAP-007 these remain candidates for the 2-lane configuration (ADR-004, OPEN); *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Pi 4 Model B is not in current scope as a product board; the 2-lane configuration is CM4 CAM0 or a 2-lane bridge board (REQ-CAP-007). Note added 2026-10-12.)* they are tested at the rates their link carries in TEST-CAP-004.
   - The bridge board must route 4 lanes (UNKNOWN, OQ-021), with the `4lane` overlay parameter [B-42].
   - **A 4-lane port is necessary but not shown to be sufficient.** At 972 Mbps the driver uses 3 of the 4 lanes for 1080p60 UYVY (reasoning) [C-47]. Capture with 3 active lanes is unproven (OQ-038; ADR-008).
-- Link frequency: overlay default 486000000 (972 Mbps per lane) [A-45]. ADR-008 (PROPOSED; OQ-099) proposes keeping this default on every platform.
+- Link frequency: overlay default 486000000 (972 Mbps per lane) [A-45]. ADR-008 (PROPOSED; OQ-099) proposes keeping this default on every platform. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
   - CM4 CAM1 with a 4-lane board only: ADR-008 also proposes an evaluation run at `link-frequency=297000000` (594 Mbps per lane) [G-12]. Reasoning: at that rate the driver requests all 4 lanes for 1080p60 UYVY [C-47], [C-49], which avoids the 3-of-4-lane case. A driver comment says 594 Mbps is meant for 4-lane 1080p60 [C-44].
   - Not on Pi 5 / CM5. Reasoning: the CFE programs 999 Mbps for this bridge, which matches only the default rate [C-52].
 - Capture format: UYVY (`UYVY8_1X16`), following ADR-005 (PROPOSED; OQ-003).
@@ -684,6 +692,8 @@ BLOCKED — HARDWARE REQUIRED — not run
 Confirm that HDMI connect, disconnect, signal loss and timing changes are detected, and that capture resumes with the new timings without a reboot. Measure detection latency.
 
 ### Setup
+
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
 
 - As TEST-CAP-002 (or TEST-CAP-001 on a 2-lane platform at a mode the link carries).
 - A source that can change output mode on command.
@@ -783,7 +793,7 @@ Unsupported modes include:
   - the lane count the driver chose;
   - frame integrity;
   - CSI-2 receive errors, where a method exists (RP1 CFE: OQ-050; Unicam: OQ-095).
-- Run the matrix with the default link frequency (486000000), which ADR-008 (PROPOSED; OQ-099) proposes to keep. Repeat it with `link-frequency=297000000` [G-12] only if the owner wants that rate evaluated (OQ-099); ADR-008 proposes evaluating it only on CM4 CAM1 with 4 lanes, in TEST-CAP-002.
+- Run the matrix with the default link frequency (486000000), which ADR-008 (PROPOSED; OQ-099) proposes to keep. Repeat it with `link-frequency=297000000` [G-12] only if the owner wants that rate evaluated (OQ-099); ADR-008 proposes evaluating it only on CM4 CAM1 with 4 lanes, in TEST-CAP-002. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ### Expected Result
 
@@ -813,7 +823,7 @@ Unsupported modes include:
   - 1080p30: UYVY 2, RGB888 3.
 - Reasoning: on 4 lanes, 1080p50 RGB888 and 1080p60 RGB888 are rejected [C-49]. An issue reporter saw `Device has requested 5 data lanes, which is >4 configured in DT` [C-43].
 - Reasoning: on 2 lanes only 1080p30 UYVY fits [C-48].
-- On Pi 5 / CM5 this rate does not match the CFE's 999 Mbps D-PHY setting (reasoning) [C-52] (RISK-011, OQ-050). This is one reason ADR-008 (PROPOSED; OQ-099) proposes keeping the default rate.
+- On Pi 5 / CM5 this rate does not match the CFE's 999 Mbps D-PHY setting (reasoning) [C-52] (RISK-011, OQ-050). This is one reason ADR-008 (PROPOSED; OQ-099) proposes keeping the default rate. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Rejections**
 
@@ -886,7 +896,7 @@ The silicon can also send audio over CSI-2 [A-05]. The Linux driver always confi
   - *(Added 2026-10-08.)* The kernel options this path needs are set in both arm64 defconfigs and in both packaged 6.18.50 kernels [I-12].
 - *(Added 2026-10-08.)* **GPIO 18–21 allocation (OQ-114).** With `tc358743-audio` enabled, the I2S pin group claims GPIO 18, 19, 20 and 21, although the audio path uses only 18–20 [I-30]. Remove or move any other overlay that uses these pins: `pwm` and `pwm-2chan` default to pin 18, `gpio-ir` defaults to GPIO 18, and `audremap` offers `pins_18_19` on BCM2711 [I-31]. Record every `dtoverlay` line in the result entry. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) §8.3.
 - *(Added 2026-10-08.)* **Platforms.** CM4 and CM5, side by side (owner, 2026-10-07; ADR-004 OPEN). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. The CM5 runs are kept as reference and not run in current scope. Note added 2026-10-12.)* For CM5, record the carrier board (OQ-052).
-- *(Added 2026-10-08.)* **Control node.** The TC358743 audio controls appear on `/dev/videoN` on CM4 with legacy Unicam (the stock overlay default), and only on the TC358743 sub-device node on CM5 [I-23]. In Media Controller mode on CM4 (ADR-006, PROPOSED), reasoning from [I-23]: they are expected on the sub-device node only; record where they appear.
+- *(Added 2026-10-08.)* **Control node.** The TC358743 audio controls appear on `/dev/videoN` on CM4 with legacy Unicam (the stock overlay default), and only on the TC358743 sub-device node on CM5 [I-23]. In Media Controller mode on CM4 (ADR-006, PROPOSED), reasoning from [I-23]: they are expected on the sub-device node only; record where they appear. *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 - An HDMI source sending 2-channel PCM audio at a known sample rate.
 - *(Added 2026-10-08.)* **Sources.** Representative cameras and an ATEM (OQ-102 ANSWERED: any HDMI camera, no model list, plus ATEM outputs). ATEM Mini Pro outputs its program audio embedded on HDMI (CORRECTED) [F-24]. What audio format and rate each source sends is UNKNOWN per model: record it. Needed:
   - a 2-channel LPCM source at **48 kHz** and one at **44.1 kHz** (the driver's rate table decodes both [I-19]);
@@ -1995,6 +2005,8 @@ This test measures that combined load on CM4 and CM5. *(Superseded — ADR-004 A
 
 ### Setup
 
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* **Control node on the CM4:** the product uses the stock overlay's legacy (video-node) mode, so EDID, DV timings and format are set on the Unicam video node (`/dev/videoN`), as in the official documentation [C-37]; the TC358743 sub-device node is read-only in this mode [C-36]. Where the steps below name `/dev/v4l-subdevN` for EDID, DV timings or events, use the video node instead (commands per [C-37]; exact forms NEEDS VERIFICATION, OQ-101). The Media Controller steps are kept as the record of ADR-006.
+
 - Full pipeline as selected by the owner. *(Later on 2026-10-08: selected — "Separate record + live", OQ-005. Video: capture → recording encode → recording, and capture → live encode → RTMP and WebRTC. Audio: HDMI audio → AAC (recording, RTMP) and Opus (WebRTC). Bitrates and latency targets are still open (OQ-005).)* *(Superseded later on 2026-10-09: owner decisions of 2026-10-09, later — bitrates and rate control are decided: live encode CBR 17 Mbit/s, recording encode 25 Mbit/s VBR (OQ-005). The live latency target was set on 2026-10-08 — under 1 s camera-to-viewer for WebRTC viewers (OQ-116) — and is judged at the 95th percentile (OQ-008). OQ-005 stays OPEN for the recording encode's profile, level and B-frames and for a capture-to-file latency target for recordings, if one is required.)* *(Superseded — OQ-005 ANSWERED 2026-10-09: recording encode High profile, Level 4.2, no B-frames; capture-to-file under 1 s glass-to-disk. Note added 2026-10-12.)*
 - Soak duration, frame-drop threshold, ambient temperature range and enclosure: UNDEFINED — OWNER DECISION REQUIRED (OQ-010).
 - Temperature chamber: required if OQ-010 sets a range beyond room temperature.
@@ -2164,3 +2176,4 @@ Nothing (no hardware exists as of 2026-10-06). No procedure in this document has
 | 2026-10-12 | Later on 2026-10-12: TEST-ENC-001 Stage 0 — run R8 added (1080p50 recording + 1080p30 live, 2.67×); dated note that R4 and R8 are the product runs after the 1080p30 live-encode decision (R3 for 1080p30 sources); real-time mode and interpretation notes. `tools/encoder_capacity_test.sh` gained R8. No TEST-ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: TEST-ENC-001 Stage 0 — run R9 added (1080p50 recording + 1080p25 live, 2.5×); note that the product runs are R4, R9 and R3 and R8 is a margin reference. `tools/encoder_capacity_test.sh` gained R9. No TEST-ID changed. | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: dated Setup notes in TEST-HW-001 (bring-up boards per ADR-011; cable sidedness, RISK-021), TEST-DRV-002 (no EDID → no output; timings must be set), TEST-CAP-002 (4-lane 22-pin board on CAM1; vendor mode claims differ) and TEST-AUD-001 (run on every candidate board before HW REV A is chosen; RISK-035; wiring). No TEST-ID changed. | Claude (session 2026-10-12) |
+| 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): a dated Setup note in TEST-DRV-001, TEST-DRV-002, TEST-CAP-001, TEST-CAP-002, TEST-CAP-003 and TEST-PERF-001 — EDID, DV timings and format go through the Unicam video node; Media Controller steps kept as the ADR-006 record. ADR-008 and ADR-011 ACCEPTED notes on stale status lines. No TEST-ID changed. | Claude (session 2026-10-12) |

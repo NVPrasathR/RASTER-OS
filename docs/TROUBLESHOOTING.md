@@ -176,7 +176,7 @@ For each failure it gives the exact log text where a source attests it, the like
 2. Check the reference clock (1.2).
 
 **Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE).
-- Use the default 486000000, or 297000000 [G-12]. ADR-008 (PROPOSED; OQ-099) proposes keeping the default on every platform, and evaluating 297000000 only on CM4 CAM1 with 4 lanes.
+- Use the default 486000000, or 297000000 [G-12]. ADR-008 (PROPOSED; OQ-099) proposes keeping the default on every platform, and evaluating 297000000 only on CM4 CAM1 with 4 lanes. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - On Pi 5 / CM5, keep the default; see 3.3 (reasoning) [C-52].
 
 **Related.** RISK-006, RISK-011 · OQ-019, OQ-035, OQ-099 · TEST-DRV-001
@@ -335,6 +335,8 @@ For each failure it gives the exact log text where a source attests it, the like
 
 ### 2.5 EDID or DV-timings ioctl rejected on the node used
 
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* The CM4 product uses legacy (video-node) mode: EDID and DV timings go through the Unicam video node [B-25], [C-36], [C-37]; text below that routes them through `/dev/v4l-subdevN` describes the superseded ADR-006 and is kept as reference.
+
 **Symptom.** `--set-edid` or `--set-dv-bt-timings query` fails on the device node it is issued to.
 
 **Likely cause.** The node does not match the receiver's control model (both CORRECTED) [B-25], [C-36]:
@@ -384,7 +386,7 @@ Research also found that on a read-only sub-device node `S_DV_TIMINGS` returns `
 - On the 4-lane configuration: use a 4-lane path with the `4lane` overlay parameter (bare-parameter syntax NEEDS VERIFICATION, OQ-100). 4-lane paths exist on CM4 CAM1, Pi 5 and CM5 [C-02], [C-04], [C-05], provided the board routes 4 lanes.
   - A 4-lane path is necessary but not shown to be sufficient for 1080p60 UYVY. At 972 Mbps the driver uses 3 of the 4 lanes (reasoning) [C-47], and capture with 3 active lanes is unproven (OQ-038; ADR-008).
 - Use UYVY (ADR-005, PROPOSED).
-- Keep `link-frequency` at its default, as ADR-008 (PROPOSED; OQ-099) proposes.
+- Keep `link-frequency` at its default, as ADR-008 (PROPOSED; OQ-099) proposes. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - Restrict the EDID to modes the wired lanes carry (REQ-CAP-003, OQ-002).
 - Have the application check the lane budget before STREAMON (REQ-CAP-005).
 
@@ -427,7 +429,7 @@ Research also found that on a read-only sub-device node `S_DV_TIMINGS` returns `
 
 **Diagnosis steps** (NOT YET RUN ON PACSCORDER HARDWARE). Investigate only if it comes with stream errors or corruption. How to read CFE receive errors is UNKNOWN (OQ-050). Check that `link-frequency` is at its default.
 
-**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Reasoning: keep the default link frequency (486000000) on Pi 5/CM5 [C-52]. ADR-008 (PROPOSED; OQ-099) proposes this.
+**Remedy** (source-derived; NOT YET RUN ON PACSCORDER HARDWARE). Reasoning: keep the default link frequency (486000000) on Pi 5/CM5 [C-52]. ADR-008 (PROPOSED; OQ-099) proposes this. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Related.** RISK-011 · OQ-050, OQ-099 · TEST-CAP-002, TEST-CAP-004
 
@@ -484,7 +486,7 @@ Then set the video node to `pixelformat=UYVY` (or `BGR3` for `RGB888_1X24`) [C-3
 - Leave affected modes out of the EDID (OQ-002).
 - A driver change to the FIFO level would be a patch under ADR-002 (PROPOSED). Computing the correct value needs Toshiba's register spreadsheet (OQ-027, OQ-035).
 - Reasoning: 2-lane 1080p50 UYVY also has little margin, about 7.6 % above the spreadsheet's minimum rate [C-50]. Its per-active-lane load equals that of the reported-corrupt 3-lane 1080p50 RGB888 case, and RISK-006 covers it.
-- Reasoning: a 4-lane port adds no per-lane margin to modes the driver packs into fewer lanes, because the driver activates only the lanes it computes [C-49]. On CM4 CAM1, ADR-008 (PROPOSED; OQ-099) proposes evaluating `link-frequency=297000000` for 1080p60 UYVY, which then uses all 4 lanes (reasoning) [C-47], [C-49].
+- Reasoning: a 4-lane port adds no per-lane margin to modes the driver packs into fewer lanes, because the driver activates only the lanes it computes [C-49]. On CM4 CAM1, ADR-008 (PROPOSED; OQ-099) proposes evaluating `link-frequency=297000000` for 1080p60 UYVY, which then uses all 4 lanes (reasoning) [C-47], [C-49]. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Related.** RISK-006 · OQ-027, OQ-035, OQ-038, OQ-050, OQ-095, OQ-099 · TEST-CAP-004, TEST-PERF-001
 
@@ -1296,3 +1298,4 @@ Nothing (no hardware exists as of 2026-10-06). No signature in this document has
 | 2026-10-09 | Owner decisions of 2026-10-09 on OQ-129 (start on the available drive when one is missing; split recordings every 30 minutes): header "Applies to" — dated note (OQ-129 OPEN only for drive return; alert method OQ-091; count unchanged at 49); section 9 introduction — dated note (both decisions; TEST-REC-001 steps 8 and 9 c; split mechanism not decided, ADR-007 OPEN, OQ-118); 9.4 — "not stated explicitly" sentence marked superseded (owner decision: a recording started with one drive missing runs on the available drive with an operator alert); 9.6 — diagnosis step 4 added (a power-cut recording is a set of 30-minute files: record which file was open, check every file on both drives) and OQ-129 added to "Related"; 9.7 — "not stated explicitly" sentence marked superseded, with the decided behaviour (start on the NVMe SSD alone with an operator alert; TEST-REC-001 step 8). No text deleted; no signature added or removed; none observed on PACSCORDER. | Claude (session 2026-10-09) |
 | 2026-10-12 | ADR-004 scope sweep: header "Applies to" superseded (product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only); entries 1.6, 3.3, 3.4, 4.2, 5.1, 6.3, 8.2 (causes shared with CM4 still apply), 9.2 and 10.2 marked not in current scope; symptom-index Pi 5 / CM5-only rows and Pi 4 / Pi 5 / CM5 platform entries noted; 2 stale ADR-004 statements superseded (8.2 "gates CM5 as the product platform", 9.3 "qualify … on each board separately"). Also stale OQ statuses superseded: OQ-129 (ANSWERED 2026-10-09; drive return) in the header, the section 9 introduction, 9.3, 9.4 and 9.5; OQ-008 (ANSWERED 2026-10-09; sample count and run length) in the section 10 introduction. No text deleted; signature count unchanged (49); CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: dated entries in §7 (wrong-sided FFC; `4lane` on a 2-lane board) and §8 (no audio on a third-party board — RISK-035; vendor wiring-image error). | Claude (session 2026-10-12) |
+| 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): dated note that EDID and DV timings go through the Unicam video node; ADR-006 text kept as reference; stale ADR-006/ADR-008/ADR-010/ADR-011 status lines annotated. | Claude (session 2026-10-12) |

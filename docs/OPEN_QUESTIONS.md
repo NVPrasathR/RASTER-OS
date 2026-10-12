@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document status | Active — 131 questions registered: 108 OPEN, 23 ANSWERED |
+| Document status | Active — 131 questions registered: 106 OPEN, 25 ANSWERED |
 | Last updated | 2026-10-12 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply, recording storage *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H, I, J and K) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
@@ -41,7 +41,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-011 | Product target platform (ADR-004) | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-012 | OS and image build basis (ADR-003) | 1 Owner decisions | OWNER DECISION REQUIRED | ANSWERED |
 | OQ-013 | TC358743 driver strategy (ADR-002) | 1 Owner decisions | OWNER DECISION REQUIRED | OPEN |
-| OQ-014 | Capture control model (ADR-006) | 1 Owner decisions | OWNER DECISION REQUIRED | OPEN |
+| OQ-014 | Capture control model (ADR-006) | 1 Owner decisions | OWNER DECISION REQUIRED | ANSWERED |
 | OQ-015 | Userspace media framework (ADR-007) | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-016 | Is HDMI CEC required? | 1 Owner decisions | OWNER DECISION REQUIRED; KERNEL SOURCE INSPECTION REQUIRED | OPEN |
 | OQ-017 | Acceptance of DRAFT and PROPOSED requirements | 1 Owner decisions | OWNER DECISION REQUIRED | OPEN |
@@ -126,7 +126,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-096 | Is a GPU overclock acceptable in the product? | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-097 | Driver source in the shipped kernel versus the inspected branch | 4 Linux driver & kernel | KERNEL SOURCE INSPECTION REQUIRED | OPEN |
 | OQ-098 | Raspberry Pi Ethernet, USB and storage facts for the candidate boards | 2 Hardware & bridge board | DATASHEET REQUIRED | OPEN |
-| OQ-099 | CSI-2 link frequency (ADR-008) | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
+| OQ-099 | CSI-2 link frequency (ADR-008) | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-100 | config.txt overlay-parameter syntax | 8 Build system & OS | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-101 | Command syntax used in procedures but not in the source register | 8 Build system & OS | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-102 | Which ATEM models and cameras must be supported as HDMI sources? | 1 Owner decisions | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
@@ -419,7 +419,7 @@ Product requirements and pending decisions that only the owner can make. Each on
 
 ## OQ-014 — Capture control model (ADR-006)
 
-- **Question:** Does the owner accept ADR-006 (PROPOSED): Media Controller mode on every platform, including Pi 4/CM4 through the overlay's `media-controller` parameter, with EDID and DV timings handled on the TC358743 sub-device node?
+- **Question:** Does the owner accept ADR-006 (PROPOSED): Media Controller mode on every platform, including Pi 4/CM4 through the overlay's `media-controller` parameter, with EDID and DV timings handled on the TC358743 sub-device node? *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 - **Why it matters:** ADR-006, REQ-CAP-002, REQ-CAP-003, REQ-CAP-004; determines the capture application and every capture test procedure.
 - **Known so far:**
   - Pi 4/CM4: the overlay default is legacy video-node mode; the `media-controller` parameter selects Media Controller mode [C-10], [B-43]. In legacy mode EDID and DV-timings ioctls go through the video node and sub-device nodes are read-only; in Media Controller mode they go through `/dev/v4l-subdevN` (both CORRECTED) [B-25], [C-36].
@@ -429,7 +429,11 @@ Product requirements and pending decisions that only the owner can make. Each on
 - *(Added 2026-10-12.)* With the product on the CM4 only (ADR-004), Claude proposes **ADR-010** — legacy video-node mode, the stock overlay default, controlled through the Unicam video node as in the official documentation [B-43], [C-37] — as the alternative to ADR-006, and recommends it. The owner chooses ADR-006 or ADR-010; the other becomes SUPERSEDED. Also still unknown: whether legacy Unicam mode is kept in future kernels (KERNEL SOURCE INSPECTION REQUIRED).
 - **Resolution method:** OWNER DECISION REQUIRED.
 - **Resolving test:** TEST-PLT-001
-- **Status:** OPEN
+- **Answer:** Legacy (video-node) mode on the CM4 — the stock overlay default; EDID, DV timings and format are controlled through the Unicam video node (ADR-010 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010). Still unknown: whether the legacy Unicam mode is kept in future kernels (KERNEL SOURCE INSPECTION REQUIRED).
+- **Evidence:** Owner choice of 2026-10-12 ("ADR-010 legacy mode"), on the proposal in ADR-010 [B-43], [C-10], [C-37].
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner
+- **Status:** ANSWERED
 
 ## OQ-015 — Userspace media framework (ADR-007)
 
@@ -514,7 +518,11 @@ Product requirements and pending decisions that only the owner can make. Each on
 - **Known so far:** Only 297000000 and 486000000 are supported values [A-46], [B-45]; the driver has timing tables only for 594 and 972 Mbit/s [A-24], [B-09]. At 972 Mbit/s 1080p60 UYVY uses 3 lanes; at 594 Mbit/s it uses 4 (reasoning) [C-47], [C-49]. A driver comment says 594 Mbit/s is meant for 4-lane 1080p60 [C-44]. RP1 CFE programs 999 Mbit/s for this bridge [C-31]; reasoning: that matches only the default [C-52].
 - **Resolution method:** OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED.
 - **Resolving test:** TEST-CAP-002, TEST-CAP-004
-- **Status:** OPEN
+- **Answer:** Keep the stock 486 MHz link frequency on both CM4 configurations for bring-up; evaluate 297 MHz on CAM1 in TEST-CAP-002 (ADR-008 ACCEPTED).
+- **Evidence:** Owner choice of 2026-10-12 ("Accept ADR-008"), on ADR-008 and its 2026-10-12 recommendation [C-48], [C-49].
+- **Answered on:** 2026-10-12
+- **Answered by:** Owner
+- **Status:** ANSWERED
 - **Added:** 2026-10-06 (after the cross-document review; not from the original research lists)
 
 ## OQ-102 — Which ATEM models and cameras must be supported as HDMI sources?
@@ -588,6 +596,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - All public configurations put the TC358743 at I2C address 0x0f [A-15]; reasoning: two bridges on one I2C bus would collide (see OQ-026).
   - *(Added 2026-10-08, research topic J.)* Storage interface (a Rule 8 item): the owner chose a PCIe NVMe SSD and a USB-to-SATA HDD in a self-powered enclosure (ADR-009, ACCEPTED). On the CM4 IO Board the PCIe Gen 2 x1 socket takes standard PC cards and has been used with NVMe through a passive adaptor [J-03]. Reasoning (CORRECTED): the socket is CM4's only PCIe link, so a USB 3 controller could share it only through a PCIe switch, and booting through a switch is not supported [J-09], [J-04]. Whether a custom CM4 carrier with a PCIe switch would enumerate NVMe and a USB 3 controller reliably is untested (research open question, topic J). Part selection: OQ-121 (SSD and adapter), OQ-122 (USB-SATA bridge).
 - **Known so far, added 2026-10-12 (research topic M):** Bridge boards with vendor documentation that route all 4 lanes to a 22-pin connector, as the CM4 CAM1 4-lane configuration needs [M-33], [M-35]: Auvidea B102, Geekworm C790, C792, X1300, X1301 and 52Pi EP-0214 (reasoning [M-58]); the Waveshare adapter and Auvidea B101 are 2-lane only [M-27], [M-01]. Supply snapshot 2026-10-12: Auvidea B101/B102 unavailable [M-07], [M-08]; Geekworm boards in stock [M-19], [M-21], [M-24]. Audio is the main board-level risk (RISK-035). **Claude proposes ADR-011** (buy 2 × C790, 1 × X1301 and a B102 if obtainable; fix HW REV A only after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001). Carrier: the official CM4 IO Board, whose camera connectors are both 22-pin [M-35]. Inputs per unit, enclosure and the custom-PCB question remain owner decisions.
+- **Owner input (2026-10-12):** **ADR-011 ACCEPTED** — buy 2 × Geekworm C790, 1 × Geekworm X1301 and an Auvidea B102 if obtainable, for bring-up. HW REV A (bridge board, carrier, inputs per unit, enclosure, Rule 8 items) is still to be chosen after TEST-HW-001, TEST-DRV-002, TEST-CAP-002 and TEST-AUD-001; this question stays OPEN for that.
 - **Resolution method:** OWNER DECISION REQUIRED; VENDOR CONFIRMATION REQUIRED (schematics of the chosen boards).
 - **Resolving test:** TEST-HW-001
 - **Status:** OPEN
@@ -887,7 +896,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - A Raspberry Pi engineer reported the value is empirical [A-43]. An open issue reports corruption at 1080p50 RGB24 on 3 of 4 lanes, attributed by a Raspberry Pi engineer to the FIFO level [C-43].
   - Timing tables exist only for 594 and 972 Mbps [A-24], [B-09].
   - Reasoning (per-line check): 2-lane 1080p50 UYVY has about 2.0 µs of slack per line and about 7.6 % margin over the minimum rate from Toshiba's spreadsheet [C-50].
-  - Reasoning (inputs [C-47], [C-48], [C-50]): 1080p50 UYVY on 2 lanes, which official documentation lists as supported [C-37], has the same per-active-lane load (85.3 % of 972 Mbps) and the same per-line transmit time (15.80 µs of 17.778 µs) as the reported-corrupt 1080p50 RGB888 on 3 lanes [C-43]. The Raspberry Pi engineer in [C-43] attributed that corruption to the FIFO level, so the match does not show that the UYVY mode is affected; it puts it in the same load class ([CSI_PIPELINE.md](CSI_PIPELINE.md) §10.6; RISK-006). The link frequency that sets these loads is ADR-008 (PROPOSED; OQ-099).
+  - Reasoning (inputs [C-47], [C-48], [C-50]): 1080p50 UYVY on 2 lanes, which official documentation lists as supported [C-37], has the same per-active-lane load (85.3 % of 972 Mbps) and the same per-line transmit time (15.80 µs of 17.778 µs) as the reported-corrupt 1080p50 RGB888 on 3 lanes [C-43]. The Raspberry Pi engineer in [C-43] attributed that corruption to the FIFO level, so the match does not show that the UYVY mode is affected; it puts it in the same load class ([CSI_PIPELINE.md](CSI_PIPELINE.md) §10.6; RISK-006). The link frequency that sets these loads is ADR-008 (PROPOSED; OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - **Resolution method:** HARDWARE TEST REQUIRED (mode matrix, soak, temperature); DATASHEET REQUIRED (REF_02 to compute the values, OQ-027).
 - **Resolving test:** TEST-CAP-004, TEST-PERF-001
 - **Status:** OPEN
@@ -932,7 +941,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 ## OQ-038 — Capture with 3 active lanes of 4 configured
 
 - **Question:** Do Unicam and RP1 CFE capture frames correctly when the TC358743 activates 3 lanes on a 4-lane link, as it does for 1080p60 UYVY at 972 Mbps?
-- **Why it matters:** 1080p60 in the proposed default format (ADR-005) uses 3 lanes at the default link frequency (REQ-CAP-001, RISK-006). A 4-lane port is therefore necessary but not shown sufficient for 1080p60 UYVY; ADR-008 (PROPOSED; OQ-099) proposes evaluating 297 MHz on a CM4 CAM1 4-lane link, where the mode uses all 4 lanes.
+- **Why it matters:** 1080p60 in the proposed default format (ADR-005) uses 3 lanes at the default link frequency (REQ-CAP-001, RISK-006). A 4-lane port is therefore necessary but not shown sufficient for 1080p60 UYVY; ADR-008 (PROPOSED; OQ-099) proposes evaluating 297 MHz on a CM4 CAM1 4-lane link, where the mode uses all 4 lanes. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - **Known so far:**
   - The driver computes the lane count and reports it without clamping to the DT value (CORRECTED) [A-25], [B-31].
   - Both receivers reject more lanes than configured; fewer, such as 3 of 4, pass the stream-start check [C-16], [B-32].
@@ -1142,7 +1151,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 ## OQ-050 — Effect of the CFE's 999 Mbps D-PHY setting
 
 - **Question:** Is reception reliable when RP1 CFE programs its D-PHY for 999 Mbps while the TC358743 transmits at 972 Mbps (default) or 594 Mbps (`link-frequency=297000000`)?
-- **Why it matters:** RISK-011; REQ-CAP-001 on Pi 5/CM5; ADR-008 (link frequency, PROPOSED; OQ-099).
+- **Why it matters:** RISK-011; REQ-CAP-001 on Pi 5/CM5; ADR-008 (link frequency, PROPOSED; OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - **Known so far:**
   - The CFE driver falls back to 999 Mbps when it finds no sensor entity or link-rate control [C-31]; reasoning from source: that fallback is always taken for this bridge [B-49]. Reasoning: 999 Mbps matches the default 972 Mbps link but not 594 Mbps [C-52].
   - RP1 supports up to 1.5 Gbps per lane and 8 Gbps in total across its two D-PHYs [C-30].
@@ -2186,3 +2195,4 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-12 | OQ-131: the owner confirmed ("okay") that 720p sources follow the 30/25 fps rule; the "Claude's reading" note is now confirmed. | Claude (session 2026-10-12) |
 | 2026-10-12 | OQ-014: note on ADR-010 (PROPOSED, legacy video-node mode on the CM4) as the alternative to ADR-006. Counts unchanged. | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M added as dated "Known so far" bullets to OQ-018 (candidate boards; ADR-011 proposed), OQ-019 (27 MHz on C790/C779), OQ-020 (INT/RESET routing; shared CAM_GPIO), OQ-021 (CM4 IO Board 22-pin connectors, pinout, cables), OQ-024 (3.3 V GPIO bank), OQ-025 (I2S wiring; audio PLL risk, RISK-035) and OQ-131 (`videorate drop-only`, `tee`/`queue`). No status changed; counts unchanged. | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions: **OQ-014 ANSWERED** (legacy video-node mode, ADR-010) and **OQ-099 ANSWERED** (486 MHz, ADR-008), with Answer/Evidence fields and summary rows; OQ-018 owner input (ADR-011 ACCEPTED; stays OPEN for HW REV A). Header 131: **106 OPEN, 25 ANSWERED**. | Claude (session 2026-10-12) |

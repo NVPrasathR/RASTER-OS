@@ -97,6 +97,8 @@ Additional sections: Kconfig and module ([4](#4-kconfig-and-module)), controls (
 
 ## 5. Driver architecture
 
+*(Added 2026-10-12 — ADR-010 ACCEPTED, ADR-006 SUPERSEDED.)* The CM4 product uses legacy (video-node) mode: EDID and DV timings go through the Unicam video node [B-25], [C-36], [C-37]; text below that routes them through `/dev/v4l-subdevN` describes the superseded ADR-006 and is kept as reference.
+
 The driver is an I2C client driver that registers one V4L2 sub-device [A-20], [B-15], [B-18]. It registers that sub-device asynchronously (`v4l2_async_register_subdev`) [B-15]. The CSI-2 receiver driver binds to it: downstream Unicam on Pi 4/CM4 [C-09], downstream RP1 CFE on Pi 5/CM5 [C-29]. The receiver driver owns the capture video node ("unicam-image" [C-36], "rp1-cfe-csi2_ch0" [C-32]). Capture buffers belong to the receiver side: on Pi 4/CM4 Unicam allocates them from CMA, while on Pi 5/CM5 whether CFE buffers come from CMA is not established (reasoning from kernel source, CORRECTED [C-53]; OQ-053; see [DMA.md](DMA.md)).
 
 ```text
@@ -468,7 +470,7 @@ Unknowns:
 | `clock-noncontinuous` | Affects only `TXOPTIONCNTRL` in `tc358743_set_csi()` | [B-37] |
 | `clocks` / `clock-names = "refclk"` | Required | [B-07], [A-44] |
 
-Raspberry Pi overlay values (`tc358743.dtsi`): 27 MHz reference clock, `link-frequencies` 486000000 (972 Mbps per lane), `data-lanes <1 2>`, `clock-noncontinuous`, and a `4lane` parameter for `<1 2 3 4>` [A-45], [B-41], [C-12]. The overlays README says only 297000000 and 486000000 are supported. Its "574Mbit/s" label for 297 MHz is a typo for 594 [A-46], [B-45]. Overlay details are in [DEVICE_TREE.md](DEVICE_TREE.md). Keeping the 486 MHz default on every platform is proposed in ADR-008 (PROPOSED; owner decision OQ-099).
+Raspberry Pi overlay values (`tc358743.dtsi`): 27 MHz reference clock, `link-frequencies` 486000000 (972 Mbps per lane), `data-lanes <1 2>`, `clock-noncontinuous`, and a `4lane` parameter for `<1 2 3 4>` [A-45], [B-41], [C-12]. The overlays README says only 297000000 and 486000000 are supported. Its "574Mbit/s" label for 297 MHz is a typo for 594 [A-46], [B-45]. Overlay details are in [DEVICE_TREE.md](DEVICE_TREE.md). Keeping the 486 MHz default on every platform is proposed in ADR-008 (PROPOSED; owner decision OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ### 14.2 Lane count at runtime
 
@@ -487,7 +489,7 @@ Lanes the driver requests (reasoning, from [C-47]; payloads from [C-46]):
 | 1080p50 | 2 | 3 | 3 | 5 |
 | 1080p30 | 2 | 2 | 2 | 3 |
 
-- Whether the receivers capture correctly with 3 active of 4 configured lanes, as 1080p60 UYVY requires at 972 Mbps: UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED, OQ-038). A 4-lane port is therefore necessary but not shown sufficient for 1080p60 UYVY; ADR-008 (PROPOSED) proposes evaluating 297 MHz, where that mode uses all 4 lanes, on a CM4 CAM1 4-lane link in TEST-CAP-002 (OQ-099).
+- Whether the receivers capture correctly with 3 active of 4 configured lanes, as 1080p60 UYVY requires at 972 Mbps: UNKNOWN — VERIFICATION REQUIRED (HARDWARE TEST REQUIRED, OQ-038). A 4-lane port is therefore necessary but not shown sufficient for 1080p60 UYVY; ADR-008 (PROPOSED) proposes evaluating 297 MHz, where that mode uses all 4 lanes, on a CM4 CAM1 4-lane link in TEST-CAP-002 (OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - A Raspberry Pi engineer (6by9) reported, in an open issue about corruption at 1080p50 RGB888 on 3 of 4 lanes, that the formula uses the active height rather than the total line time, so the computed time per line is wrong [C-43]. RISK-006.
 - Bandwidth per platform is analysed in [CSI_PIPELINE.md](CSI_PIPELINE.md).
 
@@ -657,7 +659,7 @@ See the failure column of section 6.
 
 ## 21. Recovery
 
-The driver detects changes and notifies; it never reconfigures timings itself [B-39]. Recovery is therefore a userspace responsibility. The procedure below is **PROPOSED** (REQ-CAP-004, PROPOSED; control model per ADR-006, PROPOSED). It is NOT STARTED, **NOT YET RUN ON PACSCORDER HARDWARE**, and will be checked by TEST-CAP-003.
+The driver detects changes and notifies; it never reconfigures timings itself [B-39]. Recovery is therefore a userspace responsibility. The procedure below is **PROPOSED** (REQ-CAP-004, PROPOSED; control model per ADR-006, PROPOSED). It is NOT STARTED, **NOT YET RUN ON PACSCORDER HARDWARE**, and will be checked by TEST-CAP-003. *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 
 | Trigger | What the driver does | What userspace must do (PROPOSED) | Facts |
 |---|---|---|---|
@@ -735,11 +737,11 @@ The control handler holds exactly 3 controls [B-16]:
 | CM4, `tc358743` overlay default (legacy Unicam, `media-controller` off) | The capture video node `/dev/videoN`: Unicam copies the sensor's controls onto it with `v4l2_ctrl_add_handler()` | [I-23] |
 | CM5 (RP1 CFE, `"raspberrypi,rp1-cfe"`) | Only the TC358743 sub-device node `/dev/v4l-subdevN`: CFE never calls `v4l2_ctrl_add_handler()` | [I-23] |
 | Pi 4 Model B (legacy mode) / Pi 5 | Reasoning: the same overlay and receiver drivers bind as on CM4 / CM5 ([DEVICE_TREE.md](DEVICE_TREE.md) §6.5), so the same split is expected; not stated in [I-23] | [I-23], [B-43], [C-11] |
-| CM4 in Media Controller mode (ADR-006, PROPOSED) | Reasoning from [I-23]: with `mc_api` true Unicam does not copy the controls, so they are only on the sub-device node | [I-23] |
+| CM4 in Media Controller mode (ADR-006, PROPOSED) | Reasoning from [I-23]: with `mc_api` true Unicam does not copy the controls, so they are only on the sub-device node | [I-23] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 
 *(Note added 2026-10-12: the CM5 row and the "Pi 4 Model B (legacy mode) / Pi 5" row are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
-[V4L2.md](V4L2.md) §11 gives the userspace view (ADR-006 PROPOSED would use the sub-device node everywhere).
+[V4L2.md](V4L2.md) §11 gives the userspace view (ADR-006 PROPOSED would use the sub-device node everywhere). *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 
 **What the kernel does not do (reasoning)** [I-18]: the ALSA side has no path from these controls. The `linux,spdif-dir` stub codec has no controls and no `hw_params` and accepts 8–768 kHz; the Pi I2S runs as clock consumer and ignores the requested rate; nothing outside `tc358743.c` uses `TC358743_CID_AUDIO_SAMPLING_RATE`. If the application opens the card at 48000 Hz while the source sends 44100 Hz, the frames arrive at 44.1 kHz but are labelled 48 kHz; played at 48 kHz they run 48000/44100 = 1.0884 times fast (+8.84 %, about +1.47 semitones), and the audio timeline is 44100/48000 = 0.919 of real time, so A/V drift accumulates [I-18]. RISK-023, OQ-111.
 
@@ -934,3 +936,4 @@ Nothing (no hardware exists as of 2026-10-08; still none on 2026-10-09). The own
 | 2026-10-08 | Citation verification of the topic I additions: §4 audio-Kconfig bullet split into the sourced fact ([I-02]: no ASoC codec driver of its own; generic stub codec) and a labelled inference ("Reasoning from [I-02]: no extra Kconfig symbol for audio"). All other [I-xx] citations checked against the register; no change needed. No status changed. | Claude (session 2026-10-08) |
 | 2026-10-09 | Live latency (OQ-116 ANSWERED, research topic K): header (Last updated; Applies to adds the `FIFOCTL` setting as re-read for topic K; Verification adds research topic K of 2026-10-08); §11.1 new "Latency of the bridge's buffering" note: the driver sets `FIFOCTL` to 374 and states no latency figure, and no public source documents the bridge's internal buffering latency [K-38]; same value on all four platforms (reasoning from [B-12]); one of the undocumented terms of the owner's < 1 s WebRTC-only target (REQ-STR-002, RISK-031); UNKNOWN — VERIFICATION REQUIRED (DATASHEET REQUIRED, OQ-027; HARDWARE TEST REQUIRED, OQ-125, TEST-STR-002); reasoning that V4L2 timestamps cannot show it [K-34], [K-35]; §26 topic K source-inspection scope and counts; §27 adds OQ-116 and OQ-125; Verification status adds K-34, K-35, K-38. No requirement, ADR, risk or OQ status changed; driver strategy ADR-002 still PROPOSED; nothing measured. Main session, same date: "no hardware exists as of" dates restored to their original values with "still none on 2026-10-09" appended (Rule 21). | Claude (session 2026-10-09) |
 | 2026-10-12 | ADR-004 scope sweep: "Last updated"; header "Applies to" (four candidate platforms; CM4 and CM5 side by side; ADR-004 OPEN) superseded; 3 stale statements superseded (§11.1 "all four candidate platforms", §11.1 measurement "on CM4 and CM5", Verified-on-hardware "CM4 and CM5 side by side"); §14.5 (Pi 5 / CM5 receiver) marked not in current scope; Pi 5 / CM5 rows noted after the tables in §10 (2), §16, §20.1, §22.1, §25 (D6) and §27 (OQ-050 to OQ-054). No text deleted; CM5/Pi 5/BCM2712 material kept as reference (Rules 14, 21). | Claude (session 2026-10-12) |
+| 2026-10-12 | ADR-010 ACCEPTED (ADR-006 SUPERSEDED): dated note that EDID and DV timings go through the Unicam video node; ADR-006 text kept as reference; stale ADR-006/ADR-008/ADR-010/ADR-011 status lines annotated. | Claude (session 2026-10-12) |

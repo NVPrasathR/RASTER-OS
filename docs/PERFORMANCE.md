@@ -110,7 +110,7 @@ These results match the official Raspberry Pi statement: 2 lanes support at most
 - **HDMI sources (REQ-CAP-008).** Sources are ATEM switcher outputs and cameras connected directly (models OQ-102). The ATEM Mini Pro outputs 1080p23.98 to 1080p60 with no 720p or 1080i [F-23]. Reasoning (inputs [F-23], [C-48]): on the 2-lane configuration its 1080p59.94 and 1080p60 standards exceed the link budget, and 1080p50 fits only in UYVY. Camera output modes are UNKNOWN (OQ-102). *(Superseded in part, 2026-10-08: OQ-102 was ANSWERED by the owner on 2026-10-07. There is no model list: sources are any HDMI camera, plus ATEM switcher outputs. Camera output modes therefore stay UNKNOWN per camera. What PACSCORDER accepts is defined by the supported-mode matrix and the EDID (OQ-002). Representative cameras and an ATEM are still needed for TEST-CAP-001 and TEST-CAP-004.)*
 - **EDID (reasoning; OQ-002).** Because the two configurations carry different mode sets [C-48], [C-49], the EDID may need to differ per lane configuration; see [CSI_PIPELINE.md](CSI_PIPELINE.md) §11.3.
 
-Reasoning from [C-47] and [C-49]: a 4-lane port is necessary for 1080p60, but it is not shown to be sufficient for 1080p60 UYVY. At the default 972 Mbit/s the driver activates 3 of the 4 lanes for that mode, which is unproven (OQ-038). A 4-lane port also gives no extra per-lane margin to modes the driver packs into fewer lanes. The link-frequency choice is ADR-008 (PROPOSED): keep 486 MHz everywhere, and evaluate 297 MHz (4 active lanes for 1080p60 UYVY) only on CM4 CAM1 in TEST-CAP-002. The owner decision is OQ-099.
+Reasoning from [C-47] and [C-49]: a 4-lane port is necessary for 1080p60, but it is not shown to be sufficient for 1080p60 UYVY. At the default 972 Mbit/s the driver activates 3 of the 4 lanes for that mode, which is unproven (OQ-038). A 4-lane port also gives no extra per-lane margin to modes the driver packs into fewer lanes. The link-frequency choice is ADR-008 (PROPOSED): keep 486 MHz everywhere, and evaluate 297 MHz (4 active lanes for 1080p60 UYVY) only on CM4 CAM1 in TEST-CAP-002. The owner decision is OQ-099. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Per-line check (stricter than the driver's frame-average formula)** [C-50], reasoning:
 
@@ -141,7 +141,7 @@ Further limits:
 - The TC358743 transmitter supports up to 4 lanes at up to 1 Gbit/s per lane [A-05].
 - Its HDMI input is limited to a 165 MHz TMDS clock [A-07]. The driver's DV-timings capability is 13–165 MHz [A-08].
 - The 1080p60 pixel clock of 148.5 MHz [C-46] is within that range (reasoning).
-- On Pi 5/CM5, the 999 Mbit/s D-PHY setting matches the default 972 Mbit/s link but not 594 Mbit/s [C-52]. This is RISK-011 and OQ-050. The link-frequency recommendation is ADR-008 (PROPOSED; OQ-099).
+- On Pi 5/CM5, the 999 Mbit/s D-PHY setting matches the default 972 Mbit/s link but not 594 Mbit/s [C-52]. This is RISK-011 and OQ-050. The link-frequency recommendation is ADR-008 (PROPOSED; OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 ---
 
@@ -517,14 +517,14 @@ Scope (aligned with [TESTING.md](TESTING.md) TEST-CAP-002): this test covers the
    - The media device number (`-d 2`) and the entity names on PACSCORDER are UNKNOWN (OQ-043).
    - Pi 4/CM4 in Media Controller mode: the source register has no attested `media-ctl` sequence. Unicam registers only the `unicam-image` node, linked directly from the TC358743 pad with an IMMUTABLE|ENABLED link [C-36] (CORRECTED verdict). Which pad formats must be set is NEEDS VERIFICATION (OQ-044, OQ-046).
    - The full sequence belongs in [CSI_PIPELINE.md](CSI_PIPELINE.md) and [V4L2.md](V4L2.md).
-5. Link frequency at the default 972 Mbit/s, as ADR-008 (PROPOSED; OQ-099) proposes. On Pi 5/CM5, do not use 594 Mbit/s (RISK-011, [C-52]).
+5. Link frequency at the default 972 Mbit/s, as ADR-008 (PROPOSED; OQ-099) proposes. On Pi 5/CM5, do not use 594 Mbit/s (RISK-011, [C-52]). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 6. HDMI source: each required source model that outputs the mode under test, ATEM output or camera (REQ-CAP-008; models OQ-102). *(Superseded in part, 2026-10-08: OQ-102 ANSWERED. There is no model list; sources are any HDMI camera plus ATEM outputs. Use representative cameras and an ATEM that output the mode under test.)*
 
 **Runs**
 
 - 1080p60, 1080p50 and 1080p30 in UYVY (ADR-005, PROPOSED).
 - RGB888 only if ADR-005 is rejected.
-- CM4 CAM1 4-lane only: 1080p60 UYVY also at `link-frequency=297000000` (594 Mbit/s, 4 active lanes), the evaluation that ADR-008 (PROPOSED) proposes (OQ-099). Not on Pi 5/CM5 (precondition 5).
+- CM4 CAM1 4-lane only: 1080p60 UYVY also at `link-frequency=297000000` (594 Mbit/s, 4 active lanes), the evaluation that ADR-008 (PROPOSED) proposes (OQ-099). Not on Pi 5/CM5 (precondition 5). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Metrics**
 
@@ -729,3 +729,4 @@ NOT YET RUN ON PACSCORDER HARDWARE. Status: BLOCKED — HARDWARE REQUIRED. This 
 | 2026-10-12 | Research topic L: network-load note — CM4 Gigabit link [L-15], [L-19], [L-20]; 102 Mbit/s of payload is 10.2 % of it [L-22]; no official throughput figure [L-21]. | Claude (session 2026-10-12) |
 | 2026-10-12 | Later on 2026-10-12: live encode 1080p30 bullet (budget [K-45] matches; encoder load; OQ-131). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: live-encode bullet — 25 fps for 50 Hz-family sources (OQ-131), 2.5× load, 40 ms frame period (reasoning). | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |

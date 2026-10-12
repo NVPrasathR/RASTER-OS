@@ -1945,6 +1945,86 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0 (680/680 facts c
 
 ---
 
+## 2026-10-12 (sixth entry) — Commit and push of topic M; ADR-010, ADR-008 and ADR-011 ACCEPTED
+
+### Objective
+
+Act on the owner's answers: commit and push the fifth-entry round; "Accept ADR-011"; "ADR-010 legacy mode"; "Accept ADR-008".
+
+### Starting State
+
+`main` at `b8091fd` (= `origin/main`); the fifth-entry changes uncommitted.
+
+### Changes
+
+1. Committed the fifth-entry round as **`7d7d2de`** and pushed `b8091fd..7d7d2de` (fast-forward after `git fetch`).
+2. **ADR-008 ACCEPTED** (OQ-099 ANSWERED), **ADR-010 ACCEPTED** with **ADR-006 SUPERSEDED BY ADR-010** (OQ-014 ANSWERED), **ADR-011 ACCEPTED** (OQ-018 owner input; stays OPEN for HW REV A). Status notes appended to each ADR's Status section; index status cells; header 7 ACCEPTED, 2 PROPOSED, 1 OPEN, 1 SUPERSEDED. OQ counts 131: 106 OPEN, 25 ANSWERED.
+3. **`tools/doccheck.py` W3** now treats SUPERSEDED ADRs as settled, so a superseded ADR still described as PROPOSED is flagged. The check then listed 78 lines (ADR-006 ~30, ADR-008 ~40, ADR-010/011 8); 77 were annotated by a script from the check's own output with dated "Superseded 2026-10-12 — …" notes (plain bracketed text inside code blocks). Two of those rows were indented list tables, where the note first landed outside the last cell; the table check caught both and the notes were moved inside the cell.
+4. **Content notes for ADR-010:** Setup notes in TEST-DRV-001, TEST-DRV-002, TEST-CAP-001, TEST-CAP-002, TEST-CAP-003 and TEST-PERF-001, and section notes in V4L2 §6, TC358743_DRIVER §5, SOFTWARE_ARCHITECTURE §1 and TROUBLESHOOTING §2.5: EDID, DV timings and format go through the Unicam video node [B-25], [C-36], [C-37]; the Media Controller text is kept as the ADR-006 record.
+5. Change-history rows in every touched file; TRACEABILITY state note; PROJECT_STATUS and CHANGELOG.
+
+### Files Modified
+
+`docs/`: `DECISIONS.md`, `OPEN_QUESTIONS.md`, `ARCHITECTURE.md`, `ATEM.md`, `BUILD_SYSTEM.md`, `CSI_PIPELINE.md`, `DEVICE_TREE.md`, `HARDWARE.md`, `PERFORMANCE.md`, `REQUIREMENTS.md`, `RISKS.md`, `SOFTWARE_ARCHITECTURE.md`, `TC358743_DRIVER.md`, `TESTING.md`, `TRACEABILITY.md`, `TROUBLESHOOTING.md`, `V4L2.md`, `VIDEO_ENCODER.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`; `tools/doccheck.py`.
+
+### Hardware Changes
+
+None yet; ADR-011 authorises the bring-up purchase.
+
+### Software Changes
+
+`tools/doccheck.py` (W3 covers SUPERSEDED ADRs).
+
+### Commands Used
+
+```bash
+git commit -F <message> && git fetch origin && git push origin main   # 7d7d2de
+python3 tools/doccheck.py docs                                        # before/after annotation
+```
+
+### Test Results
+
+- Documentation consistency check — **TESTED — PASS** (documentation only): `ADR=11 … OQ=131`, 680/680 facts cited, PROBLEMS 0, WARNINGS 0.
+- Table check: two broken rows found after annotation and corrected; all tables intact.
+- No hardware test possible.
+
+### Problems Found
+
+The annotation script did not recognise table rows indented inside a list (leading spaces); caught by the table check.
+
+### Root Cause
+
+`startswith('|')` instead of `lstrip().startswith('|')`.
+
+### Solution
+
+Notes moved inside the last cell; recorded here.
+
+### Current Status
+
+- PASS (documentation consistency). The decisions are uncommitted, pending owner approval.
+- Product work: BLOCKED — HARDWARE REQUIRED; the bring-up purchase is now authorised (ADR-011).
+
+### Next Step
+
+1. Owner: approve the commit below.
+2. Owner: buy the CM4, CM4 IO Board, 12 V supply, the ADR-011 boards and the recording storage; then TEST-ENC-001 Stage 0 and TEST-HW-001.
+3. Proposed commit (Rule 15):
+
+```text
+Commit title: docs: accept ADR-010, ADR-008 and ADR-011 (CM4 control model, link frequency, bring-up boards)
+Commit description: Record the owner decisions of 2026-10-12: ADR-010 ACCEPTED (legacy video-node
+  control on the CM4) with ADR-006 SUPERSEDED BY ADR-010 (OQ-014 ANSWERED); ADR-008 ACCEPTED
+  (486 MHz; OQ-099 ANSWERED); ADR-011 ACCEPTED (bring-up boards; OQ-018 stays OPEN for HW REV A).
+  Annotate the 77 stale status lines and point the test procedures at the video node. Extend the
+  doc check's stale-status warning to SUPERSEDED ADRs. Record commit 7d7d2de.
+Files changed: docs/** (21 Markdown files), tools/doccheck.py
+Reason: Rules 1, 3, 10, 13, 15, 21
+Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0; table check
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -1966,3 +2046,4 @@ Tests: python3 tools/doccheck.py docs -> PROBLEMS 0, WARNINGS 0 (680/680 facts c
 | 2026-10-12 | 2026-10-12 third entry added: commit and push of `c9d7e19`; OQ-131 50 Hz decision (25 fps); Stage 0 run R9. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 fourth entry added: commit and push of `91ff869`; OQ-131 non-1080 decision (keep source resolution; 720p at Level 3.2 or above). | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 fifth entry added: ADR-010, ADR-008 recommendation, research topic M, RISK-035, ADR-011; commit `b8091fd` recorded. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 sixth entry added: commit and push of `7d7d2de`; ADR-010, ADR-008, ADR-011 ACCEPTED; ADR-006 SUPERSEDED; W3 extension; 77 status notes. | Claude (session 2026-10-12) |

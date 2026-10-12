@@ -136,7 +136,7 @@ The stack is a logical order, not nine separate programs. Two points matter when
 | 2 | TC358743 | In-tree `tc358743` driver, module `tc358743` [A-48], [G-16]; overlay `tc358743` [G-12] | Same driver [B-02], [G-16]; overlay `tc358743-pi5`, auto-selected [C-11], [G-13] | ADR-001 (ACCEPTED), ADR-002 (PROPOSED), ADR-005 (PROPOSED) | NOT STARTED |
 | 3 | CSI-2 | D-PHY, 972 Mbps/lane by default [A-45]; Unicam up to 1 Gbit/s per lane [C-07] | D-PHY; RP1 up to 1.5 Gbps per lane [C-30]; CFE programs 999 Mbps for this bridge [C-31] | ADR-004 (OPEN), *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* ADR-005 (PROPOSED), ADR-008 (PROPOSED) | NOT STARTED |
 | 4 | Raspberry Pi CSI receiver | Unicam, downstream driver module `bcm2835-unicam-legacy` [C-09] | RP1 CFE, downstream driver module `rp1-cfe-downstream` [C-29] | ADR-004 (OPEN), *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* ADR-006 (PROPOSED) | NOT STARTED |
-| 5 | Media Controller | Legacy video-node mode by overlay default, or Media Controller mode via the `media-controller` parameter [C-10] | Media Controller only [C-11]; `csi2` sub-device, links set by userspace [C-32] | ADR-006 (PROPOSED) | NOT STARTED |
+| 5 | Media Controller | Legacy video-node mode by overlay default, or Media Controller mode via the `media-controller` parameter [C-10] | Media Controller only [C-11]; `csi2` sub-device, links set by userspace [C-32] | ADR-006 (PROPOSED) | NOT STARTED *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 | 6 | V4L2 | Capture node `unicam-image` [C-36]; TC358743 sub-device node [B-18] | Capture node `rp1-cfe-csi2_ch0` [C-32]; TC358743 sub-device node [B-18] | ADR-001 (ACCEPTED), ADR-006 (PROPOSED) | NOT STARTED |
 | 7 | DMABUF | Target: capture buffer imported into the hardware encoder; encoder queues support DMABUF [D-19]; zero-copy from Unicam is unproven (OQ-058). *(2026-10-08: the same buffer goes to two encodes, recording and live; OQ-115.)* | No hardware encoder to import into; frames go to a CPU encoder after format conversion [D-43]. *(2026-10-08: to two CPU encoders, recording and live; OQ-059.)* | ADR-007 (OPEN) | NOT STARTED |
 | 8 | Encoder | Hardware `bcm2835-codec`, `/dev/video11`, H.264 spec 1080p30 [D-06], [D-10]. H.265 (added 2026-10-08; deferred — REQ-ENC-002; not in current scope): software only, no HEVC encoder in `bcm2835-codec` [D-24] (section 3.8.1). Two concurrent encodes, recording and live (added 2026-10-08): unproven (OQ-115, RISK-002) | Software H.264; "H264 1080p30 encode (from ISP) ~30–40% CPU" [G-22]. H.265 (added 2026-10-08; deferred — REQ-ENC-002; not in current scope): software only [D-31] (section 3.8.1). Two concurrent software encodes (added 2026-10-08): roughly double the encode CPU load (reasoning from [G-22]; OQ-059, RISK-003) | ADR-004 (OPEN), *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* ADR-007 (OPEN); codec: H.264 on every output (OQ-103 ANSWERED 2026-10-08); two encodes, recording and shared live (owner answer to OQ-005, 2026-10-08); *bitrates (owner, later on 2026-10-09; OQ-005): live CBR 17 Mbit/s, recording 25 Mbit/s VBR* | NOT STARTED |
@@ -229,7 +229,7 @@ Each operation below is what the in-tree driver does, according to its source. N
 
 *(Note added 2026-10-12: the Pi 5/CM5 row is not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001.)*
 
-ADR-006 (PROPOSED) proposes Media Controller mode on every platform, so that one control path serves all four.
+ADR-006 (PROPOSED) proposes Media Controller mode on every platform, so that one control path serves all four. *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 
 Event delivery on Pi 5: an open issue reports that `rp1-cfe` video nodes do not deliver `V4L2_EVENT_SOURCE_CHANGE`. A Raspberry Pi engineer replied that applications should subscribe on the source sub-device instead [C-42] (reported by a community source; OQ-051).
 
@@ -418,7 +418,7 @@ Official Raspberry Pi documentation agrees with these limits [C-37]:
 - 2 lanes give at most 1080p30 RGB888 or 1080p50 YUV422.
 - 4 lanes on a Compute Module give 1080p60 in either format.
 
-A 4-lane port is therefore necessary for 1080p60, but it is not shown to be sufficient for 1080p60 UYVY: at 972 Mbit/s per lane the driver activates 3 of the 4 lanes [C-47], [C-49], which is unproven (OQ-038). ADR-008 (PROPOSED) proposes evaluating 297 MHz (594 Mbit/s, 4 active lanes) for this mode on a CM4 CAM1 4-lane link only, in TEST-CAP-002 (OQ-099).
+A 4-lane port is therefore necessary for 1080p60, but it is not shown to be sufficient for 1080p60 UYVY: at 972 Mbit/s per lane the driver activates 3 of the 4 lanes [C-47], [C-49], which is unproven (OQ-038). ADR-008 (PROPOSED) proposes evaluating 297 MHz (594 Mbit/s, 4 active lanes) for this mode on a CM4 CAM1 4-lane link only, in TEST-CAP-002 (OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Both configurations are required (REQ-CAP-007, DRAFT; owner, 2026-10-07; OQ-001 ANSWERED).** PACSCORDER must support a 2-lane and a 4-lane link, each capturing every frame rate it can carry. Reasoning from the table above:
 
@@ -440,14 +440,14 @@ A stricter per-line check (reasoning) leaves 2-lane 1080p50 UYVY about 2.0 µs o
   - OQ-038 covers capture on 3 of 4 lanes in general.
 - **RISK-011:**
   - The Pi 5 CFE always programs 999 Mbps. Reasoning: that matches the default 972 Mbps link but not `link-frequency=297000000` (594 Mbps) [C-52].
-  - Tracked as OQ-050. The link-frequency choice is ADR-008 (PROPOSED; OQ-099).
+  - Tracked as OQ-050. The link-frequency choice is ADR-008 (PROPOSED; OQ-099). *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 - **Clock-lane mode:** effective continuous or non-continuous behaviour is unresolved [B-37] (OQ-037).
 
 **Decisions.**
 
 - ADR-004 (OPEN): the platform fixes the lanes available; since 2026-10-07 it is a platform choice per lane configuration (REQ-CAP-007). *(Superseded — ADR-004 ACCEPTED 2026-10-09: CM4; CM5 dropped, ARCH-001. Note added 2026-10-12.)*
 - ADR-005 (PROPOSED): UYVY needs two-thirds of RGB888's bandwidth (reasoning) [C-46].
-- ADR-008 (PROPOSED): proposes keeping the overlay default `link-frequency` of 486 MHz (972 Mbit/s per lane) on all platforms, and evaluating 297 MHz only on a CM4 CAM1 4-lane link for 1080p60 UYVY in TEST-CAP-002. Owner decision: OQ-099.
+- ADR-008 (PROPOSED): proposes keeping the overlay default `link-frequency` of 486 MHz (972 Mbit/s per lane) on all platforms, and evaluating 297 MHz only on a CM4 CAM1 4-lane link for 1080p60 UYVY in TEST-CAP-002. Owner decision: OQ-099. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 **Implementation status.** NOT STARTED. TEST-CAP-002 and TEST-CAP-004: BLOCKED — HARDWARE REQUIRED.
 
@@ -506,7 +506,7 @@ A stricter per-line check (reasoning) leaves 2-lane 1080p50 UYVY about 2.0 µs o
   - because the TC358743 has a single pad, only `unicam-image` is registered (no `unicam-embedded`) [C-36] (CORRECTED).
 
 ```text
-Pi 4 / CM4, Media Controller mode (ADR-006, PROPOSED)
+Pi 4 / CM4, Media Controller mode (ADR-006, PROPOSED)   [2026-10-12: ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node)]
 
   "tc358743 <bus>-000f" pad 0 (source) --IMMUTABLE|ENABLED--> "unicam-image" --> /dev/videoN
           |
@@ -542,7 +542,7 @@ Pi 5 / CM5 (Media Controller only)
 **Decisions.**
 
 - ADR-001 (ACCEPTED).
-- ADR-006 (PROPOSED): use Media Controller mode everywhere, so one graph-configuration procedure serves all four platforms (OQ-014).
+- ADR-006 (PROPOSED): use Media Controller mode everywhere, so one graph-configuration procedure serves all four platforms (OQ-014). *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)*
 
 **Implementation status.** NOT STARTED. TEST-PLT-001: BLOCKED — HARDWARE REQUIRED.
 
@@ -969,7 +969,7 @@ AAC encoder (recording, RTMP) and/or Opus encoder (WebRTC) --> muxers of layer 9
 | CPU DAI behind `i2s_clk_consumer` | The single `bcm2835-i2s` (`i2s@7e203000`), pins GPIO 18–21 in ALT0 [I-10] | RP1 I2S1, pin group `rp1_i2s1_18_21`, function `i2s1` [I-07], [I-08]. `dwc-i2s` accepts the codec-master format only on a clock-consumer instance, which I2S1 is [I-09] | [I-07], [I-08], [I-09], [I-10] |
 | Capture capability | Exactly 2 channels, 8–384 kHz, S16_LE/S24_LE/S32_LE; the requested rate never reaches hardware in this mode, the rate on the wire is set by the TC358743 [I-13] | Channel count and formats are read from RP1 hardware registers not visible in source; hw_params accepts 2, 4, 6 or 8 channels and S16/S24/S32_LE [I-14] | [I-13], [I-14] |
 | Expected PCM name | `bcm2835-i2s-dir-hifi dir-hifi-0` [I-15] | Reasoning from source: `1f000a4000.i2s-dir-hifi dir-hifi-0` [I-17] | [I-15], [I-17] |
-| Where the audio V4L2 controls are | `/dev/videoN` in legacy Unicam mode; reasoning from [I-23]: with `media-controller` (ADR-006, PROPOSED) they are not copied there, so the sub-device node is used | TC358743 sub-device node only | [I-23] |
+| Where the audio V4L2 controls are | `/dev/videoN` in legacy Unicam mode; reasoning from [I-23]: with `media-controller` (ADR-006, PROPOSED) they are not copied there, so the sub-device node is used | TC358743 sub-device node only | [I-23] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 | Kernel options | `bcm2711_defconfig` sets `CONFIG_SND_SIMPLE_CARD=m`, `CONFIG_SND_BCM2835_SOC_I2S=m`, `CONFIG_SND_DESIGNWARE_I2S=m`, `CONFIG_SND_DESIGNWARE_PCM=y` and `CONFIG_VIDEO_TC358743=m`; the packaged `rpi-v8` kernel has `CONFIG_SND_SOC_SPDIF=m` | `bcm2712_defconfig` sets the same options; the packaged `rpi-2712` kernel has `CONFIG_SND_SOC_SPDIF=m` | [I-12] |
 | Status | Documented path; NOT STARTED | Bring-up gate: no official statement or test shows capture through this path (research gap, topic I; OQ-054). Reasoning recorded in ADR-004: TEST-AUD-001 must pass on CM5 before CM5 can be chosen. *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)* | — |
 
@@ -1039,7 +1039,7 @@ The two diagrams below show the whole stack on each SoC family, from sources. Ev
  (reasoning from kernel source) [C-53]           in MC mode [B-25]; SOURCE_CHANGE events [B-38]
           |
           v
- Media graph, MC mode (ADR-006, PROPOSED):
+ Media graph, MC mode (ADR-006, PROPOSED):   [2026-10-12: ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node)]
    "tc358743 <bus>-000f":0 --IMMUTABLE|ENABLED--> "unicam-image" [C-36]
           |
           v
@@ -1064,7 +1064,7 @@ The two diagrams below show the whole stack on each SoC family, from sources. Ev
 |---|---|---|---|
 | Connector and lanes | 15-pin, 2 lanes [C-01] | 22-pin on the CM4 IO Board, 4 lanes [C-03] | 22-pin, 2 lanes; on the CM4 IO Board both J6 jumpers must be fitted for I2C [C-03] |
 | Receiver instance in DT | `csi1`, limited to 2 lanes [B-48], [C-08] | `csi1`, 4 lanes [C-08] | `csi0`, 2 lanes [C-08] |
-| Overlay parameters (`config.txt` syntax for bare boolean and combined parameters: NEEDS VERIFICATION, OQ-100) | `media-controller` (ADR-006, PROPOSED) [G-12] | `media-controller` and `4lane` [G-12], [B-42] | `media-controller` and `cam0` [C-10] |
+| Overlay parameters (`config.txt` syntax for bare boolean and combined parameters: NEEDS VERIFICATION, OQ-100) | `media-controller` (ADR-006, PROPOSED) [G-12] | `media-controller` and `4lane` [G-12], [B-42] | `media-controller` and `cam0` [C-10] *(Superseded 2026-10-12 — ADR-006 SUPERSEDED BY ADR-010 (legacy video-node mode on the CM4: EDID and DV timings through the Unicam video node).)* |
 | Configuration under REQ-CAP-007 | 2-lane candidate | 4-lane candidate | 2-lane candidate |
 | 1080p60 capture (bandwidth reasoning) | Not feasible [C-48]; the 2-lane configuration carries up to 1080p50 UYVY / 1080p30 RGB888 [C-37] | Feasible by bandwidth [C-49]; officially documented for a Compute Module with 4 lanes [C-37]. For UYVY at 972 Mbit/s the driver uses 3 of the 4 lanes, which is unproven (OQ-038; ADR-008). | Not feasible [C-48]; as Pi 4 Model B |
 | Hardware encode | H.264, spec 1080p30 [D-10]. *(2026-10-08: two concurrent encodes, recording and live: OQ-115.)* | Same [D-10] | Same [D-10] |
@@ -1142,7 +1142,7 @@ On Pi 4/CM4 the diagram above shows the H.264 path, the only video path in the c
 
 The diagram above shows the software H.264 path, the only video path in the current scope (owner, 2026-10-08; OQ-103). *(Diagram updated 2026-10-08 after the owner answered OQ-005 with "Separate record + live". The encoder box read "Software H.264 encoder (x264 family; ADR-007 OPEN)", with one "H.264 elementary stream" to "Recorder / RTMP / WebRTC". It now shows two software encoders, recording and live. Reasoning: one UYVY conversion per frame can feed both (section 3.7); the CPU budget is OQ-059, RISK-003.)* *(Added 2026-10-08; deferred — REQ-ENC-002; not in current scope.)* H.265 would follow the same shape — UYVY-to-planar conversion, then x265 through FFmpeg `libx265` or GStreamer `x265enc` (section 3.8.1) — and would compete with H.264 for the same CPU (reasoning from [D-31], [G-22]; the BCM2712 core count is not in the source register). The audio side path joins at the muxers (section 3.11). *(Diagram extended 2026-10-09; ADR-009 / OQ-116. The five lines starting "recorder (ADR-009)" and "live:" were added under the last box, which is unchanged; they show the CM5 IO Board storage attachment (section 3.9.3) and the latency scope (section 3.9.4). Pi 5 storage was not researched in topic J.)*
 
-In every column, "feasible by bandwidth" means only that the 4-lane port is necessary and large enough. It is not shown to be sufficient for 1080p60 UYVY: at 972 Mbit/s per lane the driver activates 3 of the 4 lanes [C-47], [C-49], and capture on 3 of 4 lanes through RP1 CFE is unproven (OQ-038, OQ-049). See ADR-008 (PROPOSED) and OQ-099 for the link frequency.
+In every column, "feasible by bandwidth" means only that the 4-lane port is necessary and large enough. It is not shown to be sufficient for 1080p60 UYVY: at 972 Mbit/s per lane the driver activates 3 of the 4 lanes [C-47], [C-49], and capture on 3 of 4 lanes through RP1 CFE is unproven (OQ-038, OQ-049). See ADR-008 (PROPOSED) and OQ-099 for the link frequency. *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)*
 
 A 2-lane bridge board on a Pi 5 or CM5 port would form a 2-lane configuration with the 2-lane limits of [C-48] (reasoning; [C-48] covers any 2-lane TC358743 board). Whether the PACSCORDER board is 2-lane or 4-lane is OQ-021.
 
@@ -1285,7 +1285,7 @@ For context:
 | PACSCORDER hardware (bridge board, lanes, REFCLK, INT/RESET, I2C, power) | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OQ-018 to OQ-026 |
 | Whether Pi 5/CM5 TC358743 capture succeeds end to end | HARDWARE TEST REQUIRED | OQ-049, OQ-050, OQ-051 |
 | Whether capture on 3 active lanes of 4 configured is reliable (1080p60 UYVY at 972 Mbit/s) | HARDWARE TEST REQUIRED | OQ-038 |
-| CSI-2 link frequency (ADR-008, PROPOSED) | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OQ-099 |
+| CSI-2 link frequency (ADR-008, PROPOSED) | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | OQ-099 *(Superseded 2026-10-12 — ADR-008 ACCEPTED.)* |
 | How CSI-2 receive errors are read on Unicam (Pi 4/CM4) | KERNEL SOURCE INSPECTION REQUIRED; HARDWARE TEST REQUIRED | OQ-095 |
 | Raspberry Pi Ethernet, USB and storage facts per candidate board *(2026-10-09: research topic J covered USB and storage for CM4, CM5 and their IO Boards (section 3.9.3); Ethernet on all four boards and USB and storage on Pi 4 Model B and Pi 5 are still open)* | DATASHEET REQUIRED | OQ-098 |
 | `config.txt` overlay-parameter syntax (bare boolean, combined parameters, `[pi4]` matching CM4, unknown parameters) | VENDOR CONFIRMATION REQUIRED; HARDWARE TEST REQUIRED | OQ-100 |
@@ -1387,3 +1387,4 @@ Nothing (no hardware exists as of 2026-10-06). No layer has been implemented, bu
 | 2026-10-12 | Later on 2026-10-12: new "Owner decisions of 2026-10-12" box (live encode 1080p30, OQ-131, encoder load, CM5-only OQs ANSWERED). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: bullet in the 2026-10-12 owner-decision box — 50 Hz-family sources, live encode at 25 fps (OQ-131). | Claude (session 2026-10-12) |
 | 2026-10-12 | Later still on 2026-10-12: box bullet — non-1080 sources keep their resolution on the live encode (OQ-131; Level 3.2 for 720p at 17 Mbit/s). | Claude (session 2026-10-12) |
+| 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
