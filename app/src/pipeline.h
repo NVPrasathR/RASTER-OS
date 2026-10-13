@@ -1,12 +1,14 @@
 /*
  * PACSCORDER — the GStreamer pipeline (ADR-007).
  *
- *   source ─ tee ─┬─ queue ─ recording encoder ─ h264parse ─ tee ─┬─ queue ─ splitmuxsink (dir 1)
- *                 │                                               └─ queue ─ splitmuxsink (dir 2)
- *                 └─ queue ─ videorate drop-only ─ live encoder ─ h264parse ─ fakesink
+ *   source ─ tee ─┬─ queue ─ recording encoder ─ h264parse ─ appsink ──▶ one writer pipeline per drive (writer.c, ADR-016)
+ *                 └─ queue ─ videorate drop-only ─ live encoder ─ appsink ──▶ publisher pipelines (publisher.c, ADR-015)
+ *                                                                (fakesink when no publisher is configured)
  *
- * Slice C1: recording and live encode; publishing (RTSP/RTMP), audio, EDID and
- * DV-timings handling, and drive-failure handling come in later slices.
+ * The main pipeline only captures and encodes; writing and publishing run in
+ * their own pipelines so that a drive or network failure cannot stop it.
+ * File splits are decided here, on the keyframe itself, for all drives.
+ * Not yet: audio, EDID / DV timings and source changes (later slices).
  */
 #ifndef PACS_PIPELINE_H
 #define PACS_PIPELINE_H

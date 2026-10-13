@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | DRAFT. Lists responsibilities only. **Nothing is implemented.** The userspace media framework is OPEN (ADR-007). |
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-13 |
 | Applies to | All PACSCORDER userspace software (everything above the kernel drivers) on the **product platform: the CM4 (BCM2711)** — ADR-004 ACCEPTED 2026-10-09 ("stick to CM4"), OQ-011 ANSWERED. CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards and kept as reference only (ARCH-001); the CM5 software-encoder material below is not in current scope. *(Before 2026-10-09: "the four candidate platforms … bring-up evaluates CM4 and CM5 side by side; ADR-004 OPEN." Superseded by the CM4 decision.)* |
 | Verification | Verified from sources only: the source research of 2026-10-06 and of 2026-10-08 (topic H, H.265/HEVC; topic I, HDMI audio; topic J, recording storage and power loss; topic K, live latency) in [REFERENCES.md](REFERENCES.md). Nothing has been verified on PACSCORDER hardware; no hardware and no code exist as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 5, Rule 10, Rule 12, Rule 13, Rule 22, Rule 24, Rule 25 |
@@ -1307,10 +1307,10 @@ source ─ tee ─┬─ queue ─ recording encoder ─ caps ─ h264parse ─ 
 | Recording encoder | `v4l2h264enc`, caps High / Level 4.2, `extra-controls` VBR 25 Mbit/s, I-period 60 | `x264enc` zerolatency, preset superfast, caps High | OQ-005; [L-61], [L-62], [L-63]; [K-27], [K-28] |
 | Live encoder | `v4l2h264enc`, caps Constrained Baseline / lowest fitting level, CBR 17 Mbit/s, SPS/PPS repeated | `x264enc` zerolatency, preset ultrafast | OQ-005, OQ-131; [L-13]; [D-15] |
 | Frame-rate drop | `videorate drop-only=true`, caps at half the capture rate above 30 fps | same | OQ-131; [M-53], [M-54] |
-| Writers | `splitmuxsink`, new file every `--split-seconds` (1800), keyframe requests; `mp4mux fragment-duration` = `--fragment-ms` | same | ADR-009, OQ-129; [J-39], [J-44] |
+| Writers | `splitmuxsink`, new file every `--split-seconds` (1800), keyframe requests; `mp4mux fragment-duration` = `--fragment-ms` | same | ADR-009, OQ-129; [J-39], [J-44] *(Superseded 2026-10-12 by slice C5: one writer pipeline per drive, splits decided on the keyframe — §10.2, ADR-016.)* |
 | Live output | `fakesink` (publishing is a later slice) *(2026-10-12: with `--rtsp-url`/`--rtmp-url`, an `appsink` feeding the publishers — §10.1)* | same | — |
 
-**Not in slice C1 (open work):** RTSP publishing to MediaMTX and RTMP (ADR-007); audio (REQ-CAP-006); EDID and DV-timings handling and source changes inside the application (REQ-CAP-003, REQ-CAP-004 — the bring-up script does them for now); drive failure, return and alerts (OQ-129, OQ-091); **HDD-branch decoupling — the writer queues keep GStreamer's default blocking limits, so an HDD stall would still back-pressure the recording (OQ-117, RISK-028)**; the fragment duration is a placeholder (OQ-118).
+**Not in slice C1 (open work):** RTSP publishing to MediaMTX and RTMP (ADR-007); audio (REQ-CAP-006); EDID and DV-timings handling and source changes inside the application (REQ-CAP-003, REQ-CAP-004 — the bring-up script does them for now); drive failure, return and alerts (OQ-129, OQ-091); **HDD-branch decoupling — the writer queues keep GStreamer's default blocking limits, so an HDD stall would still back-pressure the recording (OQ-117, RISK-028)**; the fragment duration is a placeholder (OQ-118). *(2026-10-12: publishing done in slice C2 — §10.1; drive failure/return and HDD decoupling done in slice C5 — §10.2.)*
 
 **Observed on the development machine (2026-10-12; GStreamer 1.28.7 from Homebrew, macOS arm64 — not the CM4's 1.26.2):**
 - `x264enc` with the `ultrafast` preset emitted Constrained Baseline even when the caps asked for High; `superfast` emitted High. Only the `dev` stand-in is affected.
@@ -1319,7 +1319,7 @@ source ─ tee ─┬─ queue ─ recording encoder ─ caps ─ h264parse ─ 
 
 ### 10.1 Slice C2 — live publishing (added 2026-10-12)
 
-**Status: IMPLEMENTED — NOT TESTED on PACSCORDER hardware**; development tests pass on the development machine (see [TESTING.md](TESTING.md), "Development tests"). Design: ADR-015 (PROPOSED).
+**Status: IMPLEMENTED — NOT TESTED on PACSCORDER hardware**; development tests pass on the development machine (see [TESTING.md](TESTING.md), "Development tests"). Design: ADR-015 (PROPOSED). *(Superseded 2026-10-12 — ADR-015 ACCEPTED.)*
 
 | File | Responsibility |
 |---|---|
@@ -1337,6 +1337,29 @@ main pipeline:  … live encoder ─ caps ─ appsink ──(samples, running ti
 - GStreamer warned "Pipeline construction is invalid, please add queues" for `h264parse ─ rtspclientsink` and `h264parse ─ flvmux`; a `queue` before the sink side removed it.
 
 **Not yet in C2:** audio on the outputs (REQ-CAP-006 — the RTMP output is video-only until slice C4; whether the RTMP destinations accept video-only streams is not in the register, OQ-007); the WebRTC/WHEP side is MediaMTX's and is tested in a browser only on hardware (TEST-STR-002); MediaMTX configuration on the product image (BUILD TEST REQUIRED); per-element latency settings of the live path (OQ-126).
+
+### 10.2 Slice C5 — drive failure, drive return and HDD decoupling (added 2026-10-12)
+
+**Status: IMPLEMENTED — NOT TESTED on PACSCORDER hardware**; development tests pass on the development machine. Design: ADR-016 (PROPOSED). Replaces the in-pipeline writers of slice C1 (§10), which would have stopped both copies on one drive's error and let a stalled drive block the encoder (RISK-028). *(Superseded 2026-10-13 — ADR-016 ACCEPTED.)*
+
+| File | Responsibility |
+|---|---|
+| `app/src/writer.c`, `writer.h` | One drive = one pipeline `appsrc ─ splitmuxsink (fragmented mp4mux)`; states absent → joining → active → finishing; ALERT and stop on error or full disk; stall detection from the `appsrc` backlog (`--writer-buffer-seconds`, default 10 s, OQ-117); file names from `format-location` with the session and the application's file index |
+| `app/src/pipeline.c` | Recording branch ends in an `appsink` feeding all writers (running time); a timer every `--split-seconds` retries absent drives and marks a split pending; the next keyframe is the split point for all drives (`split-at-running-time`) and the join point for returning drives; at the end, waits for every drive to close its file |
+
+**Observed on the development machine (2026-10-12):** with `split-now` issued from the timer, a drive that rejoined started its file 13 frames after the other drive's (a natural keyframe was already queued for the active drive) — deciding the split on the keyframe in the streaming thread removed the difference. A drive that was still joining when the recording stopped tried to open a file on end-of-stream; joining drives are now stopped without end-of-stream. A full disk produced "No space left on the resource" from `filesink`; the partial file stayed readable.
+
+**Observed on the development machine (2026-10-13) — the two drives' copies are the same frames, not always the same bytes.** After the 2026-10-12 results above, the drive test failed in 2 of 17 runs that day, both in case A: once with "pacs-…-00002.mp4 differs between the drives" (the rejoining drive's first file), once with no message kept. Their files were not kept. Reproduced and explained on 2026-10-13:
+
+- `mp4mux` writes the wall-clock time, in whole seconds, into the creation times of the `mvhd`, `tkhd` and `mdhd` boxes when the muxer is created or reset, and into their modification times when it rewrites the header at the end of a file (Claude's reading of the GStreamer 1.28.7 source, `isomp4/atoms.c` and `gstqtmux.c`; not a register fact). Muxing the same frames twice, 2 s apart, gave files that differ in exactly those 6 fields.
+- At each split, `splitmuxsink` resets the active drive's muxer, so its creation time is taken at the split keyframe. A rejoining drive's muxer is **not** reset before its first file (GStreamer state log): its creation time is taken when its pipeline is created by the split timer — measured 0.30–0.32 s before the other drive's reset when the machine is idle, and up to 0.58 s with heavy disk writing.
+- GLib fires whole-second timers (`g_timeout_add_seconds`) at a fixed phase of its monotonic clock (GLib 2.88.3 source, `gmain.c`), so the split timer fires at the same point of the wall-clock second in every run: 0.623–0.630 s in 6 runs on 2026-10-13.
+- Result: the rejoining drive's first file carries a creation time one second earlier than the other drive's copy whenever that gap crosses a second boundary. Measured on 2026-10-13 in the rejoin scenario: **0 of 20 runs idle, 11 of 20 with heavy disk writing**; in all 11 only the three creation times differed, by one second, and every frame and the file structure matched. Later files never differed (both drives reset their muxers on the same keyframe, within about 0.1 ms).
+- Reasoning: the 2026-10-12 failures have the same symptom on the same file and are most likely this; the timer's phase within the wall-clock second, which decides whether idle runs cross a boundary, can differ between sessions. Not proven, because their files were not kept.
+
+Consequence: the copies hold the same frames and file structure but are not guaranteed byte-identical; whether they must be is an owner question (OQ-133). The development tests now compare copies with `tests/mp4_same.py` (byte for byte except those time fields), print a NOTE when only those fields differ, and keep the evidence of a failure (`PACS_TEST_LOGDIR`). A guard that let a joining drive start only once its `appsrc` was ready was tried first and removed: it never triggered in 25 runs, and its retry path was unreachable (ARCH-003). Each writer now logs any frame its `appsrc` refuses and the running time at which each file starts. *(OQ-133 ANSWERED 2026-10-13: byte-identical copies are not required — the same video is enough.)*
+
+**Not yet:** a real HDD stall (standby spin-up up to about 3.0 s [J-30]) — the stall path is implemented but has only been exercised by code review, not by a test; operator alerts beyond the log (OQ-091); free-space checks before a drive fills (not decided).
 
 ## Verification status
 
@@ -1402,3 +1425,7 @@ Nothing (no hardware exists as of 2026-10-06). No userspace software exists. Eve
 | 2026-10-12 | Owner decisions (ADR-007 ACCEPTED — GStreamer; ADR-012 SUPERSEDED BY ADR-013 — C): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
 | 2026-10-12 | **§10 Implementation — slice C1 added**: files, pipeline, per-element settings for the `cm4` and `dev` backends with sources, open work (incl. HDD decoupling not done, RISK-028), and observations from the development machine. Status IMPLEMENTED — NOT TESTED on PACSCORDER hardware. | Claude (session 2026-10-12) |
 | 2026-10-12 | **§10.1 Slice C2 — live publishing added** (publisher pipelines, running-time conversion, observations, open items); live-output row of §10 updated. | Claude (session 2026-10-12) |
+| 2026-10-12 | **§10.2 Slice C5 added** (writer pipelines, splits on the keyframe, rejoin, stall buffer; observations; open items). | Claude (session 2026-10-12) |
+| 2026-10-12 | §10 writers row and open-work line: superseding notes for slices C2 and C5. | Claude (session 2026-10-12) |
+| 2026-10-13 | §10.2: observation that the drive copies are the same frames but not always the same bytes (mp4mux header time stamps), the comparison now used by the tests, the removed readiness guard; OQ-133. | Claude (session 2026-10-13) |
+| 2026-10-13 | §10.2: dated notes — ADR-016 ACCEPTED; OQ-133 ANSWERED. | Claude (session 2026-10-13) |

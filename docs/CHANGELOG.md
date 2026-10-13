@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active |
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-13 |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 4 |
 
 Every meaningful change is recorded here. Versioning is semantic-style (`Unreleased`, `v0.1.0`, `v0.2.0`, `v1.0.0`; see [RELEASE.md](RELEASE.md)). History is never rewritten: a correction is a new entry.
@@ -41,6 +41,16 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - `docs/REFERENCES.md` topic L: 63 facts (56 CONFIRMED, 7 CORRECTED) on H.264 level bit-rate ceilings (ITU-T H.264 V16), CM4 and CM4 IO Board Ethernet, `bcm2835-codec` concurrency, and encoder-test commands. Register total 620 facts. Raw data: `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
 - `docs/TESTING.md` TEST-ENC-001: Stage 0 procedure (run matrix R1–R7, up to two 1080p60 encodes).
 
+**2026-10-13 — slice C5: the drive copies compared by content; failure evidence kept**
+- `tests/mp4_same.py`: compares two MP4 files byte for byte except the header creation and modification times, which each drive's `mp4mux` takes from the wall clock. `tests/mp4_same_check.sh` (CTest `mp4_same_dev`) tests it. TESTED — PASS on the development machine only.
+- `tests/smoke_drives.sh`: keeps logs and recordings of a failed run in `$PACS_TEST_LOGDIR`. The writers log the running time at which each file starts and any frame a drive refuses.
+- **OQ-133** (owner question): must the two drives' copies be byte-identical? ARCH-002 to ARCH-004 recorded.
+
+**2026-10-12 — slice C5: drive failure, return and HDD decoupling**
+- `app/src/writer.c/.h`: one writer pipeline per recording drive; ALERT and continue on the other drive when a drive fails, fills or is missing; a returning drive rejoins at the next file on the same keyframe as the other drive; a drive more than `--writer-buffer-seconds` (default 10 s, OQ-117) behind is dropped instead of blocking; files named `pacs-<session>-<index>.mp4` (a new recording no longer overwrites an earlier one). IMPLEMENTED — NOT TESTED on PACSCORDER hardware.
+- `tests/smoke_drives.sh` (CTest `smoke_drives_dev`): a drive missing at start that returns; a RAM disk that fills. TESTED — PASS on the development machine only.
+- **ADR-016 (PROPOSED)**; **ADR-015 ACCEPTED** (owner). *(Superseded 2026-10-13 — ADR-016 ACCEPTED.)*
+
 **2026-10-12 — slice C2: live publishing**
 - `app/src/publisher.c/.h`: RTSP publishing to MediaMTX and RTMP publishing (`flvmux` + `rtmp2sink`), each in its own pipeline fed from the live encode, restarted 5 s after an error, keyframe requested on (re)start. Options `--rtsp-url`, `--rtmp-url`. IMPLEMENTED — NOT TESTED on PACSCORDER hardware.
 - `tests/smoke_publish.sh` (CTest `smoke_publish_dev`): publishes to a private MediaMTX and reads both streams back; checks the recording survives a dead publisher target. TESTED — PASS on the development machine only.
@@ -55,6 +65,9 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-13: **Owner decisions** — **ADR-016 ACCEPTED** (recording drives in their own pipelines) and **OQ-133 ANSWERED**: the two drives' copies must hold the same video; byte-identical copies are not required.
+- 2026-10-13: `smoke_record_dev` and `smoke_drives_dev` compare the two drives' copies with `tests/mp4_same.py` instead of `cmp`, and print a NOTE when only the header time stamps differ (ARCH-004). Reason: a rejoining drive's first file can carry a creation time one second earlier than the other drive's copy — reproduced in 11 of 20 runs with heavy disk writing, 0 of 20 idle (SOFTWARE_ARCHITECTURE §10.2). `writer.h` comment corrected (no `queue` in the writer pipeline).
+- 2026-10-12: Slice C5 documented (SOFTWARE_ARCHITECTURE §10.2, RECORDING, TESTING, OQ-117, OQ-129, RISK-028 mitigation, REQ-REC-001). Slice C2 was committed and pushed as `bc3c398`.
 - 2026-10-12: Slice C2 documented (SOFTWARE_ARCHITECTURE §10.1, BUILD_SYSTEM §2A, TESTING "Development tests", STREAMING); REQ-STR-001 and REQ-STR-002 now IMPLEMENTED — NOT TESTED (partial). Slice C1 was committed and pushed as `9ab0b4e`.
 - 2026-10-12: **Coding started** — slice C1 documented in SOFTWARE_ARCHITECTURE §10, BUILD_SYSTEM §2A and TESTING "Development tests"; REQ-ARCH-001, REQ-ENC-001, REQ-REC-001 now IMPLEMENTED — NOT TESTED (partial). The GStreamer/C decisions were committed and pushed as `27bb305`.
 - 2026-10-12, latest: **Owner decisions — GStreamer (ADR-007 ACCEPTED) and C (ADR-013 ACCEPTED)**; Claude's Python proposal (ADR-012) SUPERSEDED BY ADR-013. OQ-015 and OQ-132 ANSWERED. 65 stale ADR-007 status lines annotated.
@@ -164,6 +177,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Fixed
 
+- 2026-10-13: Intermittent failure of `smoke_drives_dev` (2 of 17 runs on 2026-10-12, "differs between the drives"): the test compared header time stamps that the design does not keep equal; it now compares the frames and file structure. Most likely cause reproduced; the 2026-10-12 runs themselves were not kept. DEVELOPMENT_LOG.md had "Last updated 2026-10-09" despite later entries; corrected.
 - Nothing (first entry). *(Superseded 2026-10-12 — see below.)*
 - 2026-10-12: DECISIONS.md header said "3 ACCEPTED, 4 PROPOSED, 2 OPEN" after ADR-004 was accepted; corrected to 4 / 4 / 1 (found by the rebuilt documentation check).
 - 2026-10-12: **Missing change-history rows** for the 2026-10-09 edits committed by hand (`98779a4`, `9670f71`, `2d76092` "update by ai"; `049d1ee` "up date by ai"; `27c44d9` (committed by hand as "mmit", reworded before push on 2026-10-12)) added as dated catch-up rows in 11 documents. Where `3c823b6` (now `27c44d9`) rewrote text in place, the rows record it — the TESTING.md Platform row and the REQUIREMENTS.md REQ-PLT-001 Notes text verbatim; the "Applies to" headers and the TRACEABILITY `ADR-004 (O)` → `(A)` cells by reference to git (Rule 21).
@@ -171,6 +185,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Known Issues
 
+- *(Added 2026-10-13.)* The two recording drives' copies of a file are the same frames but not guaranteed byte-identical (header time stamps); whether they must be is OQ-133. *(OQ-133 ANSWERED 2026-10-13: not required — the same video is enough.)*
 - Procedure steps whose command syntax is not in the source register are marked NEEDS VERIFICATION (OQ-101).
 
 - No hardware exists. Every hardware test is BLOCKED — HARDWARE REQUIRED.
@@ -217,3 +232,6 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-12 | Latest: ADR-007 and ADR-013 accepted; ADR-012 superseded. | Claude (session 2026-10-12) |
 | 2026-10-12 | Added: application slice C1, development tests, bring-up script, ADR-014. Changed: requirement implementation statuses; `27bb305` recorded. | Claude (session 2026-10-12) |
 | 2026-10-12 | Added: slice C2, `smoke_publish_dev`, ADR-015. Changed: REQ-STR-001/002 statuses; `9ab0b4e` recorded. | Claude (session 2026-10-12) |
+| 2026-10-12 | Added: slice C5, `smoke_drives_dev`, ADR-016; ADR-015 accepted; `bc3c398` recorded. | Claude (session 2026-10-12) |
+| 2026-10-13 | Added: comparison of the drive copies (`mp4_same.py`, `mp4_same_dev`), failure evidence, OQ-133, ARCH-002 to ARCH-004; Changed/Fixed/Known Issues for the intermittent drive-test failure. | Claude (session 2026-10-13) |
+| 2026-10-13 | Owner decisions: ADR-016 ACCEPTED, OQ-133 ANSWERED (Changed; notes in Added and Known Issues). | Claude (session 2026-10-13) |

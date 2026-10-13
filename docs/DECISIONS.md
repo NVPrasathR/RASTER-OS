@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Document status | Active — 10 ACCEPTED, 3 PROPOSED, 0 OPEN, 2 SUPERSEDED |
-| Last updated | 2026-10-12 |
+| Document status | Active — 12 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED |
+| Last updated | 2026-10-13 |
 | Applies to | PACSCORDER architecture on all four candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Evidence is from source research of 2026-10-06 and 2026-10-08 (topics H, I, J and K) ([REFERENCES.md](REFERENCES.md)). No decision has been validated on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 13 (decision log), Rule 14 (never delete) |
@@ -39,7 +39,8 @@ Fact references such as `[C-37]` point to the source register [REFERENCES.md](RE
 | ADR-012 | Application language: Python 3 with GStreamer GObject-Introspection bindings | SUPERSEDED BY ADR-013 | 2026-10-12 (decided 2026-10-12) |
 | ADR-013 | Application language: C with GStreamer's native API | ACCEPTED | 2026-10-12 |
 | ADR-014 | Application build system: CMake with pkg-config and CTest | ACCEPTED | 2026-10-12 |
-| ADR-015 | Live publishers in their own pipelines so a network failure cannot stop the recording | PROPOSED | 2026-10-12 |
+| ADR-015 | Live publishers in their own pipelines so a network failure cannot stop the recording | ACCEPTED | 2026-10-12 (accepted 2026-10-12) |
+| ADR-016 | Recording drives in their own pipelines; splits on the keyframe; failed drives retried at the next file | ACCEPTED | 2026-10-12 (accepted 2026-10-13) |
 
 ---
 
@@ -713,7 +714,7 @@ Live publishers run in their own pipelines, fed from the live encode, so that a 
 
 ## Status
 
-PROPOSED — 2026-10-12 (Claude's design choice while implementing slice C2; owner to confirm). Implemented in slice C2 because it is easy to reverse.
+PROPOSED — 2026-10-12 (Claude's design choice while implementing slice C2; owner to confirm). Implemented in slice C2 because it is easy to reverse. *(Superseded 2026-10-12: **ACCEPTED** — owner, "Accept ADR-015".)*
 
 ## Context
 
@@ -735,6 +736,43 @@ The live encode ends in an `appsink` in the main pipeline. Each publisher (one R
 - Development tests (2026-10-12, development machine): with MediaMTX down, the publisher failed and retried while the recording completed; when MediaMTX came up 6 s later, the publisher reconnected and the stream became readable ([TESTING.md](TESTING.md), "Development tests"). Not yet run on the CM4.
 - Each publisher adds one pipeline and one `h264parse` (no re-encode). CPU cost on the CM4 is part of TEST-PERF-001.
 - A crash (rather than an error) inside a publisher still takes down the process; that is the reason a separate-process design stays an option (OQ-090).
+
+---
+
+# ADR-016
+
+## Title
+
+Each recording drive is written by its own pipeline; file splits are decided on the keyframe for all drives; a failed, full, missing or stalled drive is dropped and retried at the next file.
+
+## Status
+
+PROPOSED — 2026-10-12 (Claude's design while implementing slice C5; owner to confirm). It implements the owner decisions of OQ-129 and proposes a design for OQ-117 (HDD-branch buffering). *(Superseded 2026-10-13: **ACCEPTED** — owner, "Accept ADR-016". The stall-buffer length stays a placeholder (OQ-117); the design is still to be tested on the CM4 with an NVMe SSD and an HDD.)*
+
+## Context
+
+- ADR-009 (ACCEPTED) mirrors every recording to an NVMe SSD and a USB-to-SATA HDD. OQ-129 (ANSWERED): if one drive fills, is absent or fails, recording continues on the other with an alert; a recording started with a drive missing runs on the other; a drive that returns is used again from the next 30-minute file. OQ-130: the HDD is a lagging mirror, not bound by the < 1 s target. RISK-028: an HDD stall (up to about 3.0 s from standby [J-30]) could back-pressure the shared encoder and the live path.
+- In slice C1 both drives were written inside the main pipeline: a write error on one drive would end the pipeline and stop both copies, and a stalled drive's queue would fill and block the encoder.
+
+## Decision (proposed)
+
+1. **One writer pipeline per drive**: `appsrc ─ splitmuxsink (fragmented mp4mux)`, fed every recording frame from an `appsink` in the main pipeline (the pattern of ADR-015). A writer error (write failure, disk full) stops only that writer, with an ALERT.
+2. **Stall buffer:** a writer's `appsrc` holds the backlog when its drive is slow; if the backlog exceeds `--writer-buffer-seconds` (default 10 s — a placeholder, OQ-117), the drive is treated as failed instead of blocking anything upstream.
+3. **Splits decided on the frame:** a timer marks a split as pending every `--split-seconds` (1800 s, OQ-129) and forces a keyframe; the first keyframe after that is the split point for every drive (`split-at-running-time`), and a returning drive starts writing on that same frame — so the two drives' files have the same names and boundaries.
+4. **Rejoin:** missing or failed drives are retried at every split; a drive that is back joins from that file. A drive that has not started writing when the recording stops is stopped without opening a file.
+5. **File names** carry the session start time: `pacs-<YYYYmmdd-HHMMSS>-<index>.mp4`, so a new recording never overwrites an earlier one.
+
+## Alternatives Considered
+
+- **One pipeline with a tee and leaky queues per drive:** simpler, but a write error still ends the pipeline (both copies), and leaky queues drop frames inside a file (decoding glitches) instead of ending the file cleanly.
+- **Splitting by `max-size-time` inside each `splitmuxsink`:** each drive splits on its own; a drive that rejoins would be out of step, and an earlier version split at different keyframes (found by the development test: 13 frames apart).
+- **Separate processes per drive:** stronger isolation; more moving parts (OQ-090).
+
+## Consequences
+
+- Development tests (2026-10-12, development machine): a drive missing at start rejoins at the next split with byte-identical files *(Note 2026-10-13: not guaranteed — each drive's own `mp4mux` writes the wall-clock second into the header time stamps, so the copies hold the same frames but can differ in those fields. Reproduced 2026-10-13: a rejoining drive's first file can carry a creation time one second earlier (0 of 20 idle runs, 11 of 20 with heavy disk writing), the most likely cause of the test's intermittent failures on 2026-10-12 ([SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md) §10.2). The test now compares with `tests/mp4_same.py`. Whether byte-identical copies are required is OQ-133 — ANSWERED 2026-10-13: not required, the same video is enough)*; a full RAM disk raises an alert while the other drive records every file, and the partial file on the full disk stays readable (fragmented MP4) ([TESTING.md](TESTING.md), "Development tests"). Not yet tested on an HDD, an NVMe SSD or the CM4; a real stall (standby spin-up) is a hardware test.
+- Memory: the stall buffer holds up to `writer-buffer-seconds` × the recording bit rate per drive (10 s at 25 Mbit/s ≈ 31 MB) — part of TEST-PERF-001 on the CM4.
+- While a full drive stays full it fails again at every split, with an alert each time; how alerts reach the operator is OQ-091.
 
 ---
 
@@ -788,3 +826,7 @@ Nothing (no hardware exists as of 2026-10-06). No ADR has been validated by a te
 | 2026-10-12 | **Owner decisions:** ADR-007 **ACCEPTED** (GStreamer; OQ-015 ANSWERED); the owner chose **C** for the application, so ADR-012 (Python, proposed) is **SUPERSEDED BY ADR-013** and **ADR-013 (C) is added as ACCEPTED** (OQ-132 ANSWERED). Header 9 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-014 added (ACCEPTED):** application build system CMake (owner's choice over the suggested Meson). Header 10 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
 | 2026-10-12 | **ADR-015 added (PROPOSED):** live publishers in separate pipelines fed from the live encode (fault isolation from the recording); implemented in slice C2. Header 10 ACCEPTED, 3 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-015 ACCEPTED** (owner): live publishers in separate pipelines. Header 11 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-12 | **ADR-016 added (PROPOSED):** per-drive writer pipelines, keyframe-decided splits, stall buffer, rejoin at the next file, session-named files (slice C5; implements OQ-129, proposes a design for OQ-117). Header 11 ACCEPTED, 3 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-12) |
+| 2026-10-13 | ADR-016 Consequences: dated note that the drive copies are not guaranteed byte-identical (header time stamps; OQ-133). Status unchanged (PROPOSED). | Claude (session 2026-10-13) |
+| 2026-10-13 | **ADR-016 ACCEPTED** (owner): recording drives in their own pipelines. Consequences note: OQ-133 ANSWERED. Header 12 ACCEPTED, 2 PROPOSED, 0 OPEN, 2 SUPERSEDED. | Claude (session 2026-10-13) |

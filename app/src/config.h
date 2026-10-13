@@ -36,6 +36,7 @@ typedef struct {
   guint  split_seconds;   /* new file every 30 minutes = 1800 (OQ-129) */
   guint  fragment_ms;     /* mp4mux fragment-duration — UNDECIDED (OQ-118) */
   guint  rec_bitrate;     /* bit/s: 25 Mbit/s VBR (OQ-005) */
+  guint  writer_buffer_seconds;  /* how far a stalled drive may fall behind — UNDECIDED (OQ-117) */
 
   /* Live encode (OQ-005, OQ-131) and publishing (slice C2, ADR-015). */
   guint  live_bitrate;    /* bit/s: 17 Mbit/s CBR (OQ-005) */

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Document status | Active — 132 questions registered: 105 OPEN, 27 ANSWERED |
-| Last updated | 2026-10-12 |
+| Document status | Active — 133 questions registered: 105 OPEN, 28 ANSWERED |
+| Last updated | 2026-10-13 |
 | Applies to | PACSCORDER product requirements, hardware, TC358743 bridge, Linux driver, all four candidate platforms (Pi 4 Model B, CM4, Pi 5, CM5), build/OS, streaming, ATEM, licensing and supply, recording storage *(Superseded — ADR-004 ACCEPTED 2026-10-09: product platform CM4; CM5, Pi 5, BCM2712 and Pi 4 Model B kept as reference only, not in current scope (ARCH-001). Note added 2026-10-12.)* |
 | Verification | Source research of 2026-10-06 (topics A–G) and 2026-10-08 (topics H, I, J and K) only ([REFERENCES.md](REFERENCES.md)). Nothing has been tested on PACSCORDER hardware; no hardware exists as of 2026-10-06. |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 8 (never invent hardware information), Rule 22 (unknown information), Rule 23 (source priority), Rule 25 (new-engineer questions) |
@@ -12,7 +12,7 @@ This is the single register of everything PACSCORDER does not yet know and every
 
 ## How to use this register
 
-An OQ is closed only with evidence. To close one, add these fields under the entry without changing the original text: **Answer** (what was found or decided), **Evidence** (a fact ID, a datasheet section, an owner statement with date, or a TEST ID whose result is recorded in [TESTING.md](TESTING.md)), **Answered on** (date) and **Answered by**. Then change **Status** to `ANSWERED` and update every linked REQ, ADR and RISK and every document that carried the UNKNOWN marker. Never delete or renumber an entry (Rules 14 and 21). If an answer later proves wrong, add a dated note and set the status back to `OPEN`. A question made irrelevant by a decision (for example a platform that is dropped) is marked `ANSWERED` with that decision as its evidence. New questions take the next free number after the highest ID in use (OQ-090 to OQ-101 were added on 2026-10-06 after the cross-document review; OQ-102 and OQ-103 on 2026-10-07; OQ-104 to OQ-114 on 2026-10-08 from research topics H and I) and are placed in the matching category section, so numbers inside a category need not be contiguous. *(Added 2026-10-08, later: OQ-115 and OQ-116 were added after owner decisions of 2026-10-08, and OQ-117 to OQ-128 from research topics J (recording storage) and K (live latency). Category 12, Recording & storage, was added for the recording questions that fit no earlier category.)* *(2026-10-12: OQ-131 added after the live-encode decision.)* *(2026-10-12: OQ-132 added with ADR-012.)*
+An OQ is closed only with evidence. To close one, add these fields under the entry without changing the original text: **Answer** (what was found or decided), **Evidence** (a fact ID, a datasheet section, an owner statement with date, or a TEST ID whose result is recorded in [TESTING.md](TESTING.md)), **Answered on** (date) and **Answered by**. Then change **Status** to `ANSWERED` and update every linked REQ, ADR and RISK and every document that carried the UNKNOWN marker. Never delete or renumber an entry (Rules 14 and 21). If an answer later proves wrong, add a dated note and set the status back to `OPEN`. A question made irrelevant by a decision (for example a platform that is dropped) is marked `ANSWERED` with that decision as its evidence. New questions take the next free number after the highest ID in use (OQ-090 to OQ-101 were added on 2026-10-06 after the cross-document review; OQ-102 and OQ-103 on 2026-10-07; OQ-104 to OQ-114 on 2026-10-08 from research topics H and I) and are placed in the matching category section, so numbers inside a category need not be contiguous. *(Added 2026-10-08, later: OQ-115 and OQ-116 were added after owner decisions of 2026-10-08, and OQ-117 to OQ-128 from research topics J (recording storage) and K (live latency). Category 12, Recording & storage, was added for the recording questions that fit no earlier category.)* *(2026-10-12: OQ-131 added after the live-encode decision.)* *(2026-10-12: OQ-132 added with ADR-012.)* *(2026-10-13: OQ-133 added after the slice C5 drive-copy finding.)*
 
 Conventions used in every entry:
 
@@ -160,6 +160,7 @@ The register was built by merging every `open_questions` and `gaps` item of rese
 | OQ-130 | Recording capture-to-file < 1 s: against which drive, and with what statistic, is it judged? | 12 Recording & storage | OWNER DECISION REQUIRED; HARDWARE TEST REQUIRED | ANSWERED |
 | OQ-131 | Live encode at 1080p30 from other input modes: frame-rate and resolution conversion | 7 Encoding & DMA | OWNER DECISION REQUIRED; BUILD TEST REQUIRED; HARDWARE TEST REQUIRED | OPEN |
 | OQ-132 | Application language (ADR-012) | 1 Owner decisions | OWNER DECISION REQUIRED | ANSWERED |
+| OQ-133 | Must the two drives' copies of a recording be byte-identical, or is the same frames enough? | 12 Recording & storage | OWNER DECISION REQUIRED | ANSWERED |
 
 *(Note added 2026-10-12: the Pi 5 / CM5 rows — category 6 (OQ-049 to OQ-055, OQ-124) and OQ-059, OQ-060 — are not in current scope — ADR-004 ACCEPTED 2026-10-09 (CM4); kept as reference, ARCH-001. Their Status stays OPEN.)* *(Superseded later on 2026-10-12: on the owner's instruction these ten questions are ANSWERED as made irrelevant by ADR-004; OQ-108, listed elsewhere as CM5-related, is an H.265 question and stays OPEN.)*
 
@@ -2016,6 +2017,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
   - Claude's reasoning from [J-30] and [J-36] (not a design figure): riding out a 3.0 s stall at about 3.15 MB/s per destination (25 Mbit/s video plus AAC) needs about 9.5 MB of HDD-branch buffering, before any margin and before slower USB resets or longer stalls.
   - If back-pressure reached the capture queue, each frame waiting there would add one frame period, 33.3 ms at 30p (reasoning part of [K-36]).
   - Research design risks and gaps (topic J — not register facts): the HDD branch needs a large or leaky queue so it cannot back-pressure the shared tee or the live path; concurrent writing to two file sinks has not been tested; spin-down should be disabled or extended where the bridge allows, and whether `hdparm -B/-S` works through the bridge is unknown.
+- *(Added 2026-10-12 — implementation, ADR-016 PROPOSED.)* Slice C5 decouples each drive into its own writer pipeline; a drive's backlog is held in its `appsrc` up to `--writer-buffer-seconds` (default **10 s — a placeholder, not a decision**), beyond which the drive is treated as failed and retried at the next file instead of blocking the encoder. The buffer size and behaviour on a real HDD stall remain open (HARDWARE TEST REQUIRED; memory in TEST-PERF-001). *(Superseded 2026-10-13 — ADR-016 ACCEPTED.)*
 - **Resolution method:** BUILD TEST REQUIRED (pipeline with an HDD-branch queue and injected stalls); HARDWARE TEST REQUIRED (the chosen enclosure's standby behaviour, a write-latency trace, and unplugging the HDD during a recording, on CM4 and CM5). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 - **Resolving test:** TEST-REC-001, TEST-PERF-001, TEST-STR-002 (effect on the live path)
 - **Status:** OPEN
@@ -2087,6 +2089,7 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Evidence:** Owner answers of 2026-10-09: "Continue on the other drive"; "Start on the available drive"; "Split every 30 minutes"; "Resume at the next 30-min file".
 - **Answered on:** 2026-10-09
 - **Answered by:** Owner
+- *(Added 2026-10-12 — implementation, ADR-016 PROPOSED.)* The answer is implemented in slice C5: continue on the other drive with an ALERT on failure or a full disk; start on the available drive; a returning drive rejoins at the next split on the same keyframe, with identical file names; development tests pass. Alerts go only to the log so far (OQ-091). *(Superseded 2026-10-13 — ADR-016 ACCEPTED.)*
 - **Resolution method:** OWNER DECISION REQUIRED (policy when one copy cannot continue; file splitting and operator notification); BUILD TEST REQUIRED (muxer behaviour on a full disk); HARDWARE TEST REQUIRED (fill one drive, remove the HDD during a recording, on CM4 and CM5). *(Superseded — ADR-004 ACCEPTED 2026-10-09 (CM4); note 2026-10-12.)*
 - **Resolving test:** TEST-REC-001
 - **Status:** ANSWERED
@@ -2112,6 +2115,27 @@ Every entry in this category is `UNKNOWN — VERIFICATION REQUIRED` for PACSCORD
 - **Resolving test:** TEST-REC-001
 - **Status:** ANSWERED
 - **Added:** 2026-10-09 (consequence of the OQ-005 recording capture-to-file latency decision)
+
+## OQ-133 — Must the two drives' copies of a recording be byte-identical, or is the same frames enough?
+
+- **Question:** Is it enough that both drives hold the same files with the same frames (the same video data, timestamps and file structure), or must the two copies be byte-identical, for example so that a copy can be checked against the other with a checksum?
+- **Why it matters:** ADR-016 (one muxer per drive), ADR-009 (mirror), REQ-REC-001, TEST-REC-001 (the mirror check of steps 2 and 3: "Whether the two copies are identical: UNKNOWN"); any future copy-verification or offload tool.
+- **Known so far:**
+  - Observed on the development machine (2026-10-13): muxing the same encoded frames twice, 2 s apart, gives files that differ only in the creation and modification times of the `mvhd`, `tkhd` and `mdhd` boxes (6 fields, in whole seconds); every other byte matched, including all 9 fragments of a 240-frame file.
+  - Claude's reading of the GStreamer 1.28.7 source (read 2026-10-13; not a register fact): `mp4mux` sets the creation times from the wall clock when it is created or reset (`atoms.c`, `gst_qt_mux_reset`) and the modification times when it rewrites the header at the end of a file (`gst_qt_mux_send_moov`). No property or tag that sets them was found.
+  - Each drive has its own muxer (ADR-016). In the application (2026-10-13, development machine) a rejoining drive's first file is stamped when its pipeline is created by the split timer, 0.30–0.32 s (idle) to 0.58 s (heavy disk writing) before the other drive's muxer is reset for the same file; later files are stamped within about 0.1 ms of each other. The split timer fires at a fixed point of the wall-clock second (GLib whole-second timers). In the rejoin scenario the first file's copies differed in 0 of 20 idle runs and 11 of 20 runs with heavy disk writing — only the creation times, by one second; every frame matched ([SOFTWARE_ARCHITECTURE.md](SOFTWARE_ARCHITECTURE.md) §10.2).
+  - The slice C5 drive test failed in 2 of 17 runs on 2026-10-12 with the same symptom; its files were not kept, so that cause is most likely this but not proven.
+  - Reasoning: with one muxer per drive, byte-identical copies cannot be guaranteed — even stamps taken a millisecond apart fall in different seconds now and then. A guarantee needs one muxer feeding both drives, which couples the drives again (what ADR-016 removes, RISK-028), or a step that rewrites the fields after the file is closed.
+  - The development tests now compare the copies with `tests/mp4_same.py`: byte for byte except those fields.
+- **Claude's recommendation:** the same frames is enough. Each copy's header then records when that copy was written. Checksum verification, if wanted, would checksum each copy against itself (for example a checksum written beside each file), not across drives.
+- **Answer:** The same video is enough. The two drives' copies must hold the same frames and file structure; they need not be byte-identical, and each copy's header may record when that copy was written. The design stays as ADR-016 (one muxer per drive), and copies are checked by content (`tests/mp4_same.py` in the development tests), not by comparing checksums across drives.
+- **Evidence:** Owner answer of 2026-10-13: "Same video is enough".
+- **Answered on:** 2026-10-13
+- **Answered by:** Owner
+- **Resolution method:** OWNER DECISION REQUIRED.
+- **Resolving test:** TEST-REC-001
+- **Status:** ANSWERED
+- **Added:** 2026-10-13 (slice C5 drive-test failure analysis)
 
 ---
 
@@ -2218,3 +2242,6 @@ Nothing (no hardware exists as of 2026-10-06). No open question has been answere
 | 2026-10-12 | Owner decisions: **OQ-014 ANSWERED** (legacy video-node mode, ADR-010) and **OQ-099 ANSWERED** (486 MHz, ADR-008), with Answer/Evidence fields and summary rows; OQ-018 owner input (ADR-011 ACCEPTED; stays OPEN for HW REV A). Header 131: **106 OPEN, 25 ANSWERED**. | Claude (session 2026-10-12) |
 | 2026-10-12 | OQ-015: note on the ADR-007 GStreamer proposal. **New OQ-132** (application language, ADR-012) in category 1. Header 132: 107 OPEN, 25 ANSWERED. | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions: **OQ-015 ANSWERED** (GStreamer, ADR-007) and **OQ-132 ANSWERED** (C, ADR-013), with Answer/Evidence fields and summary rows. Header 132: 105 OPEN, 27 ANSWERED. | Claude (session 2026-10-12) |
+| 2026-10-12 | OQ-117 and OQ-129: implementation notes (slice C5, ADR-016). No status changed. | Claude (session 2026-10-12) |
+| 2026-10-13 | **New OQ-133** (byte-identical drive copies, or the same frames) in category 12, after the slice C5 drive-test analysis. Header 133: 106 OPEN, 27 ANSWERED. | Claude (session 2026-10-13) |
+| 2026-10-13 | Owner decision: **OQ-133 ANSWERED** (the same video is enough), with Answer/Evidence fields and summary row; notes for ADR-016 ACCEPTED in OQ-117 and OQ-129. Header 133: 105 OPEN, 28 ANSWERED. | Claude (session 2026-10-13) |

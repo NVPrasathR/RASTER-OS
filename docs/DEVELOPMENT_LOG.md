@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | Active — one entry per significant development session (Rule 3) |
-| Last updated | 2026-10-09 |
+| Last updated | 2026-10-13 |
 
 Entries are appended, newest last, and are never rewritten (Rule 21).
 
@@ -2290,6 +2290,222 @@ Tests: ctest - 3/3 PASS (h264_level, smoke_record_dev, smoke_publish_dev) on mac
 
 ---
 
+## 2026-10-12 (tenth entry) — Slice C5: drive failure, drive return and HDD decoupling
+
+### Objective
+
+The owner approved slice C2 ("Commit and push"), accepted ADR-015 and chose slice C5: keep recording when a drive fails, fills, is missing or stalls, and reuse a returning drive from the next file (OQ-129, OQ-117, RISK-028).
+
+### Starting State
+
+Slice C2 committed and pushed as **`bc3c398`** (`9ab0b4e..bc3c398`); ADR-015 recorded as ACCEPTED (three stale status lines annotated). In slice C1 both drives were written inside the main pipeline (one drive's error would stop both copies; a stalled drive would block the encoder), and file names restarted at `pacs-00000.mp4`, so a second recording in the same directory would overwrite the first.
+
+### Changes
+
+1. **`app/src/writer.c/.h`** (new): one writer pipeline per drive (`appsrc ─ splitmuxsink` with fragmented `mp4mux`); states absent/joining/active/finishing; ALERT on error or full disk; stall detection from the `appsrc` backlog (`--writer-buffer-seconds`, default 10 s, OQ-117); `format-location` names files `pacs-<session>-<index>.mp4`.
+2. **`pipeline.c`:** recording branch ends in an `appsink` feeding the writers; a timer every `--split-seconds` retries absent drives, marks a split pending and forces a keyframe; the next keyframe is the split point for all drives (`split-at-running-time`) and the join point for returning drives; the run ends when every drive has closed its file; per-drive file and failure counts at exit.
+3. **Faults found by testing and fixed:** (a) with `split-now` from the timer, a rejoining drive's first file started 13 frames later than the other drive's (a natural keyframe was already queued for the active drive) — splits are now decided on the keyframe in the streaming thread; (b) a drive still joining when the recording stopped tried to open a file on end-of-stream — joining drives now stop without end-of-stream.
+4. **ADR-016 (PROPOSED)** *(Superseded 2026-10-13 — ADR-016 ACCEPTED.)* recorded; documentation: SOFTWARE_ARCHITECTURE §10.2 (and superseding notes in §10), RECORDING, TESTING, OQ-117, OQ-129, RISK-028 (mitigation; still OPEN), REQ-REC-001, TRACEABILITY, PROJECT_STATUS, CHANGELOG.
+
+### Files Modified
+
+- New: `app/src/writer.c`, `app/src/writer.h`, `tests/smoke_drives.sh`.
+- Changed: `app/CMakeLists.txt`, `app/src/{config.c,config.h,pipeline.c,pipeline.h}`, `tests/CMakeLists.txt`; `docs/`: `DECISIONS.md`, `SOFTWARE_ARCHITECTURE.md`, `RECORDING.md`, `TESTING.md`, `OPEN_QUESTIONS.md`, `RISKS.md`, `REQUIREMENTS.md`, `TRACEABILITY.md`, `PROJECT_STATUS.md`, `STREAMING.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`.
+
+### Hardware Changes
+
+None. A RAM disk on the development machine stood in for a full drive.
+
+### Software Changes
+
+Slice C5.
+
+### Commands Used
+
+```bash
+cmake --build build && ctest --test-dir build --output-on-failure
+bash tests/smoke_drives.sh build/app/pacscorder                       # 3 runs
+hdiutil attach -nomount ram://16384; diskutil erasevolume HFS+ <name> <dev>   # 8 MB RAM disk (full-drive case)
+ffprobe -select_streams v:0 -show_entries packet=pts_time,size,flags …   # frame-by-frame comparison of the two drives
+```
+
+### Test Results
+
+- `smoke_drives_dev`: **TESTED — PASS**, 3 of 3 runs plus CTest (development machine): a drive missing at start rejoined at the next split with 3 byte-identical files (drive A 5 files); a filling RAM disk raised "No space left on the resource", drive A recorded 3 files, the partial file on the full disk stayed readable (2.7 s). *(Note 2026-10-13: after this entry was written, the test failed in 2 of the next 13 runs on 2026-10-12 — **TESTED — FAIL**, intermittent; see the 2026-10-13 entry.)*
+- By hand: a drive becoming available exactly when the recording stops leaves no empty file; exit 0.
+- `h264_level`, `smoke_record_dev`, `smoke_publish_dev`: still PASS (4/4 with CTest).
+- **Not tested:** a real HDD stall (the stall path is implemented, not exercised); anything on the CM4, an NVMe SSD or an HDD.
+- Documentation check: PASS.
+
+### Problems Found
+
+See Changes 3. Also: a full drive fails again at every split, with an alert each time (by design under OQ-129; alert delivery is OQ-091).
+
+### Root Cause
+
+(a) The split was requested asynchronously while a keyframe was already in a drive's queue.
+
+### Solution
+
+Split and join decided on the keyframe in the recording branch's streaming thread.
+
+### Current Status
+
+- PARTIAL: slice C5 IMPLEMENTED — NOT TESTED on hardware; development tests PASS.
+- Uncommitted, pending owner approval.
+
+### Next Step
+
+1. Owner: approve the commit below; confirm ADR-016.
+2. Remaining slices: C3 (EDID / DV timings / source changes), C4 (audio) — both need the CM4 to test for real.
+3. Owner: buy the bring-up hardware (ADR-011).
+4. Proposed commit (Rule 15): *(Superseded 2026-10-13 — not committed; replaced by the proposal in the 2026-10-13 entry.)*
+
+```text
+Commit title: feat(rec): isolate each recording drive and handle failure, return and stalls (slice C5)
+Commit description: Write each recording drive in its own pipeline (ADR-016, PROPOSED): a failed, full or
+  missing drive raises an ALERT while recording continues on the other; a returning drive rejoins at
+  the next file on the same keyframe as the other drive; a drive more than --writer-buffer-seconds
+  behind is dropped instead of blocking the encoder (OQ-117, RISK-028). Decide file splits on the
+  keyframe for all drives; name files by session so recordings never overwrite each other. Add the
+  smoke_drives_dev test (returning drive; full RAM disk). Record ADR-015 ACCEPTED and commit bc3c398.
+  Development machine only.
+Files changed: app/**, tests/**, docs/** (12 Markdown files)
+Reason: Rules 1, 3, 10, 13, 15, 16, 17, 24
+Tests: ctest - 4/4 PASS on macOS + GStreamer 1.28.7 (+ MediaMTX 1.21.0); smoke_drives_dev 3/3 runs;
+  doccheck PROBLEMS 0, WARNINGS 0
+```
+
+---
+
+## 2026-10-13 — Slice C5: intermittent drive-test failure explained; drive copies compared by content
+
+### Objective
+
+The owner asked for the status ("status") and then to continue ("continue"): find out why `smoke_drives_dev` failed intermittently after the tenth 2026-10-12 entry was written, and fix it before slice C5 is proposed for commit.
+
+### Starting State
+
+Slice C5 uncommitted (HEAD `bc3c398` = `origin/main`). The tenth 2026-10-12 entry recorded `smoke_drives_dev` as TESTED — PASS (3 of 3 runs plus CTest). After that entry was written, on 2026-10-12, the test failed in 2 of the next 13 runs (2 of 17 in all), both in case A: once under CTest after 17.03 s (the end of case A) with no message kept, and once with "pacs-…-00002.mp4 differs between the drives" (the rejoining drive's first file). The test's cleanup deleted both runs' recordings.
+
+### Changes
+
+1. **Evidence first.** `tests/smoke_drives.sh` keeps its logs and recordings in `$PACS_TEST_LOGDIR` when it fails and that variable is set. The writers log the running time at which each file starts ("opened … (starts at …)"; "split: file N starts at …" from the main pipeline) and any frame a drive's `appsrc` refuses.
+2. **Hypothesis 1 — the rejoining drive's `appsrc` not yet accepting data — tested and dropped.** A guard that activated a joining drive only once its `appsrc` had reached PAUSED never triggered in 25 runs, no frame was refused, and its retry path was unreachable (the split timer only restarts absent drives). Removed (ARCH-003).
+3. **Cause found and reproduced.**
+   - `mp4mux` writes the wall-clock time, in whole seconds, into the creation times of `mvhd`, `tkhd` and `mdhd` when the muxer is created or reset, and into their modification times when it rewrites the header at the end of a file. Source: Claude's reading of the GStreamer 1.28.7 source — `isomp4/atoms.c` `atoms_get_current_qt_time`, `gstqtmux.c` `gst_qt_mux_reset` / `gst_qt_mux_send_moov`; `libs/gst/base/gstaggregator.c` calls `stop` on PAUSED→READY. Not a register fact.
+   - Measured: one encoded stream muxed twice, 2 s apart, gives files that differ in exactly those 6 fields; all 240 frames and 9 fragments are otherwise identical.
+   - At each split, `splitmuxsink` resets the active drive's muxer, so its creation time is taken at the split keyframe.
+   - The GStreamer state log (`GST_DEBUG=GST_STATES:5`) shows a rejoining drive's muxer is **not** reset before its first file. It reaches PLAYING when its pipeline is created by the split timer, so its creation time is taken then: 0.30–0.32 s before the other drive's reset when idle (2 runs) and 0.58 s with heavy disk writing (1 of 2 loaded runs; 0.30 s in the other).
+   - GLib fires `g_timeout_add_seconds` timers at a fixed microsecond phase of its monotonic clock. Source: GLib 2.88.3 `gmain.c`; on macOS `mach_absolute_time`; the phase offset is a hash of `DBUS_SESSION_BUS_ADDRESS` or `HOSTNAME`, neither set here. Measured: the split timer fired 0.623–0.630 s into the wall-clock second in 6 of 6 runs.
+   - Result: the rejoining drive's first file carries a creation time one second earlier than the other drive's copy whenever the timer phase plus the gap crosses a second boundary — here about 0.63 + 0.31 ≈ 0.94 s when idle, so idle runs did not cross; with disk load the gap grows.
+4. **Tests changed.**
+   - `tests/mp4_same.py` compares two MP4 files byte for byte except those time fields.
+   - `smoke_record_dev` and `smoke_drives_dev` use it instead of `cmp`, and print a NOTE when only the time fields differ.
+   - New CTest `mp4_same_dev` (`tests/mp4_same_check.sh`): two muxes 1.2 s apart differ for `cmp` and are the same for `mp4_same.py`; one changed media byte is reported.
+   - The `writer.h` comment is corrected: the writer pipeline is `appsrc ─ splitmuxsink`, with no `queue`.
+5. **Owner question OQ-133:** must the two drives' copies be byte-identical, or is the same frames enough? Recommendation: the same frames. With one muxer per drive, byte identity cannot be guaranteed.
+6. **Records:**
+   - ARCH-002 (the timer-issued `split-now` of 2026-10-12, not archived at the time), ARCH-003 and ARCH-004 (byte-for-byte `cmp` of the copies).
+   - Dated notes in ADR-016, SOFTWARE_ARCHITECTURE §10.2, RECORDING, TESTING (TEST-REC-001 mirror note; development tests), BUILD_SYSTEM §2A (`python3`), OPEN_QUESTIONS, CHANGELOG and PROJECT_STATUS.
+   - The tenth entry annotated, and this file's "Last updated" (which still said 2026-10-09) corrected.
+
+7. **Owner decisions (later on 2026-10-13):** commit and push slice C5 ("Commit and push"); **ADR-016 ACCEPTED** ("Accept ADR-016"); **OQ-133 ANSWERED** — the same video is enough, byte-identical copies are not required ("Same video is enough"). Recorded in DECISIONS (status, summary row, header 12 ACCEPTED / 2 PROPOSED) and OPEN_QUESTIONS (Answer/Evidence fields, summary row, header 105 OPEN / 28 ANSWERED); stale ADR-016 "PROPOSED" lines (14) and OQ-133 "owner question" lines (8) annotated with dated notes; CHANGELOG, PROJECT_STATUS; the `writer.h` comment no longer says PROPOSED. The proposed commit message below was updated before the commit.
+### Files Modified
+
+- New: `tests/mp4_same.py`, `tests/mp4_same_check.sh`.
+- Changed (all still uncommitted slice C5 work): `app/src/writer.c`, `app/src/writer.h`, `app/src/pipeline.c`, `tests/smoke_drives.sh`, `tests/smoke_record.sh`, `tests/CMakeLists.txt`; `docs/`: `ARCHIVED_APPROACHES.md`, `BUILD_SYSTEM.md`, `CHANGELOG.md`, `DECISIONS.md`, `DEVELOPMENT_LOG.md`, `OPEN_QUESTIONS.md`, `PROJECT_STATUS.md`, `RECORDING.md`, `SOFTWARE_ARCHITECTURE.md`, `TESTING.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+- Writer logging (file start times, refused frames).
+- Readiness guard added, then removed.
+- Mirror comparison changed in the tests; new test `mp4_same_dev`.
+
+### Commands Used
+
+```bash
+PACS_TEST_LOGDIR=<dir> bash tests/smoke_drives.sh build/app/pacscorder        # 25 runs (guard and cmp)
+gst-launch-1.0 videotestsrc num-buffers=240 ! … ! x264enc … ! h264parse ! matroskamux ! filesink location=in.mkv
+gst-launch-1.0 filesrc location=in.mkv ! matroskademux ! h264parse ! mp4mux fragment-duration=1000 ! filesink location=frN.mp4   # twice, 2 s apart
+cmp -l fr1.mp4 fr2.mp4                                                        # offsets 55/59, 171/175, 271/275 only
+curl -sfL https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/1.28.7/subprojects/{gst-plugins-good/gst/isomp4/atoms.c,gst-plugins-good/gst/isomp4/gstqtmux.c,gst-plugins-good/gst/multifile/gstsplitmuxsink.c,gstreamer/libs/gst/base/gstaggregator.c}
+curl -sfL https://gitlab.gnome.org/GNOME/glib/-/raw/2.88.3/glib/gmain.c
+GST_DEBUG=qtmux:5 build/app/pacscorder --backend dev … --rec-dir a --rec-dir blk/b    # rejoin scenario: 20 runs idle, 20 with `dd bs=1m count=400; sync` in a loop
+GST_DEBUG=GST_STATES:5,qtmux:5 build/app/pacscorder …                        # muxer state changes (2 loaded runs, 1 idle)
+build/app/pacscorder … 2>&1 | python3 -u -c '…print(time.time() % 1)…'        # split-timer phase, 6 runs
+rm -rf build && cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+All on the development machine (macOS 26.6.2, GStreamer 1.28.7, GLib 2.88.3); nothing on PACSCORDER hardware.
+
+- **Before any change, earlier on 2026-10-13:** 48 rejoin runs, all copies identical. These were 10 manual runs comparing the first file only; 12 with two recorders running at once (a CPU-load helper meant for this set failed to start); 14 with two recorders under 8 CPU-bound processes; and 12 of the real script.
+- **With the guard and `cmp`:** `smoke_drives_dev` 25 of 25 PASS (idle); "not ready yet" 0 times, "refused a frame" 0 times.
+- **Mux experiment:** two muxes of the same frames, 2 s apart, differ in the 6 time fields only.
+- **Rejoin scenario, 40 runs.** Idle, the first file's copies differed (`cmp`) in **0 of 20** runs; with heavy disk writing, in **11 of 20**. `mp4_same.py` found the copies the same in 40 of 40. All 11 differences are the three creation times only: drive B one second earlier, modification times equal. Later files never differed. The "starting file" log gap (0.7–37 ms) turned out not to be the stamp gap: the state log shows the real one (Changes 3).
+- **After the change:** a clean rebuild with no warnings. `ctest` 5 of 5 PASS, twice (`h264_level`, `smoke_record_dev`, `smoke_publish_dev`, `smoke_drives_dev`, `mp4_same_dev`). `smoke_drives_dev` 5 of 5 PASS with heavy disk writing; in run 4 a NOTE showed that file 00002's copies differed only in the header time stamps, which the old `cmp` check would have failed. No MediaMTX key files were written into the repository.
+- Documentation check: PROBLEMS 0, WARNINGS 0 (680 of 680 facts cited; 133 OQs; 4 ARCH entries).
+
+### Problems Found
+
+1. The tenth entry recorded a pass after 3 runs; the intermittent failure needed more runs to show. The drive test is now repeated many times before a result is recorded.
+2. The two drives' copies are not guaranteed byte-identical (OQ-133).
+3. Errors of mine in this session, corrected before any commit:
+   - My status message said "58 consecutive passes"; the count before the guard was 48.
+   - I first wrote the cause into the drafts of OQ-133, SOFTWARE_ARCHITECTURE §10.2 and the ADR-016 note before measuring it, then found the measured gap seemed too small to explain the failures, and toned them down. The GStreamer state log then showed that my reading of the `splitmuxsink` source was wrong for a rejoining drive's first file: its muxer is not reset there. That reading had produced the misleading 1–2 ms estimate. All of these now give the measured explanation.
+
+### Root Cause
+
+- **Reproduced:** a rejoining drive's first file is stamped when its muxer is created, at the split timer; the other drive's copy is stamped when its muxer is reset at the split keyframe, 0.3–0.6 s later. A second boundary between the two makes the copies differ in their creation times, though every frame is identical. The whole-second timer's fixed phase decides how often that happens: never when idle on this machine on 2026-10-13, about half the time under heavy disk writing.
+- **Most likely, not proven:** that this caused the 2026-10-12 failures. They had the same symptom on the same file; the timer's phase within the wall-clock second can differ between sessions (reasoning); the files were not kept.
+
+### Solution
+
+- The tests compare what the design guarantees: the same frames and file structure (`tests/mp4_same.py`).
+- A NOTE shows any header-only difference, and a failed drive test keeps its evidence.
+- Whether the product must make the copies byte-identical is the owner's decision (OQ-133). The design is unchanged.
+
+### Current Status
+
+- PARTIAL: slice C5 IMPLEMENTED — NOT TESTED on hardware; development tests TESTED — PASS (CTest 5 of 5; drive test 5 of 5 under disk load).
+- Uncommitted, pending owner approval; ADR-016 and OQ-133 await the owner. *(Later on 2026-10-13: the owner approved the commit and push, accepted ADR-016 and answered OQ-133 — Changes 7.)*
+
+### Next Step
+
+1. Owner: approve the commit below; confirm ADR-016; answer OQ-133. *(Done 2026-10-13 — Changes 7.)*
+2. Remaining slices: C3 (EDID / DV timings / source changes), C4 (audio) — both need the CM4 to test for real.
+3. Owner: buy the bring-up hardware (ADR-011).
+4. Proposed commit (Rule 15), replacing the one in the tenth 2026-10-12 entry:
+
+```text
+Commit title: feat(rec): isolate each recording drive and handle failure, return and stalls (slice C5)
+Commit description: Write each recording drive in its own pipeline (ADR-016, ACCEPTED): a failed, full or
+  missing drive raises an ALERT while recording continues on the other; a returning drive rejoins at
+  the next file on the same keyframe as the other drive; a drive more than --writer-buffer-seconds
+  behind is dropped instead of blocking the encoder (OQ-117, RISK-028). Decide file splits on the
+  keyframe for all drives; name files by session so recordings never overwrite each other. Add the
+  smoke_drives_dev test (returning drive; full RAM disk). Compare the drives' copies by content
+  (tests/mp4_same.py, tested by mp4_same_dev): each drive's mp4mux stamps its header with the
+  wall-clock second, and a rejoining drive's first file is stamped earlier, so the copies can differ
+  in those fields only - the most likely cause of the test's intermittent failures. Owner decisions:
+  ADR-015 and ADR-016 ACCEPTED; OQ-133 ANSWERED (the same video is enough). Record commit bc3c398
+  and ARCH-002 to ARCH-004. Development machine only.
+Files changed: app/**, tests/**, docs/** (14 Markdown files)
+Reason: Rules 1, 3, 10, 13, 14, 15, 16, 17, 21, 24
+Tests: ctest 5/5 PASS on macOS + GStreamer 1.28.7 (+ MediaMTX 1.21.0); smoke_drives_dev 5/5 with
+  heavy disk writing (1 header-only NOTE); rejoin scenario 40 runs, frames identical in 40/40;
+  doccheck PROBLEMS 0, WARNINGS 0
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -2316,3 +2532,6 @@ Tests: ctest - 3/3 PASS (h264_level, smoke_record_dev, smoke_publish_dev) on mac
 | 2026-10-12 | Seventh entry extended: owner decisions (ADR-007 ACCEPTED; C chosen — ADR-013 ACCEPTED, ADR-012 SUPERSEDED); commit message updated before commit. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 eighth entry added: coding started — slice C1, ADR-014, development tests, bring-up script; `27bb305` recorded. | Claude (session 2026-10-12) |
 | 2026-10-12 | 2026-10-12 ninth entry added: slice C2 (live publishing), ADR-015; `9ab0b4e` recorded. | Claude (session 2026-10-12) |
+| 2026-10-12 | 2026-10-12 tenth entry added: slice C5 (drive failure, return, HDD decoupling), ADR-016, ADR-015 accepted; `bc3c398` recorded. | Claude (session 2026-10-12) |
+| 2026-10-13 | 2026-10-13 entry added: slice C5 intermittent drive-test failure explained and reproduced (header time stamps), comparison changed, OQ-133, ARCH-002 to ARCH-004. Tenth 2026-10-12 entry annotated (later failures; proposed commit superseded). "Last updated" corrected from 2026-10-09. | Claude (session 2026-10-13) |
+| 2026-10-13 | 2026-10-13 entry extended: owner decisions (commit and push; ADR-016 ACCEPTED; OQ-133 ANSWERED); proposed commit message updated before commit; tenth entry's ADR-016 line annotated. | Claude (session 2026-10-13) |

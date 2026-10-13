@@ -36,7 +36,7 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
   gchar **rec_dirs = NULL;
   gchar **rtmp_urls = NULL;
   gint width = 1920, height = 1080;
-  gint split = 1800, fragment = 1000, duration = 0;
+  gint split = 1800, fragment = 1000, duration = 0, wbuf = 10;
   gint rec_br = 25000000, live_br = 17000000;
   gboolean ok = FALSE;
 
@@ -59,6 +59,8 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
       "start a new file every N seconds (default 1800, OQ-129)", "N" },
     { "fragment-ms", 0, 0, G_OPTION_ARG_INT, &fragment,
       "MP4 fragment duration in ms (default 1000 — UNDECIDED, OQ-118)", "MS" },
+    { "writer-buffer-seconds", 0, 0, G_OPTION_ARG_INT, &wbuf,
+      "a drive more than N s behind is treated as failed (default 10 — UNDECIDED, OQ-117)", "N" },
     { "rec-bitrate", 0, 0, G_OPTION_ARG_INT, &rec_br,
       "recording bit rate in bit/s (default 25000000, OQ-005)", "BPS" },
     { "live-bitrate", 0, 0, G_OPTION_ARG_INT, &live_br,
@@ -95,7 +97,7 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
     goto out;
   }
 
-  if (width <= 0 || height <= 0 || split <= 0 || fragment <= 0 ||
+  if (width <= 0 || height <= 0 || split <= 0 || fragment <= 0 || wbuf <= 0 ||
       duration < 0 || rec_br <= 0 || live_br <= 0) {
     g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
                  "sizes, rates, durations and bit rates must be positive");
@@ -131,6 +133,7 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
   cfg->height = height;
   cfg->split_seconds = (guint) split;
   cfg->fragment_ms = (guint) fragment;
+  cfg->writer_buffer_seconds = (guint) wbuf;
   cfg->rec_bitrate = (guint) rec_br;
   cfg->live_bitrate = (guint) live_br;
   cfg->duration_seconds = (guint) duration;

@@ -5,7 +5,7 @@ add_library(pacs_core STATIC src/h264_level.c)
 target_include_directories(pacs_core PUBLIC src)
 target_compile_options(pacs_core PRIVATE -Wall -Wextra)
 
-add_executable(pacscorder src/main.c src/config.c src/pipeline.c src/publisher.c)
+add_executable(pacscorder src/main.c src/config.c src/pipeline.c src/publisher.c src/writer.c)
 target_link_libraries(pacscorder PRIVATE pacs_core PkgConfig::GST)
 target_compile_options(pacscorder PRIVATE -Wall -Wextra)
 

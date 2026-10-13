@@ -15,3 +15,16 @@ set_tests_properties(smoke_record_dev PROPERTIES TIMEOUT 180)
 add_test(NAME smoke_publish_dev
          COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/smoke_publish.sh $<TARGET_FILE:pacscorder>)
 set_tests_properties(smoke_publish_dev PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+
+# Drive failure and return (slice C5): a drive missing at start that returns,
+# and (macOS only) a RAM disk that fills up during the recording.
+add_test(NAME smoke_drives_dev
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/smoke_drives.sh $<TARGET_FILE:pacscorder>)
+set_tests_properties(smoke_drives_dev PROPERTIES TIMEOUT 180)
+
+# The mirror comparison used by the tests above (tests/mp4_same.py): two muxes
+# of the same frames, a second apart, must compare as the same recording, and a
+# changed media byte must not. Skipped (exit 77) without gst-launch-1.0 or python3.
+add_test(NAME mp4_same_dev
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mp4_same_check.sh)
+set_tests_properties(mp4_same_dev PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)

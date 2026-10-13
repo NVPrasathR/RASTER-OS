@@ -4,8 +4,9 @@
 # Runs the recorder with the dev backend (videotestsrc + x264enc stand-ins) for
 # 12 s at 1280x720@60, splitting every 4 s and mirroring to two directories,
 # then checks: clean exit (end of stream reached); at least two files in each
-# directory; identical names and byte-identical contents in both (the mirror,
-# ADR-009); every file a fragmented MP4 ('ftyp' and 'moof' boxes [J-39]);
+# directory; identical names and the same contents in both (the mirror,
+# ADR-009: byte for byte apart from the header time stamps, tests/mp4_same.py);
+# every file a fragmented MP4 ('ftyp' and 'moof' boxes [J-39]);
 # the recording encode nearly every captured frame and the live branch about
 # half of them (60 -> 30 fps, OQ-131); and, if ffprobe is installed, each file
 # readable, starting within one frame period of 0, in High profile (OQ-005).
@@ -14,6 +15,7 @@
 set -euo pipefail
 
 BIN=${1:?usage: smoke_record.sh <path to pacscorder>}
+HERE=$(cd "$(dirname "$0")" && pwd)
 T=$(mktemp -d "${TMPDIR:-/tmp}/pacs-smoke.XXXXXX")
 trap 'rm -rf "$T"' EXIT
 
@@ -58,8 +60,10 @@ for d in a b; do
   done
 done
 for f in "$T/a"/*.mp4; do
-  cmp -s "$f" "$T/b/$(basename "$f")" || fail "mirror copies of $(basename "$f") differ"
+  same=$(python3 "$HERE/mp4_same.py" "$f" "$T/b/$(basename "$f")") \
+    || fail "mirror copies of $(basename "$f") differ"
+  case "$same" in *" 0 of "*) ;; *) echo "NOTE: $(basename "$f"): $same (allowed, OQ-133)" ;; esac
 done
 
-echo "PASS (development smoke test): $count fragmented MP4 files, byte-identical in 2 directories;"
+echo "PASS (development smoke test): $count fragmented MP4 files, the same in 2 directories;"
 echo "     frames captured $cap, recording $rec, live $live"

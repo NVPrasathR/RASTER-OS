@@ -2,7 +2,8 @@
  * PACSCORDER — the GStreamer pipeline. See pipeline.h.
  *
  * Element settings and their sources are documented in
- * docs/SOFTWARE_ARCHITECTURE.md (implementation, slice C1) and ADR-007.
+ * docs/SOFTWARE_ARCHITECTURE.md §10 (slices C1, C2, C5) and ADR-007,
+ * ADR-015, ADR-016.
  */
 #include "pipeline.h"
 
@@ -14,6 +15,7 @@
 
 #include "h264_level.h"
 #include "publisher.h"
+#include "writer.h"
 
 #define STOP_TIMEOUT_SECONDS 15   /* give up waiting for end of stream */
 
@@ -30,6 +32,15 @@ struct _PacsPipeline {
   GPtrArray *publishers;      /* PacsPublisher *, slice C2 */
   GstElement *live_out;       /* appsink feeding the publishers */
   gboolean publishers_started;
+  GPtrArray *writers;         /* PacsWriter *, one per drive, slice C5 */
+  GstElement *rec_out;        /* appsink feeding the writers */
+  gchar *session;             /* file-name prefix: recording start time */
+  gint file_index;            /* current file number; g_atomic_int_* */
+  gint split_pending;         /* g_atomic_int_*: next keyframe starts a new file */
+  gint join_pending;          /* g_atomic_int_*: next keyframe starts the first file */
+  guint split_timer;
+  gint writers_pending;       /* writers still closing their last file */
+  gboolean main_eos;
 };
 
 /* Create an element and add it to the bin, which then owns it. */
@@ -195,60 +206,6 @@ out:
   return caps;
 }
 
-/*
- * One recording writer: queue ! splitmuxsink with a fragmented mp4mux.
- * splitmuxsink starts a new file at a keyframe before max-size-time and
- * requests keyframes upstream [J-44]; fragment-duration > 0 makes mp4mux
- * write a fragmented file [J-39]. Robust muxing is not set: with fragmented
- * mode it would be silently disabled anyway [J-39] (ADR-009 chose fragmented).
- * The writer queue keeps the default (blocking) limits: HDD-branch decoupling
- * is OQ-117 and not yet designed (RISK-028).
- */
-static gboolean
-add_writer (GstBin *bin, GstElement *rec_tee, const PacsConfig *cfg, gint idx,
-            GError **error)
-{
-  const gchar *dir = cfg->rec_dirs[idx];
-  gchar *qname = g_strdup_printf ("writer%d_queue", idx);
-  gchar *sname = g_strdup_printf ("writer%d", idx);
-  gchar *location = NULL;
-  GstElement *q, *split, *mux;
-  gboolean ok = FALSE;
-
-  if (g_mkdir_with_parents (dir, 0755) != 0) {
-    g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-                 "cannot create recording directory %s", dir);
-    goto out;
-  }
-  q = add (bin, "queue", qname, error);
-  split = q ? add (bin, "splitmuxsink", sname, error) : NULL;
-  if (split == NULL)
-    goto out;
-
-  mux = gst_element_factory_make ("mp4mux", NULL);
-  if (mux == NULL) {
-    g_set_error (error, GST_CORE_ERROR, GST_CORE_ERROR_MISSING_PLUGIN,
-                 "GStreamer element 'mp4mux' is not available");
-    goto out;
-  }
-  g_object_set (mux, "fragment-duration", cfg->fragment_ms, NULL);
-
-  location = g_build_filename (dir, "pacs-%05d.mp4", NULL);
-  g_object_set (split, "location", location,
-                "max-size-time", (guint64) cfg->split_seconds * GST_SECOND,
-                "max-size-bytes", (guint64) 0,
-                "send-keyframe-requests", TRUE,
-                "muxer", mux, NULL);
-
-  ok = link (rec_tee, q, error) && link (q, split, error);
-
-out:
-  g_free (location);
-  g_free (sname);
-  g_free (qname);
-  return ok;
-}
-
 static GstPadProbeReturn
 count_buffer (GstPad *pad, GstPadProbeInfo *info, gpointer counter)
 {
@@ -329,6 +286,113 @@ request_live_keyframe (gpointer data)
         gst_video_event_new_upstream_force_key_unit (GST_CLOCK_TIME_NONE, TRUE, 0));
 }
 
+/* appsink → every drive writer (recording branch streaming thread). */
+static GstFlowReturn
+on_rec_sample (GstAppSink *sink, gpointer data)
+{
+  PacsPipeline *p = data;
+  GstSample *sample = gst_app_sink_pull_sample (sink);
+  GstSample *rt;
+
+  if (sample == NULL)
+    return GST_FLOW_EOS;
+  rt = to_running_time (sample);
+
+  /* The split point is decided here, on the frame itself, so that every drive
+   * — including one that rejoins — starts its file on the same keyframe, even
+   * if a drive's own queue lags behind. */
+  GstBuffer *buf = gst_sample_get_buffer (rt);
+  if (buf != NULL && !GST_BUFFER_FLAG_IS_SET (buf, GST_BUFFER_FLAG_DELTA_UNIT)) {
+    gboolean split = g_atomic_int_compare_and_exchange (&p->split_pending, 1, 0);
+    gboolean join = g_atomic_int_compare_and_exchange (&p->join_pending, 1, 0);
+
+    if (split) {
+      g_atomic_int_inc (&p->file_index);
+      g_print ("pacscorder: split: file %05d starts at %" GST_TIME_FORMAT "\n",
+               g_atomic_int_get (&p->file_index), GST_TIME_ARGS (GST_BUFFER_PTS (buf)));
+    }
+    if (split || join) {
+      for (guint i = 0; i < p->writers->len; i++) {
+        PacsWriter *w = g_ptr_array_index (p->writers, i);
+
+        if (split)
+          pacs_writer_split_at (w, GST_BUFFER_PTS (buf));
+        pacs_writer_activate (w);
+      }
+    }
+  }
+
+  for (guint i = 0; i < p->writers->len; i++)
+    pacs_writer_push (g_ptr_array_index (p->writers, i), rt);
+  gst_sample_unref (rt);
+  gst_sample_unref (sample);
+  return GST_FLOW_OK;
+}
+
+static GstAppSinkCallbacks rec_callbacks = { .new_sample = on_rec_sample };
+
+static void
+request_rec_keyframe (PacsPipeline *p)
+{
+  if (p->rec_out != NULL)
+    gst_element_send_event (p->rec_out,
+        gst_video_event_new_upstream_force_key_unit (GST_CLOCK_TIME_NONE, TRUE, 0));
+}
+
+static void
+on_writer_done (PacsWriter *w, gpointer data)
+{
+  PacsPipeline *p = data;
+
+  (void) w;
+  if (p->main_eos && --p->writers_pending <= 0) {
+    g_print ("pacscorder: all recording files closed\n");
+    p->ok = TRUE;
+    g_main_loop_quit (p->loop);
+  }
+}
+
+/* Every split_seconds (OQ-129: 30 minutes): let any missing or failed drive
+ * rejoin (it waits, joining), mark a split as pending, and force a keyframe.
+ * The split itself happens on that keyframe in on_rec_sample, for all drives. */
+static gboolean
+on_split (gpointer data)
+{
+  PacsPipeline *p = data;
+  guint active = 0;
+
+  for (guint i = 0; i < p->writers->len; i++) {
+    PacsWriter *w = g_ptr_array_index (p->writers, i);
+
+    if (pacs_writer_state (w) == PACS_WRITER_ABSENT && pacs_writer_try_start (w))
+      g_print ("pacscorder: recording drive %s rejoins from file %05d\n",
+               pacs_writer_dir (w), g_atomic_int_get (&p->file_index) + 1);
+    if (pacs_writer_state (w) != PACS_WRITER_ABSENT)
+      active++;
+  }
+  g_atomic_int_set (&p->split_pending, 1);
+  request_rec_keyframe (p);
+  if (active == 0)
+    g_printerr ("pacscorder: ALERT: no recording drive is available\n");
+  return G_SOURCE_CONTINUE;
+}
+
+static gboolean
+create_writers (PacsPipeline *p)
+{
+  const PacsConfig *cfg = p->cfg;
+  GDateTime *now = g_date_time_new_now_local ();
+
+  p->session = g_date_time_format (now, "%Y%m%d-%H%M%S");
+  g_date_time_unref (now);
+  for (gint i = 0; i < cfg->n_rec_dirs; i++)
+    g_ptr_array_add (p->writers,
+        pacs_writer_new (cfg->rec_dirs[i], p->session, &p->file_index,
+                         cfg->writer_buffer_seconds, cfg->fragment_ms,
+                         on_writer_done, p));
+  return TRUE;
+}
+
 static gboolean
 create_publishers (PacsPipeline *p, GError **error)
 {
@@ -373,7 +437,7 @@ build (PacsPipeline *p, GError **error)
   const PacsConfig *cfg = p->cfg;
   GstBin *bin = GST_BIN (p->pipeline);
   GstElement *src_out, *cap_tee, *rec_q, *rec_enc, *rec_caps, *rec_parse,
-      *rec_tee, *live_q, *rate, *rate_caps, *live_enc, *live_caps, *live_sink;
+      *rec_out, *live_q, *rate, *rate_caps, *live_enc, *live_caps, *live_sink;
   gint live_n, live_d;
   gchar *rate_str;
 
@@ -386,21 +450,23 @@ build (PacsPipeline *p, GError **error)
       !link (src_out, cap_tee, error))
     return FALSE;
 
-  /* recording branch: one encode, mirrored to each directory [M-56] */
+  /* recording branch: one encode, handed to one writer pipeline per drive
+   * (ADR-016) through an appsink that never drops; the writers buffer and
+   * isolate drive problems themselves (writer.c). */
   if ((rec_q = add (bin, "queue", "rec_queue", error)) == NULL)
     return FALSE;
   if ((rec_caps = add_encoder (bin, cfg, TRUE, cfg->fps_n, cfg->fps_d,
                                &rec_enc, error)) == NULL)
     return FALSE;
   if ((rec_parse = add (bin, "h264parse", "rec_parse", error)) == NULL ||
-      (rec_tee = add (bin, "tee", "rec_tee", error)) == NULL)
+      (rec_out = add (bin, "appsink", "rec_out", error)) == NULL)
     return FALSE;
+  g_object_set (rec_out, "sync", FALSE, "drop", FALSE, NULL);
+  gst_app_sink_set_callbacks (GST_APP_SINK (rec_out), &rec_callbacks, p, NULL);
+  p->rec_out = rec_out;
   if (!link (cap_tee, rec_q, error) || !link (rec_q, rec_enc, error) ||
-      !link (rec_caps, rec_parse, error) || !link (rec_parse, rec_tee, error))
+      !link (rec_caps, rec_parse, error) || !link (rec_parse, rec_out, error))
     return FALSE;
-  for (gint i = 0; i < cfg->n_rec_dirs; i++)
-    if (!add_writer (bin, rec_tee, cfg, i, error))
-      return FALSE;
 
   /* frame counters, reported at the end of the run */
   add_counter (src_out, "src", &p->n_capture);
@@ -459,14 +525,22 @@ on_bus (GstBus *bus, GstMessage *msg, gpointer data)
   PacsPipeline *p = data;
   GError *err = NULL;
   gchar *dbg = NULL;
-  const GstStructure *s;
 
   (void) bus;
   switch (GST_MESSAGE_TYPE (msg)) {
     case GST_MESSAGE_EOS:
+      /* The encoders are drained; now let every drive close its last file. */
       g_print ("pacscorder: end of stream\n");
-      p->ok = TRUE;
-      g_main_loop_quit (p->loop);
+      if (!p->main_eos) {
+        p->main_eos = TRUE;
+        p->writers_pending = (gint) p->writers->len;
+        for (guint i = 0; i < p->writers->len; i++)
+          pacs_writer_finish (g_ptr_array_index (p->writers, i));
+        if (p->writers_pending <= 0) {
+          p->ok = TRUE;
+          g_main_loop_quit (p->loop);
+        }
+      }
       break;
     case GST_MESSAGE_ERROR:
       gst_message_parse_error (msg, &err, &dbg);
@@ -488,16 +562,6 @@ on_bus (GstBus *bus, GstMessage *msg, gpointer data)
         gst_message_parse_state_changed (msg, NULL, &new_state, NULL);
         if (new_state == GST_STATE_PLAYING)
           start_publishers (p);
-      }
-      break;
-    case GST_MESSAGE_ELEMENT:
-      s = gst_message_get_structure (msg);
-      if (s != NULL && (gst_structure_has_name (s, "splitmuxsink-fragment-opened") ||
-                        gst_structure_has_name (s, "splitmuxsink-fragment-closed"))) {
-        const gchar *loc = gst_structure_get_string (s, "location");
-        g_print ("pacscorder: %s %s\n",
-                 gst_structure_has_name (s, "splitmuxsink-fragment-opened")
-                     ? "opened" : "closed", loc ? loc : "(unknown)");
       }
       break;
     default:
@@ -525,7 +589,8 @@ pacs_pipeline_new (const PacsConfig *cfg, GError **error)
   p->pipeline = gst_pipeline_new ("pacscorder");
   p->loop = g_main_loop_new (NULL, FALSE);
   p->publishers = g_ptr_array_new_with_free_func ((GDestroyNotify) pacs_publisher_free);
-  if (!create_publishers (p, error) || !build (p, error)) {
+  p->writers = g_ptr_array_new_with_free_func ((GDestroyNotify) pacs_writer_free);
+  if (!create_writers (p) || !create_publishers (p, error) || !build (p, error)) {
     pacs_pipeline_free (p);
     return NULL;
   }
@@ -538,6 +603,18 @@ pacs_pipeline_new (const PacsConfig *cfg, GError **error)
 gboolean
 pacs_pipeline_run (PacsPipeline *p)
 {
+  guint started = 0;
+
+  g_print ("pacscorder: recording session %s\n", p->session);
+  for (guint i = 0; i < p->writers->len; i++)
+    if (pacs_writer_try_start (g_ptr_array_index (p->writers, i)))
+      started++;
+  if (started == 0)
+    g_printerr ("pacscorder: ALERT: no recording drive is available; drives are "
+                "retried at every file split\n");
+  g_atomic_int_set (&p->join_pending, 1);    /* first keyframe opens file 00000 */
+  p->split_timer = g_timeout_add_seconds (p->cfg->split_seconds, on_split, p);
+
   if (gst_element_set_state (p->pipeline, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE) {
     g_printerr ("pacscorder: pipeline failed to start\n");
@@ -555,6 +632,16 @@ pacs_pipeline_run (PacsPipeline *p)
              pacs_publisher_restarts (pub));
   }
   gst_element_set_state (p->pipeline, GST_STATE_NULL);
+  if (p->split_timer) {
+    g_source_remove (p->split_timer);
+    p->split_timer = 0;
+  }
+  for (guint i = 0; i < p->writers->len; i++) {
+    PacsWriter *w = g_ptr_array_index (p->writers, i);
+
+    g_print ("pacscorder: drive %s: %u file(s) closed, %u failure(s)\n",
+             pacs_writer_dir (w), pacs_writer_files (w), pacs_writer_failures (w));
+  }
   g_print ("pacscorder: frames captured %d, recording encode %d, live encode %d\n",
            g_atomic_int_get (&p->n_capture), g_atomic_int_get (&p->n_rec),
            g_atomic_int_get (&p->n_live));
@@ -587,5 +674,10 @@ pacs_pipeline_free (PacsPipeline *p)
     g_main_loop_unref (p->loop);
   if (p->publishers)
     g_ptr_array_unref (p->publishers);
+  if (p->split_timer)
+    g_source_remove (p->split_timer);
+  if (p->writers)
+    g_ptr_array_unref (p->writers);
+  g_free (p->session);
   g_free (p);
 }
