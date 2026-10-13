@@ -2506,6 +2506,123 @@ Tests: ctest 5/5 PASS on macOS + GStreamer 1.28.7 (+ MediaMTX 1.21.0); smoke_dri
 
 ---
 
+## 2026-10-13 (second entry) — Linux check in Debian trixie with GStreamer 1.26; RTMP URL fault found and fixed
+
+### Objective
+
+The owner asked "what to do now" and chose the recommended work while the bring-up hardware is on order: build and test the application on the CM4's distribution and GStreamer series, in a container on the development machine. The owner also stated that the bring-up hardware has already been ordered ("Already ordered").
+
+### Starting State
+
+Slice C5 committed and pushed on the owner's instruction as **`f932c0a`** (`bc3c398..f932c0a`); working tree clean. The application had only been built and tested on macOS with GStreamer 1.28.7; the CM4's distribution ships 1.26.2 [G-26], [G-27].
+
+### Changes
+
+1. **Docker on the Mac:** Colima 0.10.3 and the Docker CLI 29.9.0 installed with Homebrew (owner's choice "Linux check first", which named this installation). The VM was started by hand (`colima start --vm-type vz --arch aarch64 --cpu 4 --memory 4 --disk 30`); it is not a login service.
+2. **`tools/linux_check/Dockerfile`, `tools/linux_check.sh`** (new):
+   - The image is `debian:trixie` arm64 with GStreamer, CMake, GCC, FFmpeg and Python from Debian.
+   - MediaMTX v1.21.0 comes from its GitHub release, checked against the release's SHA-256.
+   - The script mounts the source read-only, builds inside the container and runs CTest.
+   - An 8 MB tmpfs serves as the full drive.
+3. **`tests/smoke_drives.sh`:** case B uses `PACS_TEST_FULL_DIR` (any small, empty filesystem) when it is set, otherwise the macOS RAM disk as before; so the full-drive case runs on Linux.
+4. **First Linux run: 4 of 5.** `smoke_publish_dev` FAILED: the RTMP publisher reported "Failed to connect: Host is not set" in a loop; RTSP worked.
+5. **Cause:**
+   - In GStreamer 1.26.2, `rtmp2sink`'s URI handler requires `rtmp[s]://host[:port]/application/stream`. A URL without the stream part fails with "URI lacks stream", the handler then resets the host to NULL, and the connection fails with "Host is not set".
+   - 1.28.7 accepts a URL without the stream part and uses an empty stream name. Source: Claude's comparison of `gst-plugins-bad/gst/rtmp2/gstrtmp2locationhandler.c` at 1.26.2 and 1.28.7.
+   - Reproduced in the container with `gst-launch-1.0 … ! flvmux ! rtmp2sink location=…`: the one-part URL gives "Host is not set"; the two-part URL does not.
+   - The test had used `rtmp://127.0.0.1:11935/rtmplive`, so the fault only appeared on 1.26.
+6. **Fix (`app/src/config.c`):** every `--rtmp-url` must be `rtmp://` or `rtmps://` with a host, an application and a stream. Anything else stops the program at start with exit code 2 and the message "--rtmp-url number N is not rtmp[s]://host[:port]/application/stream". The URL itself is not printed, because it carries the stream key. The help text names the form. Checked by hand:
+   - accepted: `rtmp://127.0.0.1:11935/live/rtmp` and `rtmps://a.example.com/live2/abc` (exit 0);
+   - refused with exit 2: `…/rtmplive`, `rtmp://h/app/`, `rtmp:///a/b`, `rtmp://h:1935`, `http://h/a/b`, `rtmp://:1935/a/b`, `rtmp://h//b`.
+7. **`tests/smoke_publish.sh`:** a new run 0 checks that a one-part RTMP URL is refused (exit 2), with no MediaMTX needed. The RTMP run publishes to `rtmp://127.0.0.1:11935/live/rtmp` and reads `live/rtmp` back.
+8. **Documentation:**
+   - BUILD_SYSTEM §2A (Linux check: procedure, versions, results, limits); SOFTWARE_ARCHITECTURE §10.1 and the STREAMING implementation box (the RTMP URL rule; the stream key in log lines as a known issue); TESTING development tests.
+   - HARDWARE §8: the order, with its contents marked UNKNOWN — VERIFICATION REQUIRED.
+   - CHANGELOG, PROJECT_STATUS (`f932c0a`, Next Step 18), root README.
+
+### Files Modified
+
+- New: `tools/linux_check.sh`, `tools/linux_check/Dockerfile`.
+- Changed: `app/src/config.c`, `tests/smoke_drives.sh`, `tests/smoke_publish.sh`, `README.md`; `docs/`: `BUILD_SYSTEM.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`, `HARDWARE.md`, `PROJECT_STATUS.md`, `SOFTWARE_ARCHITECTURE.md`, `STREAMING.md`, `TESTING.md`.
+
+### Hardware Changes
+
+None. The owner reports that the bring-up hardware has been ordered; its contents are not yet recorded.
+
+### Software Changes
+
+RTMP URL check at start; Linux check tooling; test changes above.
+
+### Commands Used
+
+```bash
+brew install colima docker
+colima start --vm-type vz --arch aarch64 --cpu 4 --memory 4 --disk 30
+tools/linux_check.sh                                   # twice: before and after the fix
+docker run --rm pacscorder-linux-check gst-launch-1.0 videotestsrc num-buffers=30 ! x264enc ! h264parse ! flvmux streamable=true ! rtmp2sink location=<url>
+curl -sfL https://gitlab.freedesktop.org/gstreamer/gstreamer/-/raw/{1.26.2,1.28.7}/subprojects/gst-plugins-bad/gst/rtmp2/gstrtmp2locationhandler.c
+docker run --rm pacscorder-linux-check dpkg-query -W …   # package versions
+cmake --build build && ctest --test-dir build --output-on-failure
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- **Linux check** (Debian 13 trixie aarch64, `debian@sha256:913f6706…c2d5`; GStreamer 1.26.2, GLib 2.84.4, GCC 14.2.0, CMake 3.31.6, MediaMTX v1.21.0):
+  - The build produced no compiler warnings.
+  - First run: **TESTED — FAIL**, 4 of 5 (`smoke_publish_dev`, RTMP).
+  - After the fix: **TESTED — PASS, 5 of 5**:
+    - `smoke_record_dev`: 3 files, the same in both directories; 718 frames captured, 718 recorded, 359 live.
+    - `smoke_publish_dev`: RTSP and RTMP both `h264, Constrained Baseline, 1280x720, 30/1`; with the RTSP target down the recording completed with 3 files; the one-part URL was refused.
+    - `smoke_drives_dev`: case A as on the Mac; case B on the 8 MB tmpfs: drive filled up, alert raised, drive A recorded 3 files.
+    - `mp4_same_dev` and `h264_level` passed.
+- **macOS** (GStreamer 1.28.7) after the change: `ctest` 5 of 5 PASS; `smoke_drives.sh` (case B via the RAM disk) PASS.
+- Documentation check: PROBLEMS 0, WARNINGS 0.
+- Not tested: anything on Raspberry Pi OS or a CM4. The Raspberry Pi archive's own build of `gstreamer1.0-plugins-bad` [G-27] may differ from Debian's.
+
+### Problems Found
+
+1. RTMP publishing would have failed on the CM4's GStreamer series with the test's one-part URL. Fixed by refusing such URLs at start.
+2. The RTMP publisher's log lines print the full URL, including the stream key (a secret, if logs are shared). Not changed; for the owner.
+3. My test data was the cause: a one-part RTMP URL is not a realistic destination, and GStreamer 1.28 hid the fault.
+
+### Root Cause
+
+`rtmp2sink` URI parsing differs between GStreamer 1.26.2 and 1.28.7 (see Changes 5).
+
+### Solution
+
+Validate RTMP URLs at start against the 1.26 rule; test with a realistic two-part URL; run the tests on the CM4's GStreamer series before hardware arrives.
+
+### Current Status
+
+- PARTIAL: application slices C1, C2, C5 IMPLEMENTED — NOT TESTED on hardware; development tests TESTED — PASS on macOS and in Debian trixie with GStreamer 1.26.2.
+- Uncommitted, pending owner approval.
+
+### Next Step
+
+1. Owner: approve the commit below; say whether the publisher should stop logging the RTMP stream key; list the ordered hardware for HARDWARE.md. *(Later on 2026-10-13: the owner chose "Commit and push" for the commit below and "Hide the key in logs" — done as its own change, next entry. The hardware list is still to come.)*
+2. Remaining slices: C3 (EDID / DV timings / source changes), C4 (audio; owner questions OQ-063, OQ-111, OQ-112, OQ-113).
+3. When the hardware arrives: TEST-ENC-001 Stage 0, then TEST-HW-001.
+4. Proposed commit (Rule 15):
+
+```text
+Commit title: fix(stream): refuse RTMP URLs that GStreamer 1.26 cannot use; add a Debian trixie Linux check
+Commit description: Add tools/linux_check.sh and tools/linux_check/Dockerfile: build the application and
+  run the development tests in Debian trixie arm64 with Debian's GStreamer 1.26.2 (the CM4's series) in
+  a container. Its first run found that rtmp2sink 1.26.2 refuses an RTMP URL without a stream part and
+  then fails with "Host is not set" (1.28 accepts it): --rtmp-url is now checked at start against
+  rtmp[s]://host[:port]/application/stream (exit 2, URL not printed), and smoke_publish_dev uses a
+  two-part URL and checks the refusal. smoke_drives_dev case B can use any small filesystem
+  (PACS_TEST_FULL_DIR). Record commit f932c0a and the owner's hardware order. Development machine only.
+Files changed: app/src/config.c, tests/**, tools/**, README.md, docs/** (8 Markdown files)
+Reason: Rules 1, 3, 10, 15, 16, 17, 22, 24
+Tests: Linux check (Debian 13, GStreamer 1.26.2): no warnings, ctest 5/5 PASS (first run 4/5 - the
+  RTMP fault); macOS (GStreamer 1.28.7): ctest 5/5 PASS; doccheck PROBLEMS 0, WARNINGS 0
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -2535,3 +2652,5 @@ Tests: ctest 5/5 PASS on macOS + GStreamer 1.28.7 (+ MediaMTX 1.21.0); smoke_dri
 | 2026-10-12 | 2026-10-12 tenth entry added: slice C5 (drive failure, return, HDD decoupling), ADR-016, ADR-015 accepted; `bc3c398` recorded. | Claude (session 2026-10-12) |
 | 2026-10-13 | 2026-10-13 entry added: slice C5 intermittent drive-test failure explained and reproduced (header time stamps), comparison changed, OQ-133, ARCH-002 to ARCH-004. Tenth 2026-10-12 entry annotated (later failures; proposed commit superseded). "Last updated" corrected from 2026-10-09. | Claude (session 2026-10-13) |
 | 2026-10-13 | 2026-10-13 entry extended: owner decisions (commit and push; ADR-016 ACCEPTED; OQ-133 ANSWERED); proposed commit message updated before commit; tenth entry's ADR-016 line annotated. | Claude (session 2026-10-13) |
+| 2026-10-13 | 2026-10-13 second entry added: Linux check (Debian trixie, GStreamer 1.26.2), RTMP URL fault found and fixed, `f932c0a` recorded, hardware ordered (owner). | Claude (session 2026-10-13) |
+| 2026-10-13 | Second entry: owner decisions noted (commit and push; hide the RTMP stream key in logs). | Claude (session 2026-10-13) |

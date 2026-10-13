@@ -28,6 +28,28 @@ parse_fraction (const gchar *s, gint *n, gint *d)
   return TRUE;
 }
 
+/* rtmp[s]://host[:port]/application/stream — rtmp2sink in GStreamer 1.26 (the
+ * CM4's version) refuses a URL without the stream part and then fails with
+ * "Host is not set" when it connects; 1.28 accepts it (gstrtmp2locationhandler.c,
+ * compared 2026-10-13). Checked here so a bad URL stops the program at start. */
+static gboolean
+rtmp_url_ok (const gchar *url)
+{
+  const gchar *rest, *path, *stream;
+
+  if (g_str_has_prefix (url, "rtmp://"))
+    rest = url + strlen ("rtmp://");
+  else if (g_str_has_prefix (url, "rtmps://"))
+    rest = url + strlen ("rtmps://");
+  else
+    return FALSE;
+  path = strchr (rest, '/');                 /* end of host[:port] */
+  if (path == NULL || path == rest || *rest == ':')
+    return FALSE;
+  stream = strrchr (path + 1, '/');          /* last component: the stream */
+  return stream != NULL && stream > path + 1 && stream[1] != '\0';
+}
+
 gboolean
 pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
 {
@@ -68,7 +90,7 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
     { "rtsp-url", 0, 0, G_OPTION_ARG_STRING, &cfg->rtsp_url,
       "publish the live encode over RTSP to this URL (MediaMTX; serves WebRTC viewers)", "URL" },
     { "rtmp-url", 0, 0, G_OPTION_ARG_STRING_ARRAY, &rtmp_urls,
-      "publish the live encode over RTMP to this URL; repeatable, up to 4 (OQ-007)", "URL" },
+      "publish the live encode over RTMP to rtmp[s]://host[:port]/application/stream; repeatable, up to 4 (OQ-007)", "URL" },
     { "duration", 0, 0, G_OPTION_ARG_INT, &duration,
       "stop after N seconds (default 0 = until stopped, OQ-006)", "N" },
     G_OPTION_ENTRY_NULL
@@ -119,6 +141,14 @@ pacs_config_parse (PacsConfig *cfg, int *argc, char ***argv, GError **error)
     g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
                  "at most %d --rtmp-url (got %u)", PACS_MAX_RTMP, n);
     goto out;
+  }
+  for (guint i = 0; i < n; i++) {
+    if (!rtmp_url_ok (rtmp_urls[i])) {
+      /* the URL is not printed: it carries the stream key */
+      g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                   "--rtmp-url number %u is not rtmp[s]://host[:port]/application/stream", i + 1);
+      goto out;
+    }
   }
   for (guint i = 0; i < n; i++)
     cfg->rtmp_urls[i] = g_strdup (rtmp_urls[i]);

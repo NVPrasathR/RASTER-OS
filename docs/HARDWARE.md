@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Document status | DRAFT — no PACSCORDER hardware exists. Every PACSCORDER-specific value is `UNKNOWN — VERIFICATION REQUIRED`. |
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-13 |
 | Applies to | PACSCORDER hardware, all revisions (none defined yet). **Product platform: Compute Module 4 (CM4, BCM2711)** — owner decision 2026-10-09, ADR-004 ACCEPTED ("stick to CM4"); OQ-011 ANSWERED. **CM5, BCM2712, Pi 5 and Pi 4 Model B are dropped as product boards** and kept only as reference (Rule 14; CM5 archived in [ARCHIVED_APPROACHES.md](ARCHIVED_APPROACHES.md)). Pi 4 Model B shares the BCM2711 SoC with CM4, so its SoC facts still apply to the product through CM4. The product needs both a 2-lane and a 4-lane CSI-2 configuration (REQ-CAP-007, owner 2026-10-07; §4.11), both served by CM4 (CAM1 4-lane, CAM0 2-lane). HDMI audio is required (REQ-CAP-006; §4.6.1). Recording storage is a PCIe NVMe SSD mirrored with a USB-to-SATA HDD in a self-powered enclosure (ADR-009, ACCEPTED 2026-10-08; §4.13.1, §4.14.1); no storage part has been chosen. *(Before 2026-10-09 this row read: "Candidate platforms: Pi 4 Model B, CM4, Pi 5, CM5 … bring-up evaluates CM4 and CM5 side by side; ADR-004 OPEN." Superseded by the CM4 decision; CM5/Pi 5 content in this document is kept as reference.)* |
 | Verification | Source research of 2026-10-06, plus research topics H (H.265 encoding) and I (HDMI audio path) of 2026-10-08, and research topics J (recording storage and power loss) and K (live latency) of 2026-10-08 ([REFERENCES.md](REFERENCES.md)). Nothing has been verified on PACSCORDER hardware: no hardware exists as of 2026-10-08 (still none on 2026-10-09). |
 | Rules | [ENGINEERING_RULES.md](ENGINEERING_RULES.md) Rule 8 (hardware documentation), Rule 22 (unknown information), Rule 23 (source priority), Rule 25 (new-engineer questions) |
@@ -619,6 +619,8 @@ This is a list of facts to check against the chosen hardware. It is **not** a pr
 
 Rule 8 requires a revision history and forbids assuming that revisions are identical. **No PACSCORDER hardware revision has been defined.**
 
+*(Added 2026-10-13.)* Owner statement, 2026-10-13: the bring-up hardware (ADR-011 boards, CM4, CM4 IO Board, 12 V supply, NVMe SSD, HDD) has been **ordered** ("Already ordered"). What exactly was ordered — models, quantities, revisions — is UNKNOWN — VERIFICATION REQUIRED until the owner lists it or the parts arrive and are recorded here. No revision is defined by the order.
+
 | Revision | Status | Date | Platform | Bridge board / PCB | Differences from previous revision | Evidence |
 |---|---|---|---|---|---|---|
 | HW REV A | Not yet defined | — | UNKNOWN — VERIFICATION REQUIRED | UNKNOWN — VERIFICATION REQUIRED | — (first revision) | — |
@@ -697,3 +699,4 @@ Nothing (no hardware exists as of 2026-10-08). Every PACSCORDER value in this do
 | 2026-10-12 | Follow-ups after the sweep: §7 hazard 10 evidence note ([C-27] is a CM5-on-CM4-IO-Board fact; CM4 camera-bus sharing is DATASHEET REQUIRED, OQ-026). §4.12 Ethernet: research topic L facts on the CM4 (BCM54210PE Gigabit PHY on every variant, IEEE 1588, MAC on the SoC, IO Board RJ45 and PoE header) [L-15] to [L-21] appended to the two value rows and the reference-facts bullet. No hardware information was invented; the product's interface is still OQ-018. | Claude (session 2026-10-12) |
 | 2026-10-12 | Research topic M: candidate-board facts appended to §4.4 (connector, cable), §4.6.1 (audio pins, wiring), §4.7 (RESETN), §4.8 (INT) and §4.10 (REFCLK), each marked as candidates with the PACSCORDER value still UNKNOWN (Rule 8); §6 rows for Auvidea B101, B102, B100/B112, Geekworm C790, X1300/X1301/C792, C779/Waveshare/52Pi (the earlier "no register entry" row superseded); §7 hazards 18–21. No hardware information invented; HW REV A not chosen (ADR-011 PROPOSED). | Claude (session 2026-10-12) |
 | 2026-10-12 | Owner decisions (ADR-008, ADR-010, ADR-011 ACCEPTED; ADR-006 SUPERSEDED BY ADR-010): stale status lines annotated with dated notes (insertions only). | Claude (session 2026-10-12) |
+| 2026-10-13 | §8: owner statement that the bring-up hardware has been ordered; contents UNKNOWN — VERIFICATION REQUIRED. No hardware information added (Rule 8). | Claude (session 2026-10-13) |

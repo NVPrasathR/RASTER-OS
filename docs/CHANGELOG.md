@@ -41,6 +41,10 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - `docs/REFERENCES.md` topic L: 63 facts (56 CONFIRMED, 7 CORRECTED) on H.264 level bit-rate ceilings (ITU-T H.264 V16), CM4 and CM4 IO Board Ethernet, `bcm2835-codec` concurrency, and encoder-test commands. Register total 620 facts. Raw data: `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
 - `docs/TESTING.md` TEST-ENC-001: Stage 0 procedure (run matrix R1–R7, up to two 1080p60 encodes).
 
+**2026-10-13 — Linux check (Debian trixie, GStreamer 1.26.2)**
+- `tools/linux_check.sh`, `tools/linux_check/Dockerfile`: build the application and run the development tests in Debian trixie arm64 with Debian's GStreamer 1.26.2, the CM4's series, in a container (Colima + Docker on the Mac). Result: 5 of 5 PASS after the fix below. Not a CM4 result.
+- `smoke_drives_dev` case B can use any small filesystem (`PACS_TEST_FULL_DIR`), so it also runs on Linux.
+
 **2026-10-13 — slice C5: the drive copies compared by content; failure evidence kept**
 - `tests/mp4_same.py`: compares two MP4 files byte for byte except the header creation and modification times, which each drive's `mp4mux` takes from the wall clock. `tests/mp4_same_check.sh` (CTest `mp4_same_dev`) tests it. TESTED — PASS on the development machine only.
 - `tests/smoke_drives.sh`: keeps logs and recordings of a failed run in `$PACS_TEST_LOGDIR`. The writers log the running time at which each file starts and any frame a drive refuses.
@@ -65,6 +69,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-13: `smoke_publish_dev` publishes RTMP to a two-part URL (`…/live/rtmp`) and checks that a one-part URL is refused at start. Slice C5 was committed and pushed as `f932c0a` (`bc3c398..f932c0a`).
 - 2026-10-13: **Owner decisions** — **ADR-016 ACCEPTED** (recording drives in their own pipelines) and **OQ-133 ANSWERED**: the two drives' copies must hold the same video; byte-identical copies are not required.
 - 2026-10-13: `smoke_record_dev` and `smoke_drives_dev` compare the two drives' copies with `tests/mp4_same.py` instead of `cmp`, and print a NOTE when only the header time stamps differ (ARCH-004). Reason: a rejoining drive's first file can carry a creation time one second earlier than the other drive's copy — reproduced in 11 of 20 runs with heavy disk writing, 0 of 20 idle (SOFTWARE_ARCHITECTURE §10.2). `writer.h` comment corrected (no `queue` in the writer pipeline).
 - 2026-10-12: Slice C5 documented (SOFTWARE_ARCHITECTURE §10.2, RECORDING, TESTING, OQ-117, OQ-129, RISK-028 mitigation, REQ-REC-001). Slice C2 was committed and pushed as `bc3c398`.
@@ -177,6 +182,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Fixed
 
+- 2026-10-13: **RTMP publishing on GStreamer 1.26** (the CM4's series): `rtmp2sink` 1.26.2 refuses an RTMP URL without a stream part and then fails with "Host is not set" (1.28 accepts it). Found by the new Linux check. `--rtmp-url` is now checked at start (`rtmp[s]://host[:port]/application/stream`, exit 2 otherwise, without printing the URL).
 - 2026-10-13: Intermittent failure of `smoke_drives_dev` (2 of 17 runs on 2026-10-12, "differs between the drives"): the test compared header time stamps that the design does not keep equal; it now compares the frames and file structure. Most likely cause reproduced; the 2026-10-12 runs themselves were not kept. DEVELOPMENT_LOG.md had "Last updated 2026-10-09" despite later entries; corrected.
 - Nothing (first entry). *(Superseded 2026-10-12 — see below.)*
 - 2026-10-12: DECISIONS.md header said "3 ACCEPTED, 4 PROPOSED, 2 OPEN" after ADR-004 was accepted; corrected to 4 / 4 / 1 (found by the rebuilt documentation check).
@@ -185,6 +191,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Known Issues
 
+- *(Added 2026-10-13.)* The RTMP publisher's log lines print the full RTMP URL, including the stream key. Not yet changed (owner to decide).
 - *(Added 2026-10-13.)* The two recording drives' copies of a file are the same frames but not guaranteed byte-identical (header time stamps); whether they must be is OQ-133. *(OQ-133 ANSWERED 2026-10-13: not required — the same video is enough.)*
 - Procedure steps whose command syntax is not in the source register are marked NEEDS VERIFICATION (OQ-101).
 
@@ -235,3 +242,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-12 | Added: slice C5, `smoke_drives_dev`, ADR-016; ADR-015 accepted; `bc3c398` recorded. | Claude (session 2026-10-12) |
 | 2026-10-13 | Added: comparison of the drive copies (`mp4_same.py`, `mp4_same_dev`), failure evidence, OQ-133, ARCH-002 to ARCH-004; Changed/Fixed/Known Issues for the intermittent drive-test failure. | Claude (session 2026-10-13) |
 | 2026-10-13 | Owner decisions: ADR-016 ACCEPTED, OQ-133 ANSWERED (Changed; notes in Added and Known Issues). | Claude (session 2026-10-13) |
+| 2026-10-13 | Added: Linux check; Fixed: RTMP URLs on GStreamer 1.26; Changed: publishing test, `f932c0a` recorded; Known Issues: stream key in log lines. | Claude (session 2026-10-13) |

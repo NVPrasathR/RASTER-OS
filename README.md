@@ -16,6 +16,8 @@ It also integrates with Blackmagic ATEM switchers.
 > The repository holds the engineering rules, a verified source register and the documentation baseline. See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 >
 > *(Status 2026-10-12: product platform CM4 (ADR-004); framework GStreamer, language C, build CMake (ADR-007, ADR-013, ADR-014). The first application code (slice C1: capture, recording and live encodes, mirrored fragmented-MP4 recording) builds and passes its development tests on a Mac with a test source. **Still no hardware: nothing has run on a CM4 or a TC358743.**)*
+>
+> *(Status 2026-10-13: slices C2 (live publishing) and C5 (drive failure and return) added; all development tests also pass in Debian trixie with GStreamer 1.26.2, the CM4's series, in a container (`tools/linux_check.sh`). The bring-up hardware is on order. Still nothing has run on a CM4.)*
 
 ## Repository layout
 
@@ -25,7 +27,7 @@ It also integrates with Blackmagic ATEM switchers.
 | `app/` | The PACSCORDER application (C, GStreamer) |
 | `tests/` | Development tests (CTest) |
 | `scripts/bringup/` | CM4 / TC358743 bring-up helpers |
-| `tools/` | Repository tools (documentation check, encoder capacity test) |
+| `tools/` | Repository tools (documentation check, encoder capacity test, Linux check in Debian trixie — `tools/linux_check.sh`) |
 
 ## Build and test (development machine)
 
@@ -34,6 +36,7 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
 ./build/app/pacscorder --help
+tools/linux_check.sh          # the same in Debian trixie / GStreamer 1.26 (needs docker)
 ```
 
 Requirements and the machine used so far: [docs/BUILD_SYSTEM.md](docs/BUILD_SYSTEM.md) §2A. Before committing documentation, run `python3 tools/doccheck.py docs`.
