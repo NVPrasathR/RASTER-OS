@@ -41,7 +41,8 @@ void pacs_publisher_stop (PacsPublisher *pub);
 
 void pacs_publisher_free (PacsPublisher *pub);
 
-const gchar *pacs_publisher_url (const PacsPublisher *pub);
+/* The URL for logs: stream key, user name, password and query hidden (url_redact.h). */
+const gchar *pacs_publisher_log_url (const PacsPublisher *pub);
 guint pacs_publisher_restarts (const PacsPublisher *pub);
 
 #endif

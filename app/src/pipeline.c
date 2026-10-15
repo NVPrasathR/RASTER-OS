@@ -628,7 +628,7 @@ pacs_pipeline_run (PacsPipeline *p)
     PacsPublisher *pub = g_ptr_array_index (p->publishers, i);
 
     pacs_publisher_stop (pub);
-    g_print ("pacscorder: publisher %s: %u restart(s)\n", pacs_publisher_url (pub),
+    g_print ("pacscorder: publisher %s: %u restart(s)\n", pacs_publisher_log_url (pub),
              pacs_publisher_restarts (pub));
   }
   gst_element_set_state (p->pipeline, GST_STATE_NULL);

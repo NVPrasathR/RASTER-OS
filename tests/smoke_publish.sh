@@ -7,7 +7,8 @@
 # each must be H.264 Constrained Baseline at the capture size and about half
 # the capture rate. Then checks that the recording was not disturbed.
 # A second run publishes to a port where nothing listens: the publisher must
-# fail and retry while the recording still completes (ADR-015).
+# fail and retry while the recording still completes (ADR-015). The RTMP stream
+# key must not appear in the log (only rtmp://host/application/***).
 # First, without MediaMTX: an RTMP URL without the stream part must be refused
 # at start (exit 2) — GStreamer 1.26's rtmp2sink cannot use it (found by
 # tools/linux_check.sh, 2026-10-13).
@@ -81,7 +82,9 @@ for pair in "RTSP:$rtsp_info" "RTMP:$rtmp_info"; do
     || fail "$name stream rate is $rate, expected about 30"
 done
 grep -q 'RTSP publisher started' "$T/run.log" || fail "RTSP publisher did not report start"
-grep -q 'RTMP publisher started' "$T/run.log" || fail "RTMP publisher did not report start"
+grep -q 'RTMP publisher started: rtmp://127.0.0.1:11935/live/\*\*\*' "$T/run.log" \
+  || fail "RTMP publisher did not report start with the stream key hidden"
+! grep -q 'live/rtmp' "$T/run.log" || fail "the RTMP stream key was printed in the log"
 ls "$T/rec"/*.mp4 >/dev/null 2>&1 || fail "no recording files"
 
 # --- run 2: publisher target down; recording must still complete -------------
@@ -96,4 +99,4 @@ n2=$(ls "$T/rec2"/*.mp4 2>/dev/null | wc -l | tr -d ' ')
 
 echo "PASS (development publishing test): RTSP [$rtsp_info], RTMP [$rtmp_info];"
 echo "     with the RTSP target down the recording completed ($n2 files) and the publisher retried;"
-echo "     an RTMP URL without the stream part was refused at start"
+echo "     an RTMP URL without the stream part was refused at start; the stream key was not logged"

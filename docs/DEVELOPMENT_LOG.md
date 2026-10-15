@@ -2623,6 +2623,97 @@ Tests: Linux check (Debian 13, GStreamer 1.26.2): no warnings, ctest 5/5 PASS (f
 
 ---
 
+## 2026-10-13 (third entry) — RTMP stream key and other URL secrets kept out of the log
+
+### Objective
+
+Owner decision of 2026-10-13: "Hide the key in logs" — the RTMP publisher printed the full URL, including the destination's stream key, in its log lines.
+
+### Starting State
+
+The Linux check and the RTMP URL fix committed and pushed on the owner's instruction as **`fc76e9b`** (`f932c0a..fc76e9b`); working tree clean.
+
+### Changes
+
+1. **`app/src/url_redact.c/.h`** (new, in `pacs_core`, plain C): `pacs_url_redact` returns a copy of a URL with any `user:password@` replaced by `***@` and any query by `?***`. For `rtmp://` and `rtmps://` it also replaces the last path component, the stream key, by `***`.
+2. **`app/src/publisher.c/.h`, `pipeline.c`:** the publisher keeps only the redacted URL (`log_url`); the real URL is passed only to the sink's `location`. Every log line and error message about a publisher uses the redacted form, including the restart count at exit (`pacs_publisher_log_url`). Limit: an error text written by a GStreamer element itself is printed as is; none seen in the tests contained a URL.
+3. **Tests:**
+   - New unit test `url_redact` (11 cases).
+   - `smoke_publish_dev` requires "RTMP publisher started: rtmp://127.0.0.1:11935/live/***" and fails if the key appears anywhere in the log.
+4. **Found by the Linux check:**
+   - The first version used `strdup`, which the project's strict C11 setting does not declare with Debian's GCC; Apple clang accepted it. It now uses a local copy function.
+   - `tools/linux_check.sh` printed "no compiler warnings" and ran the tests after a failed build. Under `pipefail` the failed build turned `… | grep … || echo` into the "no warnings" branch. A failed build now prints its log and stops the check. The earlier runs were not affected: their builds succeeded and their tests ran.
+5. **Documentation:** SOFTWARE_ARCHITECTURE §10.1, TESTING, BUILD_SYSTEM §2A, CHANGELOG, PROJECT_STATUS.
+
+### Files Modified
+
+- New: `app/src/url_redact.c`, `app/src/url_redact.h`, `tests/test_url_redact.c`.
+- Changed: `app/CMakeLists.txt`, `app/src/publisher.c`, `app/src/publisher.h`, `app/src/pipeline.c`, `tests/CMakeLists.txt`, `tests/smoke_publish.sh`, `tools/linux_check.sh`; `docs/`: `BUILD_SYSTEM.md`, `CHANGELOG.md`, `DEVELOPMENT_LOG.md`, `PROJECT_STATUS.md`, `SOFTWARE_ARCHITECTURE.md`, `TESTING.md`.
+
+### Hardware Changes
+
+None.
+
+### Software Changes
+
+URL redaction in the publisher's log lines; Linux-check runner fix.
+
+### Commands Used
+
+```bash
+cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure
+build/tests/test_url_redact
+tools/linux_check.sh                       # failed to build (strdup), then 6 of 6
+python3 tools/doccheck.py docs
+```
+
+### Test Results
+
+- macOS (GStreamer 1.28.7): build with no warnings; `ctest` **6 of 6 PASS** (`h264_level`, `url_redact` 11/11, `smoke_record_dev`, `smoke_publish_dev` with the no-key check, `smoke_drives_dev`, `mp4_same_dev`).
+- Linux check (Debian trixie, GStreamer 1.26.2): first run **TESTED — FAIL** (build error, `strdup`); after the fix, build with no warnings and **6 of 6 PASS**.
+- Documentation check: PROBLEMS 0, WARNINGS 0.
+
+### Problems Found
+
+1. Strict C portability: `strdup` is not ISO C. The Mac's compiler did not catch it; the Linux check did.
+2. My `tools/linux_check.sh` from the second entry could hide a failed build behind "no compiler warnings". Fixed before it was relied on; the earlier results stand, because their tests ran against a built binary.
+
+### Root Cause
+
+See Problems Found.
+
+### Solution
+
+See Changes.
+
+### Current Status
+
+- PARTIAL: application slices C1, C2, C5 IMPLEMENTED — NOT TESTED on hardware; development tests TESTED — PASS on macOS and in Debian trixie with GStreamer 1.26.2.
+- Uncommitted, pending owner approval.
+
+### Next Step
+
+1. Owner: approve the commit below; list the ordered hardware for HARDWARE.md.
+2. Remaining slices: C3, C4 (owner questions OQ-063, OQ-111, OQ-112, OQ-113).
+3. Proposed commit (Rule 15):
+
+```text
+Commit title: fix(stream): keep the RTMP stream key and other URL secrets out of the log
+Commit description: Print publisher URLs through pacs_url_redact (app/src/url_redact.c): the RTMP
+  stream key, any user name and password, and any query are replaced by ***, so log lines show
+  rtmp://host/application/***. The publisher keeps only the redacted URL; the real one goes only
+  to the sink. Add the url_redact unit test and a no-key check in smoke_publish_dev (owner
+  decision, 2026-10-13). Make tools/linux_check.sh stop on a failed build (it reported "no
+  compiler warnings"), and avoid strdup, which strict C on Debian does not declare (both found by
+  the Linux check). Record commit fc76e9b.
+Files changed: app/**, tests/**, tools/linux_check.sh, docs/** (6 Markdown files)
+Reason: Rules 1, 3, 10, 15, 16, 17, 24
+Tests: macOS (GStreamer 1.28.7) ctest 6/6 PASS; Linux check (Debian 13, GStreamer 1.26.2) ctest
+  6/6 PASS after the strdup fix (first run: build failure); doccheck PROBLEMS 0, WARNINGS 0
+```
+
+---
+
 ## Change history
 
 | Date | Change | By |
@@ -2654,3 +2745,4 @@ Tests: Linux check (Debian 13, GStreamer 1.26.2): no warnings, ctest 5/5 PASS (f
 | 2026-10-13 | 2026-10-13 entry extended: owner decisions (commit and push; ADR-016 ACCEPTED; OQ-133 ANSWERED); proposed commit message updated before commit; tenth entry's ADR-016 line annotated. | Claude (session 2026-10-13) |
 | 2026-10-13 | 2026-10-13 second entry added: Linux check (Debian trixie, GStreamer 1.26.2), RTMP URL fault found and fixed, `f932c0a` recorded, hardware ordered (owner). | Claude (session 2026-10-13) |
 | 2026-10-13 | Second entry: owner decisions noted (commit and push; hide the RTMP stream key in logs). | Claude (session 2026-10-13) |
+| 2026-10-13 | 2026-10-13 third entry added: RTMP stream key and URL secrets hidden in log lines; Linux-check runner and `strdup` fixes; `fc76e9b` recorded. | Claude (session 2026-10-13) |

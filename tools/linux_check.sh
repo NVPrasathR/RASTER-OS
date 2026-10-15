@@ -27,7 +27,10 @@ docker run --rm --tmpfs /mnt/full:size=8m -e PACS_TEST_FULL_DIR=/mnt/full \
     echo "mediamtx $(mediamtx --version 2>&1 | head -1)"
     echo "== build"
     cmake -S /src -B /tmp/build >/dev/null
-    cmake --build /tmp/build -j "$(nproc)" 2>&1 | grep -E "warning|error" || echo "no compiler warnings"
+    if ! cmake --build /tmp/build -j "$(nproc)" >/tmp/build.log 2>&1; then
+      cat /tmp/build.log; echo "BUILD FAILED"; exit 1
+    fi
+    if grep -E "warning" /tmp/build.log; then echo "(compiler warnings above)"; else echo "no compiler warnings"; fi
     echo "== tests"
     ctest --test-dir /tmp/build --output-on-failure
   '

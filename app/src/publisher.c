@@ -4,13 +4,16 @@
 #include "publisher.h"
 
 #include <gst/app/gstappsrc.h>
+#include <stdlib.h>
+
+#include "url_redact.h"
 
 #define RESTART_DELAY_SECONDS 5
 #define APPSRC_MAX_BUFFERS 60   /* about 2 s at 30 fps; older frames are dropped */
 
 struct _PacsPublisher {
   PacsPublishKind kind;
-  gchar *url;
+  gchar *log_url;               /* secrets hidden (url_redact.h); the only form printed */
   GstElement *pipeline;
   GstElement *appsrc;
   guint bus_watch;
@@ -56,7 +59,7 @@ on_bus (GstBus *bus, GstMessage *msg, gpointer data)
   if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR) {
     gst_message_parse_error (msg, &err, &dbg);
     g_printerr ("pacscorder: %s publisher %s failed: %s; retrying in %d s "
-                "(recording continues)\n", kind_name (pub->kind), pub->url,
+                "(recording continues)\n", kind_name (pub->kind), pub->log_url,
                 err->message, RESTART_DELAY_SECONDS);
     g_atomic_int_set (&pub->running, 0);
     gst_element_set_state (pub->pipeline, GST_STATE_NULL);
@@ -65,7 +68,7 @@ on_bus (GstBus *bus, GstMessage *msg, gpointer data)
   } else if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_WARNING) {
     gst_message_parse_warning (msg, &err, &dbg);
     g_printerr ("pacscorder: %s publisher %s warning: %s\n",
-                kind_name (pub->kind), pub->url, err->message);
+                kind_name (pub->kind), pub->log_url, err->message);
   }
   g_clear_error (&err);
   g_free (dbg);
@@ -81,9 +84,11 @@ pacs_publisher_new (PacsPublishKind kind, const gchar *url,
   GstBin *bin;
   GstElement *parse, *q, *mux = NULL, *sink;
   GstBus *bus;
+  char *safe = pacs_url_redact (url);
 
   pub->kind = kind;
-  pub->url = g_strdup (url);
+  pub->log_url = g_strdup (safe ? safe : "(URL hidden)");
+  free (safe);
   pub->request_keyframe = request_keyframe;
   pub->user_data = user_data;
   pub->pipeline = gst_pipeline_new (NULL);
@@ -129,7 +134,7 @@ pacs_publisher_new (PacsPublishKind kind, const gchar *url,
 
 link_fail:
   g_set_error (error, GST_CORE_ERROR, GST_CORE_ERROR_NEGOTIATION,
-               "cannot link the %s publisher for %s", kind_name (kind), url);
+               "cannot link the %s publisher for %s", kind_name (kind), pub->log_url);
 fail:
   pacs_publisher_free (pub);
   return NULL;
@@ -146,7 +151,7 @@ start_pipeline (PacsPublisher *pub)
   if (gst_element_set_state (pub->pipeline, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE) {
     g_printerr ("pacscorder: %s publisher %s did not start; retrying in %d s\n",
-                kind_name (pub->kind), pub->url, RESTART_DELAY_SECONDS);
+                kind_name (pub->kind), pub->log_url, RESTART_DELAY_SECONDS);
     gst_element_set_state (pub->pipeline, GST_STATE_NULL);
     if (pub->restart_id == 0)
       pub->restart_id = g_timeout_add_seconds (RESTART_DELAY_SECONDS, restart, pub);
@@ -154,7 +159,7 @@ start_pipeline (PacsPublisher *pub)
   }
   g_atomic_int_set (&pub->running, 1);
   g_print ("pacscorder: %s publisher started: %s\n", kind_name (pub->kind),
-           pub->url);
+           pub->log_url);
   if (pub->request_keyframe)
     pub->request_keyframe (pub->user_data);
 }
@@ -214,14 +219,14 @@ pacs_publisher_free (PacsPublisher *pub)
     gst_object_unref (pub->pipeline);
   }
   gst_clear_object (&pub->clock);
-  g_free (pub->url);
+  g_free (pub->log_url);
   g_free (pub);
 }
 
 const gchar *
-pacs_publisher_url (const PacsPublisher *pub)
+pacs_publisher_log_url (const PacsPublisher *pub)
 {
-  return pub->url;
+  return pub->log_url;
 }
 
 guint

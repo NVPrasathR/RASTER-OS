@@ -41,6 +41,9 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 - `docs/REFERENCES.md` topic L: 63 facts (56 CONFIRMED, 7 CORRECTED) on H.264 level bit-rate ceilings (ITU-T H.264 V16), CM4 and CM4 IO Board Ethernet, `bcm2835-codec` concurrency, and encoder-test commands. Register total 620 facts. Raw data: `docs/research/2026-10-12-bitrate-network-encoder-research.json`.
 - `docs/TESTING.md` TEST-ENC-001: Stage 0 procedure (run matrix R1–R7, up to two 1080p60 encodes).
 
+**2026-10-13 — secrets kept out of the log**
+- `app/src/url_redact.c/.h` (`pacs_url_redact`): the publisher prints URLs with the RTMP stream key, any user name and password, and any query hidden (`rtmp://host/application/***`). Unit test `url_redact` (11 cases); `smoke_publish_dev` checks that the key is not in the log. Owner decision 2026-10-13.
+
 **2026-10-13 — Linux check (Debian trixie, GStreamer 1.26.2)**
 - `tools/linux_check.sh`, `tools/linux_check/Dockerfile`: build the application and run the development tests in Debian trixie arm64 with Debian's GStreamer 1.26.2, the CM4's series, in a container (Colima + Docker on the Mac). Result: 5 of 5 PASS after the fix below. Not a CM4 result.
 - `smoke_drives_dev` case B can use any small filesystem (`PACS_TEST_FULL_DIR`), so it also runs on Linux.
@@ -69,6 +72,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Changed
 
+- 2026-10-13: The Linux check and the RTMP URL fix were committed and pushed as `fc76e9b` (`f932c0a..fc76e9b`).
 - 2026-10-13: `smoke_publish_dev` publishes RTMP to a two-part URL (`…/live/rtmp`) and checks that a one-part URL is refused at start. Slice C5 was committed and pushed as `f932c0a` (`bc3c398..f932c0a`).
 - 2026-10-13: **Owner decisions** — **ADR-016 ACCEPTED** (recording drives in their own pipelines) and **OQ-133 ANSWERED**: the two drives' copies must hold the same video; byte-identical copies are not required.
 - 2026-10-13: `smoke_record_dev` and `smoke_drives_dev` compare the two drives' copies with `tests/mp4_same.py` instead of `cmp`, and print a NOTE when only the header time stamps differ (ARCH-004). Reason: a rejoining drive's first file can carry a creation time one second earlier than the other drive's copy — reproduced in 11 of 20 runs with heavy disk writing, 0 of 20 idle (SOFTWARE_ARCHITECTURE §10.2). `writer.h` comment corrected (no `queue` in the writer pipeline).
@@ -182,6 +186,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Fixed
 
+- 2026-10-13: **RTMP stream key in log lines** — hidden (`pacs_url_redact`), at the owner's request. `tools/linux_check.sh` reported "no compiler warnings" and went on to the tests when the build failed (a `pipefail` mistake); a failed build now stops the check. The Linux check also found that the first version of `url_redact.c` used `strdup`, which strict C (the project's C11 setting) does not declare on Debian; replaced.
 - 2026-10-13: **RTMP publishing on GStreamer 1.26** (the CM4's series): `rtmp2sink` 1.26.2 refuses an RTMP URL without a stream part and then fails with "Host is not set" (1.28 accepts it). Found by the new Linux check. `--rtmp-url` is now checked at start (`rtmp[s]://host[:port]/application/stream`, exit 2 otherwise, without printing the URL).
 - 2026-10-13: Intermittent failure of `smoke_drives_dev` (2 of 17 runs on 2026-10-12, "differs between the drives"): the test compared header time stamps that the design does not keep equal; it now compares the frames and file structure. Most likely cause reproduced; the 2026-10-12 runs themselves were not kept. DEVELOPMENT_LOG.md had "Last updated 2026-10-09" despite later entries; corrected.
 - Nothing (first entry). *(Superseded 2026-10-12 — see below.)*
@@ -191,7 +196,7 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 
 ### Known Issues
 
-- *(Added 2026-10-13.)* The RTMP publisher's log lines print the full RTMP URL, including the stream key. Not yet changed (owner to decide).
+- *(Added 2026-10-13.)* The RTMP publisher's log lines print the full RTMP URL, including the stream key. Not yet changed (owner to decide). *(Fixed later on 2026-10-13 — see Fixed.)*
 - *(Added 2026-10-13.)* The two recording drives' copies of a file are the same frames but not guaranteed byte-identical (header time stamps); whether they must be is OQ-133. *(OQ-133 ANSWERED 2026-10-13: not required — the same video is enough.)*
 - Procedure steps whose command syntax is not in the source register are marked NEEDS VERIFICATION (OQ-101).
 
@@ -243,3 +248,4 @@ Every meaningful change is recorded here. Versioning is semantic-style (`Unrelea
 | 2026-10-13 | Added: comparison of the drive copies (`mp4_same.py`, `mp4_same_dev`), failure evidence, OQ-133, ARCH-002 to ARCH-004; Changed/Fixed/Known Issues for the intermittent drive-test failure. | Claude (session 2026-10-13) |
 | 2026-10-13 | Owner decisions: ADR-016 ACCEPTED, OQ-133 ANSWERED (Changed; notes in Added and Known Issues). | Claude (session 2026-10-13) |
 | 2026-10-13 | Added: Linux check; Fixed: RTMP URLs on GStreamer 1.26; Changed: publishing test, `f932c0a` recorded; Known Issues: stream key in log lines. | Claude (session 2026-10-13) |
+| 2026-10-13 | Added: `url_redact`; Fixed: stream key in log lines, Linux-check runner, `strdup`; `fc76e9b` recorded. | Claude (session 2026-10-13) |

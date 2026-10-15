@@ -4,6 +4,11 @@ add_executable(test_h264_level test_h264_level.c)
 target_link_libraries(test_h264_level PRIVATE pacs_core)
 add_test(NAME h264_level COMMAND test_h264_level)
 
+# Stream keys, user names, passwords and query tokens never reach the log.
+add_executable(test_url_redact test_url_redact.c)
+target_link_libraries(test_url_redact PRIVATE pacs_core)
+add_test(NAME url_redact COMMAND test_url_redact)
+
 # End-to-end run of the recorder with the dev backend (test source + software
 # encoder). Proves the pipeline logic only; nothing about the CM4.
 add_test(NAME smoke_record_dev
